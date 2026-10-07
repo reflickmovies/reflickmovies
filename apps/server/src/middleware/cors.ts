@@ -1,6 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import cors from 'cors';
 import { allowedOrigins, isDevelopment } from '../config/env.js';
+import { ApiError } from '../utils/ApiError.js';
 
 /**
  * Matches `http://192.168.x.x:port` and friends. Only ever consulted in
@@ -40,7 +41,20 @@ export const corsMiddleware: RequestHandler = cors({
       return callback(null, true);
     }
 
-    return callback(new Error(`Origin not allowed: ${origin}`));
+    /*
+     * Rejected with an ApiError rather than a plain Error: a plain one fell through to the
+     * catch-all and answered 500 INTERNAL_ERROR, which reads like a database crash in the logs
+     * and in every status panel. The browser gets no Access-Control-Allow-Origin either way, so
+     * it still hides the response from the page - the difference is that a curl against the API
+     * now says exactly which origin is missing and from where.
+     */
+    return callback(
+      new ApiError(
+        403,
+        'CORS_ORIGIN_DENIED',
+        `Origin "${origin}" is not in WEB_ORIGIN. Add it to that variable on the API service.`,
+      ),
+    );
   },
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],

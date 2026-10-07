@@ -8,11 +8,11 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://reflick-api.onrender.com
+        value: https://reflickmovies-api.onrender.com
     routes:
       - type: rewrite
         source: /api/*
-        destination: https://reflick-api.onrender.com/api/*
+        destination: https://reflickmovies-api.onrender.com/api/*
     headers:
       - path: /*
         name: Referrer-Policy

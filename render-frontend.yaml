@@ -9,7 +9,7 @@ services:
     pullRequestPreviewsEnabled: true
     envVars:
       - key: VITE_API_URL
-        value: https://reflick-api.onrender.com
+        value: https://reflickmovies-api.onrender.com
     headers:
       - path: /*
         name: Referrer-Policy
@@ -23,4 +23,4 @@ services:
     routes:
       - type: rewrite
         source: /api/*
-        destination: https://reflick-api.onrender.com/api/*
+        destination: https://reflickmovies-api.onrender.com/api/*

@@ -14,7 +14,7 @@ services:
       - key: PORT
         value: 10000
       - key: WEB_ORIGIN
-        value: https://reflickmovies-web.onrender.com,https://reflick-web.onrender.com
+        value: https://www.reflickmovies.linkpc.net,https://reflickmovies-web.onrender.com,https://reflick-web.onrender.com
       - key: MONGODB_DB_NAME
         value: reflick
       - key: TMDB_LANG
@@ -30,11 +30,11 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://reflick-api.onrender.com
+        value: https://reflickmovies-api.onrender.com
     routes:
       - type: rewrite
         source: /api/*
-        destination: https://reflick-api.onrender.com/api/*
+        destination: https://reflickmovies-api.onrender.com/api/*
     headers:
       - path: /*
         name: Referrer-Policy
