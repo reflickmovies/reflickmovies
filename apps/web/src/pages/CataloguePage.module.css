@@ -1,7 +1,7 @@
 /*
- * Films, Series, Kids and Popular.
+ * Films, Series and Popular.
  *
- * One module for all four because they are one screen with different filters. The layout is
+ * One module for all three because they are one screen with different filters. The layout is
  * deliberately thin: header, grid, sentinel. Everything with real structure lives in
  * `components/page` and `components/titles`, so this file holds only the page's own spacing.
  *

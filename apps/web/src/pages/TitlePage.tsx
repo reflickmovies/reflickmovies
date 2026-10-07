@@ -16,7 +16,7 @@ import { TitleShelf, TitleShelfSkeleton } from '../components/titles';
 import { EpisodeRow, SeasonHeader, SeasonPicker } from '../components/watch';
 import { Notice } from '../components/page';
 import { formatAirDate, formatSeasonLabel, formatYear, typeLabel } from '../lib/format';
-import { KIDS_GENRE, ROUTES, watchPath } from '../lib/routes';
+import { ROUTES, watchPath } from '../lib/routes';
 import type { Episode, Season, TitleType } from '../types/api';
 import styles from './TitlePage.module.css';
 
@@ -401,12 +401,9 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
  * *this show* a grid of unrelated films, which is the opposite of what the genre matched.
  *
  * Films and series go to their own listing because that is what a reader means by "more horror
- * films" on a film page; Kids is excluded from the series listing because Family is a genre that
- * spans both types and `/series?genre=10751` would otherwise be a plausible-looking destination
- * with nothing behind it.
+ * films" on a film page.
  */
 function genrePath(type: TitleType, genreId: number): string {
-  if (genreId === KIDS_GENRE) return ROUTES.kids;
   return `${type === 'tv' ? ROUTES.series : ROUTES.films}?genre=${genreId}`;
 }
 

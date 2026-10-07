@@ -129,7 +129,7 @@ export function HomePage() {
    * Shelves, in server order, empties dropped.
    *
    * There is no local type filter here, and no row of category links above the hero either.
-   * That row duplicated the header's destination row exactly - same five labels, same order,
+   * That row duplicated the header's destination row exactly - same four labels, same order,
    * both at the top of the screen - so having it twice meant "where am I" had two answers.
    * Narrowing the catalogue belongs on the catalogue pages, where sort and filter live in
    * the URL.

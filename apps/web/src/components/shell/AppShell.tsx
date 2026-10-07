@@ -11,7 +11,6 @@ import {
   House,
   MagnifyingGlass,
   Moon,
-  Smiley,
   Sun,
   Target,
   Television,
@@ -45,7 +44,6 @@ const TOP_NAV: Array<{ id: string; label: string; to: string; icon: Icon }> = [
   { id: 'explore', label: 'Explore', to: ROUTES.explore, icon: Compass },
   { id: 'movies', label: 'Movies', to: ROUTES.films, icon: FilmSlate },
   { id: 'series', label: 'Series', to: ROUTES.series, icon: Television },
-  { id: 'kids', label: 'Kids', to: ROUTES.kids, icon: Smiley },
 ];
 
 /**
@@ -439,8 +437,8 @@ export function AppShell() {
         whatever route the reader arrived on, and reads the same way in all three.
 
         The rail and a crowded header pill row were the two mobile problems - the rail
-        collapsed to a three-column card wedged above the content, and five pills plus
-        three action icons could not share one line. The capsule keeps the five
+        collapsed to a three-column card wedged above the content, and four pills plus
+        three action icons could not share one line. The capsule keeps the four
         destinations together, and the header keeps search, theme and a dots menu for the
         rest.
 

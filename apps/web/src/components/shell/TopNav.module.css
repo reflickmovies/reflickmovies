@@ -171,7 +171,7 @@
 
 @media (max-width: 767px) {
   /*
-   * Below this width five destinations plus three action icons cannot both fit, so the group
+   * Below this width four destinations plus three action icons cannot both fit, so the group
    * gives up its centring and takes only the leftover space, scrolling if it must.
    */
   .categoryGroup {
@@ -228,7 +228,7 @@
 }
 
 @media (max-width: 1023px) {
-  /* The five destination pills move to the bottom tab bar; the dots menu carries the rest. */
+  /* The four destination pills move to the bottom tab bar; the dots menu carries the rest. */
   .categoryGroup {
     display: none;
   }

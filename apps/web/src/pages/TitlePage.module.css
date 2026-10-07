@@ -493,23 +493,25 @@
 }
 
 /*
- * One episode per row, two once there is room for them.
+ * Two episodes per row, everywhere, up to the widths where `auto-fit` can afford more.
  *
- * This was a single-column flex list, which meant the "responsive two-column" rule that already
- * existed in `components/watch/watch.module.css` never ran anywhere - it was written against a
- * `.episodeList` class that no component renders, because both pages define their own. A season of
- * ten episodes was therefore always a single tall column, and on a wide screen half the page was
- * empty beside it.
+ * This was a single-column list below 900px, which on a phone meant one card per screen and a
+ * season of ten was a very long scroll. Two columns fit even at 360px - the cards become stacked
+ * tiles, which is what `watch.module.css` sizes them for. Above 900px `auto-fit` with a `340px`
+ * floor takes over so the count follows the available width instead of being pinned at two and
+ * leaving a wide gap on a large display.
  *
- * `minmax(340px, 1fr)` with `auto-fit` rather than a fixed `repeat(2, 1fr)` so the count follows
- * the available width instead of being pinned at two and leaving a wide gap on a large display.
- * The `340px` floor is the point where the still plus the synopsis stop fitting on one line; below
- * it the card stacks, which the row itself handles at 768px.
+ * `container-type: inline-size` makes this list the size container the episode rows query: the row
+ * switches between stacked, a 148px still and a 200px still by *card* width, which the two-column
+ * layout puts at half the viewport on a phone. Byte-for-byte the same rule as the watch page's -
+ * both render the same `EpisodeRow`, and two containers describing the same layout is how a card
+ * ends up different on one page than on the other.
  */
 .episodeList {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-md);
+  container-type: inline-size;
 }
 
 @media (min-width: 900px) {
@@ -569,9 +571,13 @@
   color: var(--lp-text-muted);
 }
 
+/*
+ * The loading placeholder matches the list it is standing in for: two columns with the same gap,
+ * so the season does not reshuffle itself from one card per row to two the moment the rows land.
+ */
 .episodeSkeletons {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-md);
 }
 

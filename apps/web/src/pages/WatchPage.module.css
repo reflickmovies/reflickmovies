@@ -374,14 +374,20 @@
 /*
  * The episode grid.
  *
+ * Two columns from the smallest phone up - a single column here meant one episode per screen on
+ * mobile - with `auto-fit` above 900px taking the count from the available width. The
+ * `container-type` is what lets `.episodeRow` switch its own layout by card width instead of
+ * viewport width, which the two-column list makes half the viewport on a phone.
+ *
  * Byte-for-byte the same rule as the title page's `.episodeList`, deliberately. Both render the
  * same `EpisodeRow`, and two containers describing the same layout is how a card ends up 340px wide
  * on one page and full-width on the other. If this layout needs to change, it should change in both.
  */
 .episodeList {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-md);
+  container-type: inline-size;
 }
 
 @media (min-width: 900px) {

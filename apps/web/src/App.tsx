@@ -54,7 +54,6 @@ export function App() {
                 {/* Catalogue */}
                 <Route path="films" element={<CataloguePage kind="films" />} />
                 <Route path="series" element={<CataloguePage kind="series" />} />
-                <Route path="kids" element={<CataloguePage kind="kids" />} />
 
                 {/* Detail and search */}
                 <Route path="film/:slug" element={<TitlePage type="movie" />} />

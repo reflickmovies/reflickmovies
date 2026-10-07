@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { MagnifyingGlass, Warning } from '@phosphor-icons/react';
 import { useGenres } from '../hooks/useReflick';
 import { useInfiniteBrowse } from '../hooks/useInfiniteBrowse';
-import { KIDS_GENRE, ROUTES } from '../lib/routes';
+import { ROUTES } from '../lib/routes';
 import { SORT_LABELS, isSort } from '../types/api';
 import type { Sort, TitleType } from '../types/api';
 import { TitleGrid, TitleGridSkeleton } from '../components/titles';
@@ -13,17 +13,16 @@ import styles from './CataloguePage.module.css';
 /**
  * One listing page, parameterised by route.
  *
- * Films, Series, Kids and Popular are the same screen with different filters, so they are one
- * component rather than four files that would drift apart. Each route passes its own kind.
+ * Films, Series and Popular are the same screen with different filters, so they are one
+ * component rather than three files that would drift apart. Each route passes its own kind.
  */
 export interface CataloguePageProps {
-  kind: 'films' | 'series' | 'kids' | 'popular';
+  kind: 'films' | 'series' | 'popular';
 }
 
 const COPY: Record<CataloguePageProps['kind'], { title: string; empty: string; type?: TitleType }> = {
   films: { title: 'Movies', empty: 'No films yet.', type: 'movie' },
   series: { title: 'Series', empty: 'No series yet.', type: 'tv' },
-  kids: { title: 'Kids', empty: 'Nothing in Kids yet.' },
   popular: { title: 'Popular', empty: 'Nothing is trending yet.' },
 };
 
@@ -46,15 +45,8 @@ export function CataloguePage({ kind }: CataloguePageProps) {
   const sortParam = searchParams.get('sort');
   const sort: Sort = isSort(sortParam) ? sortParam : 'trending';
 
-  /*
-    Kids is a genre rather than a type, so its genre filter is not optional: on every other
-    page "All" removes the genre, but here the Family genre is the page. Offering it as a
-    removable chip would leave the page showing unfiltered titles under a "Kids" heading.
-  */
-  const isKids = kind === 'kids';
-
   const genreParam = Number(searchParams.get('genre'));
-  const genre = isKids ? KIDS_GENRE : Number.isInteger(genreParam) && genreParam > 0 ? genreParam : null;
+  const genre = Number.isInteger(genreParam) && genreParam > 0 ? genreParam : null;
 
   const update = useCallback(
     (mutate: (params: URLSearchParams) => void) => {
@@ -74,13 +66,12 @@ export function CataloguePage({ kind }: CataloguePageProps) {
 
   const setGenre = useCallback(
     (next: number | null) => {
-      if (isKids) return;
       update((params) => {
         if (next != null) params.set('genre', String(next));
         else params.delete('genre');
       });
     },
-    [isKids, update],
+    [update],
   );
 
   /*
@@ -105,9 +96,6 @@ export function CataloguePage({ kind }: CataloguePageProps) {
       if (seen.has(row.name)) return false;
       seen.add(row.name);
 
-      // Kids is scoped by page, so the Family chip there is a no-op; hide it.
-      if (isKids && row.tmdbId === KIDS_GENRE) return false;
-
       return row.titleCount > 0;
     });
 
@@ -121,7 +109,7 @@ export function CataloguePage({ kind }: CataloguePageProps) {
       },
       ...usable.map((row) => ({ value: row.tmdbId, label: row.name, count: row.titleCount })),
     ];
-  }, [genres, isKids]);
+  }, [genres]);
 
   /*
     A genre in the URL that the catalogue no longer holds - a typo, a bookmark from before a
@@ -147,9 +135,7 @@ export function CataloguePage({ kind }: CataloguePageProps) {
         title={copy.title}
         action={
           <>
-            {isKids ? null : (
-              <FilterChips value={selectedGenre} options={genreOptions} onChange={setGenre} />
-            )}
+            <FilterChips value={selectedGenre} options={genreOptions} onChange={setGenre} />
             {/* Offered on every list, including Popular, which defaults to trending. */}
             <SortTabs value={sort} onChange={setSort} options={SORT_LABELS} />
           </>

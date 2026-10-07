@@ -24,7 +24,6 @@ export const ROUTES = {
   settings: '/settings',
   films: '/films',
   series: '/series',
-  kids: '/kids',
   search: '/search',
 } as const;
 
@@ -42,9 +41,6 @@ export function watchPath(type: TitleType, slug: string, position?: { season?: n
   if (position.episode != null) params.set('episode', String(position.episode));
   return `${base}?${params.toString()}`;
 }
-
-/** TMDB genre 10751, "Family". Kids is a genre rather than a type, so it spans both. */
-export const KIDS_GENRE = 10751;
 
 export function searchPath(query: string): string {
   const trimmed = query.trim();

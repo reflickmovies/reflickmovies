@@ -362,14 +362,22 @@
  * cards everywhere else on the page - and rows that stretch the full width gave a series page a very
  * different rhythm from a film page, where everything is a rounded tile.
  *
+ * Stacked by default: the still sits above the text, which is what a card looks like at the widths
+ * a two-column list produces on a phone. The side-by-side arrangements arrive through container
+ * queries rather than media queries, because what matters here is how wide *this card* is, not how
+ * wide the viewport is - the same viewport yields a half-width card in the mobile two-column list
+ * and a full-width one wherever the list is single-column. A viewport query therefore picked the
+ * arrangement for the wrong box: at 768px it sized a 200px still for a card that was only ~350px
+ * wide, leaving the synopsis ~100px to live in.
+ *
  * `minmax(0, 1fr)` on the text track is the horizontal-scroll fix: a bare `1fr` is
  * `minmax(auto, 1fr)`, so the track is sized by its content's min-content width and one episode
  * with a long unbroken title would push the row wider than the page.
  */
 .episodeRow {
   display: grid;
-  grid-template-columns: 148px minmax(0, 1fr);
-  gap: var(--space-lg);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
   padding: var(--space-md);
   border: 1px solid var(--ep-line);
   border-radius: 20px;
@@ -396,25 +404,24 @@
 }
 
 /*
- * Two columns once there is room for them.
+ * Side by side once the card clears 320px: below that the still would take the row and leave the
+ * title nowhere to go. 148px is the compact still; the 200px one waits for 460px of card, where
+ * the text track still has room after the wider image and the roomier padding.
  *
- * On a season of twenty the single column was a very long ribbon; at this width each card still has
- * room for a readable title and synopsis. `auto-fit` with a `340px` floor means the layout responds
- * to the container rather than the viewport, so it stays two-up in a narrow sidebar and reflows
- * without a media query when the shell is resized.
+ * The queries are unnamed, so they resolve against the nearest size container - `.episodeList` on
+ * both pages, which sets `container-type: inline-size`.
  */
-@media (min-width: 768px) {
+@container (min-width: 320px) {
   .episodeRow {
-    grid-template-columns: 200px minmax(0, 1fr);
-    padding: var(--space-lg);
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: var(--space-lg);
   }
 }
 
-/* Below this the thumbnail is not worth its row and the text needs the width. */
-@media (max-width: 460px) {
+@container (min-width: 460px) {
   .episodeRow {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-sm);
+    grid-template-columns: 200px minmax(0, 1fr);
+    padding: var(--space-lg);
   }
 }
 
