@@ -32,6 +32,15 @@ export function createApp(): Express {
   app.use(requestId);
   app.use(accessLog);
 
+  /*
+   * Every route this API owns lives under /api, so a bare `/` used to fall through to
+   * the 404 handler. Hosting platforms probe `/` to decide the service is live, and a
+   * 404 there reads as a crash - answer the probe instead.
+   */
+  app.get('/', (_req, res) => {
+    res.status(200).json({ status: 'ok', service: 'reflick-api', api: API_PREFIX });
+  });
+
   app.use(API_PREFIX, generalLimiter, router);
 
   // Nothing outside /api is ours. Answer in the API's own shape, never an HTML page.

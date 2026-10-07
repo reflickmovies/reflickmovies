@@ -93,11 +93,7 @@ function cspPlugin(origins: string[]): Plugin {
  * hits the moment its project hostname changes, because every project gets its own
  * subdomain. Listed once and used by both servers so the two lists cannot drift.
  */
-const APP_HOSTS = [
-  'reflickmovies-web.onrender.com',
-  'reflick-web.onrender.com',
-  'movies.reflick.linkpc.net',
-];
+const APP_HOSTS = ['www.reflickmovies.linkpc.net'];
 
 /**
  * The dev server proxies /api to Express, so the browser only ever talks to one
