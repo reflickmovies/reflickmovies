@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
   Compass,
@@ -19,6 +20,7 @@ import {
 import type { Icon } from '@phosphor-icons/react';
 import { ROUTES } from '../../lib/routes';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
+import { useSpringIndicator } from '../../hooks/useSpringIndicator';
 import { useThemeMode } from './ThemeMode';
 import { SearchOverlay, SearchOverlayButton, useSearchOverlay } from './SearchOverlayTrigger';
 import { ContinueWatching } from './ContinueWatching';
@@ -45,6 +47,20 @@ const TOP_NAV: Array<{ id: string; label: string; to: string; icon: Icon }> = [
   { id: 'series', label: 'Series', to: ROUTES.series, icon: Television },
   { id: 'kids', label: 'Kids', to: ROUTES.kids, icon: Smiley },
 ];
+
+/**
+ * How far a horizontal drag across the bottom capsule must travel before it counts as a swipe.
+ *
+ * Below this the gesture is a tap that wobbled, and navigating on it would fire on every
+ * thumb that lands slightly off centre. The vertical allowance is a ratio rather than a
+ * second distance: a drag across a bar only 50px tall cannot be both long and horizontal
+ * unless the horizontal half clearly dominates.
+ */
+const TAB_SWIPE_MIN_DX = 40;
+const TAB_SWIPE_VERTICAL_SLACK = 1.4;
+
+/** How long a swipe keeps swallowing the click the browser fires after `touchend`. */
+const TAB_SWIPE_CLICK_GUARD = 500;
 
 /**
  * The permanent frame: rail on the left, header plus one scrollport on the right.
@@ -116,6 +132,75 @@ export function AppShell() {
     };
   }, [menuOpen]);
 
+  const navigate = useNavigate();
+
+  /*
+    Spring fills: one for the header's destination pills, one for the bottom capsule. Both
+    are a single absolutely-positioned span whose geometry the hook measures, so the red
+    fill travels between tabs with an overshoot instead of blinking off one link and on to
+    the next.
+  */
+  const topIndicator = useSpringIndicator();
+  const tabIndicator = useSpringIndicator();
+
+  /*
+    Swipe across the bottom capsule to move between destinations.
+
+    Only the horizontal half of the gesture is read. A vertical drag is someone trying to
+    scroll the page under the bar, and a tap that barely moves is a tap - so the gesture
+    counts only when it clears both distances, and the destination only changes when the
+    swipe actually lands somewhere new.
+  */
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const swipedAtRef = useRef(0);
+
+  const handleTabTouchStart = (event: ReactTouchEvent<HTMLElement>): void => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTabTouchEnd = (event: ReactTouchEvent<HTMLElement>): void => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start) return;
+
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) < TAB_SWIPE_MIN_DX || Math.abs(dx) < Math.abs(dy) * TAB_SWIPE_VERTICAL_SLACK) return;
+
+    /*
+      The current tab is read from `aria-current` rather than tracked as state: it is what
+      React Router already writes on the matching link, it cannot drift from the route, and
+      it keeps the gesture working without another source of truth for "where am I".
+    */
+    const container = tabIndicator.containerRef.current;
+    const tabs = container ? Array.from(container.querySelectorAll('a')) : [];
+    const current = tabs.findIndex((tab) => tab.getAttribute('aria-current') === 'page');
+    if (current === -1) return;
+
+    const target = Math.min(Math.max(current + (dx < 0 ? 1 : -1), 0), TOP_NAV.length - 1);
+    const destination = TOP_NAV[target];
+    if (target === current || !destination) return;
+
+    swipedAtRef.current = Date.now();
+    navigate(destination.to);
+  };
+
+  /*
+    After a swipe the browser still fires a click on whatever tab the finger lifted from,
+    which would navigate back to the tab just left. Swallowing that click for the next half
+    second is what makes the swipe and the tap mutually exclusive; outside that window the
+    guard is inert and ordinary taps pass through.
+  */
+  const handleTabClickCapture = (event: ReactMouseEvent<HTMLElement>): void => {
+    if (Date.now() - swipedAtRef.current > TAB_SWIPE_CLICK_GUARD) return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   return (
     <div className={styles.shellRoot ?? ''} data-theme={theme}>
       <div className={styles.shellContainer ?? ''}>
@@ -186,7 +271,17 @@ export function AppShell() {
                 <img src="/reflick-logo.svg" alt="" />
               </Link>
 
-              <nav className={topNavStyles.categoryGroup ?? ''} aria-label="Sections">
+              <nav
+                ref={topIndicator.containerRef}
+                className={topNavStyles.categoryGroup ?? ''}
+                aria-label="Sections"
+              >
+                <span
+                  ref={topIndicator.indicatorRef}
+                  className={topNavStyles.categoryIndicator ?? ''}
+                  style={topIndicator.indicatorStyle}
+                  aria-hidden
+                />
                 {TOP_NAV.map((item) => (
                   <NavLink
                     key={item.id}
@@ -338,15 +433,33 @@ export function AppShell() {
 
         A floating bottom capsule, matching the header's destination group rather than a
         full-bleed tab strip: an inset rounded pill hovering over the content, with each
-        destination as a nested pill that fills red when active. The rail and a crowded
-        header pill row were the two mobile problems - the rail collapsed to a three-column
-        card wedged above the content, and five pills plus three action icons could not
-        share one line. The capsule keeps the five destinations together, and the header
-        keeps search, theme and a dots menu for the rest.
+        destination as a nested pill. The red fill behind the active pill is one element
+        that springs between tabs, and a horizontal swipe across the capsule walks the
+        selection one destination at a time - so the bar is driven by a tap, a swipe, or
+        whatever route the reader arrived on, and reads the same way in all three.
+
+        The rail and a crowded header pill row were the two mobile problems - the rail
+        collapsed to a three-column card wedged above the content, and five pills plus
+        three action icons could not share one line. The capsule keeps the five
+        destinations together, and the header keeps search, theme and a dots menu for the
+        rest.
 
         Mirrors `TOP_NAV` so the primary destinations read the same on every screen.
       */}
-      <nav className={styles.mobileTabBar ?? ''} aria-label="Primary navigation">
+      <nav
+        ref={tabIndicator.containerRef}
+        className={styles.mobileTabBar ?? ''}
+        aria-label="Primary navigation"
+        onTouchStart={handleTabTouchStart}
+        onTouchEnd={handleTabTouchEnd}
+        onClickCapture={handleTabClickCapture}
+      >
+        <span
+          ref={tabIndicator.indicatorRef}
+          className={styles.mobileTabIndicator ?? ''}
+          style={tabIndicator.indicatorStyle}
+          aria-hidden
+        />
         {TOP_NAV.map((item) => (
           <NavLink
             key={item.id}
@@ -358,7 +471,7 @@ export function AppShell() {
           >
             {({ isActive }) => (
               <>
-                <item.icon size={20} weight={isActive ? 'fill' : 'bold'} aria-hidden />
+                <item.icon size={18} weight={isActive ? 'fill' : 'bold'} aria-hidden />
                 <span>{item.label}</span>
               </>
             )}

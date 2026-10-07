@@ -111,6 +111,7 @@
    * stretching when the side tracks are wider than the destinations.
    */
   justify-self: center;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -133,6 +134,41 @@
   display: none;
 }
 
+/*
+ * The red fill behind the active destination, as one element that springs between pills
+ * rather than a background that appears on whichever link happens to be active.
+ *
+ * `useSpringIndicator` owns its geometry - `width`, `height` and `transform` arrive as inline
+ * style, because the pills are as wide as their labels and no stylesheet can predict that. The
+ * transition runs on those three properties with `--motion-spring`, whose overshoot is what
+ * makes the fill swing slightly past the next pill and settle back, the way the iOS tab bar
+ * behaves instead of sliding in a straight line.
+ *
+ * It sits below the links (`z-index: 0` against their `1`), so the label never rides on top of
+ * a fill that is halfway across the group.
+ */
+.categoryIndicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  opacity: 0;
+  border-radius: 9999px;
+  background-color: var(--lp-accent-red);
+  pointer-events: none;
+  will-change: transform, width;
+  transition: transform var(--motion-spring-duration) var(--motion-spring),
+    width var(--motion-spring-duration) var(--motion-spring),
+    height var(--motion-spring-duration) var(--motion-spring),
+    opacity var(--motion-base) var(--motion-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .categoryIndicator {
+    transition: none;
+  }
+}
+
 @media (max-width: 767px) {
   /*
    * Below this width five destinations plus three action icons cannot both fit, so the group
@@ -145,6 +181,8 @@
 }
 
 .categoryPill {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -165,18 +203,16 @@
 }
 
 /*
- * Active destination.
+ * Active destination: white on the indicator's red fill.
  *
- * Red fill plus white text, which is two cues rather than one. React Router adds `aria-current`
- * to the link, so assistive technology gets the state without the colour carrying it alone.
+ * The pill itself stays transparent - the sliding fill is doing the colouring, so the move
+ * between two pills is one element travelling rather than one background disappearing as
+ * another appears. Two cues rather than one: React Router adds `aria-current` to the link, so
+ * assistive technology gets the state without the colour carrying it alone.
  */
-.categoryPillActive {
-  background-color: var(--lp-accent-red);
-  color: #ffffff;
-}
-
+.categoryPillActive,
 .categoryPillActive:hover {
-  background-color: var(--lp-red-hover);
+  background-color: transparent;
   color: #ffffff;
 }
 

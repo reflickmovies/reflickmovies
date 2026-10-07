@@ -96,6 +96,14 @@ export const MOTION = {
   SLOW: '320ms',
   EASE: 'cubic-bezier(0.2, 0, 0, 1)',
   EASE_OUT: 'cubic-bezier(0.16, 1, 0.3, 1)',
+  /**
+   * Overshooting ease that reads as an Apple-style spring: the value passes its
+   * target, swings back and settles. Only useful with `SPRING_DURATION`, because
+   * the overshoot needs room to happen before the element has to be somewhere.
+   */
+  SPRING: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  /** Long enough for the spring to overshoot and settle rather than snap. */
+  SPRING_DURATION: '520ms',
 } as const;
 
 export const Z_INDEX = {
@@ -163,4 +171,6 @@ export const layoutVariables = {
   '--motion-slow': MOTION.SLOW,
   '--motion-ease': MOTION.EASE,
   '--motion-ease-out': MOTION.EASE_OUT,
+  '--motion-spring': MOTION.SPRING,
+  '--motion-spring-duration': MOTION.SPRING_DURATION,
 } as const;

@@ -72,15 +72,14 @@
 
 /* ---------------------------------------------------------------- Wall */
 
+/*
+ * Two columns from the smallest phone up. One column made each tile as wide as the viewport,
+ * which is a lot of poster for a 360px screen and pushed the second title below the fold for
+ * no gain - the tiles are short enough that two of them read side by side.
+ */
 .wall {
-  column-count: 1;
+  column-count: 2;
   column-gap: var(--space-lg);
-}
-
-@media (min-width: 560px) {
-  .wall {
-    column-count: 2;
-  }
 }
 
 @media (min-width: 900px) {

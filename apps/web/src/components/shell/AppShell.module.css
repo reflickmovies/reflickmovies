@@ -376,10 +376,11 @@ min-width: 0;
 
   /*
    * The tab bar is `position: fixed`, so it floats over the scrollport. Without clearance the
-   * last row of content sits permanently underneath it.
+   * last row of content sits permanently underneath it. The bar is compact - 3px ring, 6px tab
+   * padding - so this is the bottom offset plus the safe-area inset, with a little air above.
    */
   .shellScroll {
-    padding-bottom: 84px;
+    padding-bottom: 76px;
   }
 }
 
@@ -392,38 +393,75 @@ min-width: 0;
  *
  * The same recipe as the header's destination group: an inset, fully rounded, bordered and
  * shadowed pill that hovers over the content instead of a `border-top` band welded to the
- * viewport edge. The inner 4px padding ring is what makes the tabs read as capsules nested
+ * viewport edge. The inner 3px padding ring is what makes the tabs read as capsules nested
  * inside one larger capsule, mirroring the top nav.
  *
- * The inset uses `env(safe-area-inset-bottom)` so the bar clears the iOS home indicator, and
- * `inset-inline` gives it side gutters rather than spanning edge to edge.
+ * The side gutters are `--space-xl` rather than the page gutter: a capsule that reaches almost
+ * to the screen edges reads as a bar with rounded corners, and the margin is what makes the
+ * bar read as an object lying on top of the page. `--space-md` clears the iOS home indicator.
+ *
+ * `touch-action: pan-y` hands vertical drags to the browser and keeps horizontal ones - a
+ * swipe across the capsule switches destination rather than scrolling anything.
  */
 @media (max-width: 1023px) {
   .mobileTabBar {
     position: fixed;
-    inset-inline: var(--space-md);
-    bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+    inset-inline: var(--space-xl);
+    bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
     z-index: 60;
     display: flex;
     align-items: stretch;
     gap: 2px;
-    padding: 4px;
+    padding: 3px;
     border-radius: 9999px;
     background-color: var(--lp-surface);
     border: 1px solid var(--lp-line);
     box-shadow: var(--lp-card-shadow);
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+/*
+ * The red fill, sliding between tabs on a spring - the same element and the same easing as the
+ * header's destination group, so both bars move the same way. Geometry arrives inline from
+ * `useSpringIndicator`; the tab widths are whatever equal fractions of the bar come to, which
+ * changes with the safe-area inset and the viewport.
+ */
+.mobileTabIndicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  opacity: 0;
+  border-radius: 9999px;
+  background-color: var(--lp-accent-red);
+  pointer-events: none;
+  will-change: transform, width;
+  transition: transform var(--motion-spring-duration) var(--motion-spring),
+    width var(--motion-spring-duration) var(--motion-spring),
+    height var(--motion-spring-duration) var(--motion-spring),
+    opacity var(--motion-base) var(--motion-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobileTabIndicator {
+    transition: none;
   }
 }
 
 .mobileTab {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex: 1;
   min-width: 0;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 8px 4px;
+  gap: 2px;
+  padding: 6px 4px;
   border-radius: 9999px;
   color: var(--lp-text-muted);
   text-decoration: none;
@@ -438,17 +476,14 @@ min-width: 0;
 }
 
 /*
- * Active tab: red fill plus white text, the same two-cue treatment as the header's active
- * pill. React Router's `aria-current` carries the state for assistive technology, so colour
- * is never the only signal.
+ * Active tab: white on the indicator's fill, the same two-cue treatment as the header's active
+ * pill. The pill keeps no background of its own - the fill behind it is what turns red - and
+ * keeps none on hover either, or a grey hover wash would sit over the red. React Router's
+ * `aria-current` carries the state for assistive technology, so colour is never the only signal.
  */
-.mobileTabActive {
-  background-color: var(--lp-accent-red);
-  color: #ffffff;
-}
-
+.mobileTabActive,
 .mobileTabActive:hover {
-  background-color: var(--lp-red-hover);
+  background-color: transparent;
   color: #ffffff;
 }
 
