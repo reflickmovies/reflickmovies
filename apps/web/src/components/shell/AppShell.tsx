@@ -336,10 +336,12 @@ export function AppShell() {
       {/*
         Mobile primary navigation.
 
-        A bottom tab bar, not a stacked rail or a crowded pill row. The rail and the top pills
-        were the two mobile problems: the rail collapsed to a three-column card wedged above the
-        content and pushed everything down, and the pill row had five pills plus three action
-        icons competing for one line. Tabs for the five catalogue destinations, and the header
+        A floating bottom capsule, matching the header's destination group rather than a
+        full-bleed tab strip: an inset rounded pill hovering over the content, with each
+        destination as a nested pill that fills red when active. The rail and a crowded
+        header pill row were the two mobile problems - the rail collapsed to a three-column
+        card wedged above the content, and five pills plus three action icons could not
+        share one line. The capsule keeps the five destinations together, and the header
         keeps search, theme and a dots menu for the rest.
 
         Mirrors `TOP_NAV` so the primary destinations read the same on every screen.

@@ -399,9 +399,8 @@ export function WatchPage({ type }: WatchPageProps) {
       : 'Streaming is not switched on for this site at the moment, so there is nothing to load here. Please try again later.';
 
   /*
-    One notice, rendered twice: under the frame and above the episode list. It only appears when
-    there is genuinely somewhere to switch to - with a single source "switch to another server"
-    is an instruction with no answer.
+    One notice, under the frame. It only appears when there is genuinely somewhere to switch
+    to - with a single source "switch to another server" is an instruction with no answer.
   */
   const serverNotice =
     resolved.length > 1 ? (
@@ -573,8 +572,6 @@ export function WatchPage({ type }: WatchPageProps) {
                 }}
               />
             </div>
-
-            {serverNotice}
 
             {episodesLoading ? (
               <div className={styles.loadingRow ?? ''}>

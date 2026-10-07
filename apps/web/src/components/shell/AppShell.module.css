@@ -365,8 +365,9 @@ min-width: 0;
 /* ---------------------------------------------------------------- Mobile nav */
 
 /*
- * Below 1024px the rail is gone and a bottom tab bar takes over primary navigation. The pills
- * in the header stay on desktop only, where they do not have to share a line with a rail.
+ * Below 1024px the rail is gone and a floating bottom capsule takes over primary navigation.
+ * The pills in the header stay on desktop only, where they do not have to share a line with a
+ * rail.
  */
 @media (max-width: 1023px) {
   .sidebarColumn {
@@ -386,20 +387,31 @@ min-width: 0;
   display: none;
 }
 
+/*
+ * A floating capsule, not a full-bleed strip.
+ *
+ * The same recipe as the header's destination group: an inset, fully rounded, bordered and
+ * shadowed pill that hovers over the content instead of a `border-top` band welded to the
+ * viewport edge. The inner 4px padding ring is what makes the tabs read as capsules nested
+ * inside one larger capsule, mirroring the top nav.
+ *
+ * The inset uses `env(safe-area-inset-bottom)` so the bar clears the iOS home indicator, and
+ * `inset-inline` gives it side gutters rather than spanning edge to edge.
+ */
 @media (max-width: 1023px) {
   .mobileTabBar {
     position: fixed;
-    inset-inline: 0;
-    bottom: 0;
+    inset-inline: var(--space-md);
+    bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
     z-index: 60;
     display: flex;
     align-items: stretch;
     gap: 2px;
-    padding: var(--space-xs) var(--space-sm);
-    padding-bottom: max(var(--space-xs), env(safe-area-inset-bottom));
+    padding: 4px;
+    border-radius: 9999px;
     background-color: var(--lp-surface);
-    border-top: 1px solid var(--lp-line);
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--lp-line);
+    box-shadow: var(--lp-card-shadow);
   }
 }
 
@@ -411,8 +423,8 @@ min-width: 0;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  padding: 7px 2px;
-  border-radius: 12px;
+  padding: 8px 4px;
+  border-radius: 9999px;
   color: var(--lp-text-muted);
   text-decoration: none;
   font-size: 0.6875rem;
@@ -425,8 +437,19 @@ min-width: 0;
   background-color: var(--lp-pill-inactive);
 }
 
+/*
+ * Active tab: red fill plus white text, the same two-cue treatment as the header's active
+ * pill. React Router's `aria-current` carries the state for assistive technology, so colour
+ * is never the only signal.
+ */
 .mobileTabActive {
-  color: var(--lp-accent-red);
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+}
+
+.mobileTabActive:hover {
+  background-color: var(--lp-red-hover);
+  color: #ffffff;
 }
 
 /*
