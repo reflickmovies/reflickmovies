@@ -16,17 +16,14 @@ export interface WatchPageProps {
 }
 
 /**
- * Provider key prefixes for the quiet sources.
+ * Provider key prefix for the source that stays quiet.
  *
- * Bingr is the preferred source: it is pinned first in the server's providers repository
- * (`PREFERRED_PROVIDER_PREFIX` there), so it is what a reader lands on. The client mirror list
- * below is only used to decide whether switching *away* to another server deserves a warning.
- *
- * Filmu is no longer preferred, but it is still quiet: it is mirrored behind the API's own origin
- * with its ad layer stripped (see `EMBED_MIRROR`), so switching to it needs no warning either.
+ * Bingr is pinned first in the server's providers repository (`PREFERRED_PROVIDER_PREFIX` there),
+ * so it is what a reader lands on and what we steer people back to. It is the only source that
+ * never triggers the switch-away warning; every other selection - Filmu included - gets a toast
+ * that points at Bingr.
  */
 const PREFERRED_SOURCE_PREFIX = 'bingr-';
-const AD_FREE_SOURCE_PREFIXES = ['filmu-'];
 
 /**
  * The player page.
@@ -141,29 +138,25 @@ export function WatchPage({ type }: WatchPageProps) {
   );
 
   /*
-    Picking a source outside the quiet list says so out loud first.
+    Picking anything other than Bingr says so "use Bingr" out loud first.
 
-    Bingr is the pinned default and Filmu is mirrored clean of its ad layer; every other host
-    embeds whatever its origin serves, which for some of them is a large volume of ads. The
-    reader cannot tell that from a name like "VIDOUT" in a dropdown, and the moment they land in
-    an ad wall is the moment the warning would be useless - so it is pushed on the switch itself,
-    only for a real user selection. Automatic fallback after a failed source stays silent: the
-    reader is already being moved off something broken and has no choice to inform them about.
+    Bingr is the pinned default; every other host embeds whatever its origin serves, which for some
+    of them is a large volume of ads. The reader cannot tell that from a name like "VIDOUT" in a
+    dropdown, and the moment they land in an ad wall is the moment the warning would be useless - so
+    it is pushed on the switch itself, only for a real user selection. Automatic fallback after a
+    failed source stays silent: the reader is already being moved off something broken and has no
+    choice to inform them about.
   */
   const { push: pushToast } = useToast();
 
   const handleSelectServer = useCallback(
     (key: string) => {
-      const quiet =
-        key.startsWith(PREFERRED_SOURCE_PREFIX) ||
-        AD_FREE_SOURCE_PREFIXES.some((prefix) => key.startsWith(prefix));
-
-      if (key !== activeServerKey && !quiet) {
+      if (key !== activeServerKey && !key.startsWith(PREFERRED_SOURCE_PREFIX)) {
         pushToast({
           tone: 'warning',
-          title: 'This server may serve ads',
+          title: 'Use Bingr to stay ad-free',
           description:
-            'Bingr is the preferred source and Filmu is mirrored without ads. The other servers can serve a lot of ads, so an ad blocker is recommended while you use this one.',
+            'Bingr is the recommended source. The other servers can carry ads and popups, so an ad blocker is a good idea while you use this one.',
           durationMs: 6_000,
         });
       }
