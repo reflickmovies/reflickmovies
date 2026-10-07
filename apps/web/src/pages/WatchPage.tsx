@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, SkipBack, SkipForward, Warning } from '@phosphor-icons/react';
+import { ArrowLeft, Info, SkipBack, SkipForward, Warning } from '@phosphor-icons/react';
 import { useEpisodes, useSeasons, useServers, useTitle, useReportServer } from '../hooks/useReflick';
 import { Button, EmptyState, ErrorState, Spinner, useToast } from '../components/ui';
 import { EpisodeRow, SeasonPicker, SourcePicker, VideoPlayer } from '../components/watch';
@@ -14,16 +14,6 @@ import styles from './WatchPage.module.css';
 export interface WatchPageProps {
   type: TitleType;
 }
-
-/**
- * Provider key prefix for the source that stays quiet.
- *
- * Bingr is pinned first in the server's providers repository (`PREFERRED_PROVIDER_PREFIX` there),
- * so it is what a reader lands on and what we steer people back to. It is the only source that
- * never triggers the switch-away warning; every other selection - Filmu included - gets a toast
- * that points at Bingr.
- */
-const PREFERRED_SOURCE_PREFIX = 'bingr-';
 
 /**
  * The player page.
@@ -49,8 +39,16 @@ export function WatchPage({ type }: WatchPageProps) {
 
   const isSeries = type === 'tv';
 
-  const seasonParam = Number(searchParams.get('season'));
-  const episodeParam = Number(searchParams.get('episode'));
+  /*
+    `Number(null)` is 0, so a missing param used to read as season 0 - "Specials" - and the
+    defaulting effect below, which only fires when the season is genuinely absent, never ran.
+    Every series therefore opened on a season the picker showed as unselected, and the reader had
+    to choose one by hand. An absent or empty param has to stay absent.
+  */
+  const seasonRaw = searchParams.get('season');
+  const episodeRaw = searchParams.get('episode');
+  const seasonParam = seasonRaw === null || seasonRaw === '' ? Number.NaN : Number(seasonRaw);
+  const episodeParam = episodeRaw === null || episodeRaw === '' ? Number.NaN : Number(episodeRaw);
 
   const season = isSeries && Number.isInteger(seasonParam) && seasonParam >= 0 ? seasonParam : undefined;
   const episode = isSeries && Number.isInteger(episodeParam) && episodeParam > 0 ? episodeParam : undefined;
@@ -137,33 +135,11 @@ export function WatchPage({ type }: WatchPageProps) {
     [servers, activeServerKey],
   );
 
-  /*
-    Picking anything other than Bingr says so "use Bingr" out loud first.
-
-    Bingr is the pinned default; every other host embeds whatever its origin serves, which for some
-    of them is a large volume of ads. The reader cannot tell that from a name like "VIDOUT" in a
-    dropdown, and the moment they land in an ad wall is the moment the warning would be useless - so
-    it is pushed on the switch itself, only for a real user selection. Automatic fallback after a
-    failed source stays silent: the reader is already being moved off something broken and has no
-    choice to inform them about.
-  */
   const { push: pushToast } = useToast();
 
-  const handleSelectServer = useCallback(
-    (key: string) => {
-      if (key !== activeServerKey && !key.startsWith(PREFERRED_SOURCE_PREFIX)) {
-        pushToast({
-          tone: 'warning',
-          title: 'Use Bingr to stay ad-free',
-          description:
-            'Bingr is the recommended source. The other servers can carry ads and popups, so an ad blocker is a good idea while you use this one.',
-          durationMs: 6_000,
-        });
-      }
-      setActiveServerKey(key);
-    },
-    [activeServerKey, pushToast],
-  );
+  const handleSelectServer = useCallback((key: string) => {
+    setActiveServerKey(key);
+  }, []);
 
   /*
     Popup prevented → toast.
@@ -422,6 +398,22 @@ export function WatchPage({ type }: WatchPageProps) {
       ? 'None of the sources we have can play this title right now. It may still turn up later, or another title might be available straight away.'
       : 'Streaming is not switched on for this site at the moment, so there is nothing to load here. Please try again later.';
 
+  /*
+    One notice, rendered twice: under the frame and above the episode list. It only appears when
+    there is genuinely somewhere to switch to - with a single source "switch to another server"
+    is an instruction with no answer.
+  */
+  const serverNotice =
+    resolved.length > 1 ? (
+      <p className={styles.streamNotice ?? ''}>
+        <Info size={15} weight="fill" aria-hidden />
+        <span>
+          <strong>Important notice:</strong> If the current server doesn't work, please try switching
+          to another server using the buttons above. Some servers may take a few seconds to load.
+        </span>
+      </p>
+    ) : null;
+
   return (
     <div className={styles.page ?? ''}>
       <header className={styles.bar ?? ''}>
@@ -544,6 +536,8 @@ export function WatchPage({ type }: WatchPageProps) {
           )}
         </div>
 
+        {serverNotice}
+
         </div>
 
         {/*
@@ -579,6 +573,8 @@ export function WatchPage({ type }: WatchPageProps) {
                 }}
               />
             </div>
+
+            {serverNotice}
 
             {episodesLoading ? (
               <div className={styles.loadingRow ?? ''}>

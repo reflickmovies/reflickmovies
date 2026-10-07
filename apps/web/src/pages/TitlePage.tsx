@@ -45,8 +45,13 @@ export function TitlePage({ type }: TitlePageProps) {
 
   const isSeries = type === 'tv';
 
-  const seasonParam = Number(searchParams.get('season'));
-  const episodeParam = Number(searchParams.get('episode'));
+  // `Number(null)` is 0: a missing season param used to land here as season 0 ("Specials"),
+  // which is not null, so the default-to-first-season effect below never fired and the picker
+  // opened unselected. Absent stays absent so the fallback can choose the first real season.
+  const seasonRaw = searchParams.get('season');
+  const episodeRaw = searchParams.get('episode');
+  const seasonParam = seasonRaw === null || seasonRaw === '' ? Number.NaN : Number(seasonRaw);
+  const episodeParam = episodeRaw === null || episodeRaw === '' ? Number.NaN : Number(episodeRaw);
 
   const [season, setSeason] = useState<number | null>(
     Number.isInteger(seasonParam) && seasonParam >= 0 ? seasonParam : null,

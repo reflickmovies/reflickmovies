@@ -207,6 +207,42 @@
   box-shadow: var(--lp-card-shadow);
 }
 
+/*
+ * The "try another server" notice.
+ *
+ * Rendered twice - directly under the frame and again above the episode list - so the answer to
+ * "this embed is dead" is on screen whether the reader is looking at the player or down at the
+ * episode grid. Kept to one compact line-box: meta size, a single sentence per clause and a
+ * muted surface, so it sits inside the player's width without pushing the episodes below the
+ * fold or competing with the frame for attention.
+ */
+.streamNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--lp-line);
+  border-radius: 12px;
+  background-color: var(--lp-surface);
+  box-shadow: var(--lp-card-shadow);
+  font-size: var(--font-size-meta);
+  line-height: 1.5;
+  color: var(--lp-text-muted);
+}
+
+/* `flex-shrink: 0` so the icon keeps its size while the sentence wraps around it. */
+.streamNotice svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--lp-accent-red);
+}
+
+.streamNotice strong {
+  font-weight: 700;
+  color: var(--lp-text);
+}
+
 .fallback {
   display: flex;
   flex-direction: column;

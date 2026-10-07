@@ -52,7 +52,7 @@ export interface WatchEntry {
   watchedAt: number;
 }
 
-/** Stable key per title, so re-watching a film moves it rather than duplicating it. */
+/** Stable key per title, so watching anything again moves that title rather than duplicating it. */
 function keyOf(type: TitleType, slug: string): string {
   return `${type}:${slug}`;
 }
@@ -110,28 +110,43 @@ function write(entries: WatchEntry[]): void {
 /**
  * Records a visit, newest first, de-duplicated by title.
  *
- * Re-watching an episode updates that episode's timestamp rather than adding a second
- * row, which is what makes "the latest four" mean four distinct things.
+ * One row per title, full stop: opening episode 4 of a series moves that series to the top of
+ * the list and replaces the position it was showing, rather than adding a second row for the
+ * same show. The old key included season and episode, so bingeing a season produced a rail of
+ * eight near-identical cards and pushed every other title out of the visible four - and the
+ * "latest four" meant four episodes of one series rather than four different things.
  */
 export function recordWatch(entry: Omit<WatchEntry, 'watchedAt'>): void {
   const next: WatchEntry = { ...entry, watchedAt: Date.now() };
 
   const existing = read().filter(
-    (candidate) =>
-      // Same title, and for series the same position: a different episode is a new entry.
-      keyOf(candidate.type, candidate.slug) !== keyOf(next.type, next.slug) ||
-      candidate.season !== next.season ||
-      candidate.episode !== next.episode,
+    (candidate) => keyOf(candidate.type, candidate.slug) !== keyOf(next.type, next.slug),
   );
 
   write([next, ...existing].slice(0, MAX_ENTRIES));
 }
 
-/** Newest four entries, which is what the sidebar renders. */
+/**
+ * Newest entries, one per title, capped for the caller.
+ *
+ * Sorted before de-duplicating, so the surviving row for a series is the episode that was
+ * actually opened most recently - not whichever one happened to sit first in storage. The
+ * de-dupe also covers history written before the per-title key existed: entries recorded
+ * episode-by-episode collapse to their newest row on the next read instead of lingering
+ * until they are individually re-watched.
+ */
 export function recentWatches(limit = 4): WatchEntry[] {
-  return read()
-    .sort((a, b) => b.watchedAt - a.watchedAt)
-    .slice(0, limit);
+  const seen = new Set<string>();
+  const unique: WatchEntry[] = [];
+
+  for (const entry of read().sort((a, b) => b.watchedAt - a.watchedAt)) {
+    const key = keyOf(entry.type, entry.slug);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(entry);
+  }
+
+  return unique.slice(0, limit);
 }
 
 export function clearWatchHistory(): void {
