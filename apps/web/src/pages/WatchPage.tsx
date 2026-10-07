@@ -16,12 +16,17 @@ export interface WatchPageProps {
 }
 
 /**
- * The provider key prefix for Filmu, the preferred source.
+ * Provider key prefixes for the quiet sources.
  *
- * Mirrors `PREFERRED_PROVIDER_PREFIX` in the server's providers repository: the client only
- * needs it to tell the reader which host is the quiet one before they switch away from it.
+ * Bingr is the preferred source: it is pinned first in the server's providers repository
+ * (`PREFERRED_PROVIDER_PREFIX` there), so it is what a reader lands on. The client mirror list
+ * below is only used to decide whether switching *away* to another server deserves a warning.
+ *
+ * Filmu is no longer preferred, but it is still quiet: it is mirrored behind the API's own origin
+ * with its ad layer stripped (see `EMBED_MIRROR`), so switching to it needs no warning either.
  */
-const PREFERRED_SOURCE_PREFIX = 'filmu-';
+const PREFERRED_SOURCE_PREFIX = 'bingr-';
+const AD_FREE_SOURCE_PREFIXES = ['filmu-'];
 
 /**
  * The player page.
@@ -136,9 +141,9 @@ export function WatchPage({ type }: WatchPageProps) {
   );
 
   /*
-    Picking a source other than Filmu says so out loud first.
+    Picking a source outside the quiet list says so out loud first.
 
-    Filmu is the only host here that does not carry an ad load of its own; every alternative
+    Bingr is the pinned default and Filmu is mirrored clean of its ad layer; every other host
     embeds whatever its origin serves, which for some of them is a large volume of ads. The
     reader cannot tell that from a name like "VIDOUT" in a dropdown, and the moment they land in
     an ad wall is the moment the warning would be useless - so it is pushed on the switch itself,
@@ -149,12 +154,16 @@ export function WatchPage({ type }: WatchPageProps) {
 
   const handleSelectServer = useCallback(
     (key: string) => {
-      if (key !== activeServerKey && !key.startsWith(PREFERRED_SOURCE_PREFIX)) {
+      const quiet =
+        key.startsWith(PREFERRED_SOURCE_PREFIX) ||
+        AD_FREE_SOURCE_PREFIXES.some((prefix) => key.startsWith(prefix));
+
+      if (key !== activeServerKey && !quiet) {
         pushToast({
           tone: 'warning',
-          title: 'This server may serve a large volume of ads',
+          title: 'This server may serve ads',
           description:
-            'Filmu is the preferred source. The other servers can serve a lot of ads, so an ad blocker is recommended while you use this one.',
+            'Bingr is the preferred source and Filmu is mirrored without ads. The other servers can serve a lot of ads, so an ad blocker is recommended while you use this one.',
           durationMs: 6_000,
         });
       }
@@ -162,6 +171,49 @@ export function WatchPage({ type }: WatchPageProps) {
     },
     [activeServerKey, pushToast],
   );
+
+  /*
+    Popup prevented → toast.
+
+    The mirrored player's guard freezes `window.open` and new-window navigation inside the frame
+    and reports each block with a `postMessage`; a cross-origin frame is also allowed to call
+    `window.top.open`, which lands on the app's own frozen `window.open`, so that path reports
+    itself through a custom event instead. Both funnel into one throttled toast, so a player that
+    fires several popups on load surfaces once rather than as a wall of toasts.
+  */
+  useEffect(() => {
+    let lastToastAt = 0;
+
+    const onPopupBlocked = () => {
+      const now = Date.now();
+      if (now - lastToastAt < 8_000) return;
+      lastToastAt = now;
+      pushToast({
+        tone: 'warning',
+        title: 'Blocked a pop-up',
+        description: 'The player tried to open a new tab or window; Reflick stopped it.',
+        durationMs: 5_000,
+      });
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (
+        event.source instanceof Window &&
+        typeof event.data === 'object' &&
+        event.data !== null &&
+        event.data.type === 'reflick:popup-blocked'
+      ) {
+        onPopupBlocked();
+      }
+    };
+
+    window.addEventListener('message', onMessage);
+    window.addEventListener('reflick:popup-blocked', onPopupBlocked);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      window.removeEventListener('reflick:popup-blocked', onPopupBlocked);
+    };
+  }, [pushToast]);
 
   /*
     Record this visit once the title is known, so "Continue watching" reflects what was actually

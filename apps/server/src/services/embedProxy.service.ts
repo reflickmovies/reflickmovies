@@ -77,9 +77,21 @@ export async function fetchUpstream(pathWithQuery: string): Promise<MirrorRespon
  * What it cannot see from inside the frame is `window.top.open(...)`, which the browser allows a
  * cross-origin frame to call on the parent - the app freezes its own `window.open` for that - or a
  * top-level `location` assignment, which the app's navigation guard already detects and undoes.
+ *
+ * Every block is reported to the parent with a `postMessage`, so the player's popups surface as a
+ * toast instead of being invisible. `window.parent` is the only reference that works from a framed
+ * document regardless of origin; the parent only reacts to the exact `type` it expects.
  */
 const GUARD = `<script>(function(){
-  var noop = function () { return null; };
+  var lastReportAt = 0;
+  function report() {
+    var now = Date.now();
+    if (now - lastReportAt < 3000) return;
+    lastReportAt = now;
+    try { window.parent.postMessage({ type: 'reflick:popup-blocked' }, '*'); } catch (e) {}
+  }
+
+  var noop = function () { report(); return null; };
   try { Object.defineProperty(window, 'open', { value: noop, writable: false, configurable: false }); }
   catch (e) { window.open = noop; }
 
@@ -95,13 +107,13 @@ const GUARD = `<script>(function(){
   document.addEventListener('click', function (event) {
     if (event.defaultPrevented) return;
     var target = attr(event.target, 'target');
-    if (target && target !== '_self') { event.preventDefault(); event.stopPropagation(); }
+    if (target && target !== '_self') { event.preventDefault(); event.stopPropagation(); report(); }
   }, true);
 
   document.addEventListener('submit', function (event) {
     var form = event.target;
     var target = form && form.getAttribute ? String(form.getAttribute('target') || '').toLowerCase() : '';
-    if (target && target !== '_self') event.preventDefault();
+    if (target && target !== '_self') { event.preventDefault(); report(); }
   }, true);
 })();</script>`;
 

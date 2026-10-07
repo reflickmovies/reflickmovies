@@ -63,14 +63,11 @@ function embedOrigins(): string[] {
  * files in production. Helmet sets it for the API in `apps/server/src/app.ts`, but the web build is
  * static files and has no server of its own.
  */
-function cspPlugin(origins: string[], apiOrigin: string): Plugin {
+function cspPlugin(origins: string[], apiOrigin: string, apiTarget: string): Plugin {
   const shared = [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    // `'self'` covers the mirrored player, which the dev server proxies onto this origin and
-    // which production loads from the API's own origin - hence `apiOrigin` when there is one.
-    `frame-src 'self' ${origins.join(' ')}${apiOrigin ? ` ${apiOrigin}` : ''}`,
     "img-src 'self' data: blob: https://image.tmdb.org",
     "media-src 'self' blob:",
     "font-src 'self' https://fonts.gstatic.com",
@@ -83,13 +80,19 @@ function cspPlugin(origins: string[], apiOrigin: string): Plugin {
     transformIndexHtml(html, ctx) {
       const dev = ctx.server !== undefined;
 
+      /* The mirrored player is not proxied (see `server.proxy` below), so the frame can only be
+       * the API origin itself - the API URL in development, `apiOrigin` in a deployed build. */
+      const frameSrc = dev
+        ? `frame-src 'self' ${origins.join(' ')} ${apiTarget}`
+        : `frame-src 'self' ${origins.join(' ')}${apiOrigin ? ` ${apiOrigin}` : ''}`;
+
       const connectSrc = dev
         ? "connect-src 'self' ws: wss:"
         : `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''}`;
 
       const directives = dev
-        ? [...shared, "script-src 'self' 'unsafe-inline'", connectSrc]
-        : [...shared, "script-src 'self'", connectSrc];
+        ? [...shared, frameSrc, "script-src 'self' 'unsafe-inline'", connectSrc]
+        : [...shared, frameSrc, "script-src 'self'", connectSrc];
 
       const tag = `<meta http-equiv="Content-Security-Policy" content="${directives.join('; ')}" />`;
 
@@ -121,13 +124,10 @@ export default defineConfig(({ mode }) => {
    */
   const env = loadEnv(mode, here, '');
   const apiOrigin = (env.VITE_API_URL ?? '').replace(/\/+$/, '');
-
-  // Everything the API owns travels through one target: the public API, and - in development -
-  // the mirrored player paths (`/movie`, `/tv`, `/assets`), which Express answers directly.
   const apiTarget = process.env.VITE_API_TARGET ?? 'http://localhost:4000';
 
   return {
-    plugins: [react(), cspPlugin(embedOrigins(), apiOrigin)],
+    plugins: [react(), cspPlugin(embedOrigins(), apiOrigin, apiTarget)],
     server: {
       // `host: true` binds every interface, not just loopback, so a phone on the
       // same Wi-Fi can load the app at http://<lan-ip>:5173.
@@ -135,13 +135,13 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: true,
       proxy: {
+        // Only the API's own routes are proxied. The mirrored player paths (`/movie`, `/tv`,
+        // `/assets`) deliberately are not: vite preview inherits `server.proxy`, and a `/assets`
+        // proxy would shadow the site's own built assets on the deployed host.
         '/api': {
           target: apiTarget,
           changeOrigin: true,
         },
-        '/movie': { target: apiTarget, changeOrigin: true },
-        '/tv': { target: apiTarget, changeOrigin: true },
-        '/assets': { target: apiTarget, changeOrigin: true },
       },
       allowedHosts: APP_HOSTS,
     },

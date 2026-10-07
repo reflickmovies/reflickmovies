@@ -49,8 +49,9 @@ const BASE = `${API_ORIGIN}/api`;
  * replays the page and its module graph under its own origin with a guard injected first, so the
  * frame is pointed at the mirror instead of the provider.
  *
- * In development the same path is served through the dev server's proxy - `/movie`, `/tv` and
- * `/assets` are forwarded like `/api` is - so a local session never needs the API's origin.
+ * The frame always loads the mirror straight from the API - `VITE_API_TARGET` in development, the
+ * API origin in a deployed build. The mirror paths are deliberately not proxied by the dev server
+ * (`/assets` would shadow the site's own built assets, and vite preview inherits the proxy list).
  */
 const MIRRORED_EMBED_HOSTS = new Set(['embed.filmu.in']);
 
@@ -64,10 +65,14 @@ export function playerUrl(raw: string): string {
   }
 
   if (!MIRRORED_EMBED_HOSTS.has(url.hostname)) return raw;
-  if (import.meta.env.DEV) return `${url.pathname}${url.search}`;
+
+  const devTarget = import.meta.env.VITE_API_TARGET ?? 'http://localhost:4000';
+  if (import.meta.env.DEV) return `${devTarget}${url.pathname}${url.search}`;
+
   // A production build without `VITE_API_URL` has no API origin to mirror through; fall back to
   // the provider rather than pointing the frame at our own static host, which serves no such path.
   if (!API_ORIGIN) return raw;
+
   return `${API_ORIGIN}${url.pathname}${url.search}`;
 }
 

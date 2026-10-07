@@ -17,9 +17,13 @@ applyTheme();
  * A mirrored embed still runs third-party code, and the browser lets a cross-origin frame call
  * methods on the parent window - `window.top.open(...)` is reachable from inside the frame, so
  * freezing `window.open` inside the frame alone would leave that door open. Reflick never opens a
- * window itself, so the parent freezes it too, before any frame exists to call it.
+ * window itself, so the parent freezes it too, before any frame exists to call it. The popup it
+ * just blocked is reported as an event so the watch page can surface it as a toast.
  */
-window.open = () => null;
+window.open = () => {
+  window.dispatchEvent(new CustomEvent('reflick:popup-blocked'));
+  return null;
+};
 
 const container = document.getElementById('root');
 
