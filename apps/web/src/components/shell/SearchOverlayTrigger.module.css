@@ -1,0 +1,120 @@
+/*
+ * The rail's search trigger.
+ *
+ * Underlined and flush left, for the same reason it is not a filled pill: there is nothing nested
+ * inside the rail card to paint over, so an underline is enough to read as an input-shaped thing.
+ *
+ * Only `border-color` and `color` transition. `transition: all` interpolated `background-color`
+ * and the icon colour together on every hover, which made the row wobble.
+ */
+
+/*
+ * A small centred control, not a full-width field.
+ *
+ * This was `width: 130px` sitting flush left in a 270px rail, which was wrong twice: too narrow
+ * to hold the label and the shortcut side by side, and stranded against one edge of a card that
+ * has its own left padding. It also carried the label "Search" next to a magnifying glass, which
+ * says the same thing twice.
+ *
+ * Now: centred on its own line, sized to its content, 32px tall, with the glyph carrying the
+ * meaning and a `title` for the tooltip. The `/` badge stays because an advertised shortcut is
+ * the only reason anyone discovers it.
+ *
+ * The width is an explicit 176px rather than `fit-content`. Sizing to the content made the row
+ * as wide as its text, which is narrower than the nav rows it sits above and read as an
+ * undersized control rather than a deliberate one. 176px is about one and a half times that
+ * content width: enough that the row has the same visual weight as a nav item and the label and
+ * the shortcut have air around them, still short enough to leave the rail's own gutters intact.
+ * `max-width: 100%` keeps it safe in the collapsed mobile rail, where the row is much narrower
+ * and the label truncates instead of overflowing.
+ */
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  width: 176px;
+  max-width: 100%;
+  height: 34px;
+  padding-inline: 12px;
+  margin-inline: auto;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text-muted);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+.trigger:hover {
+  border-bottom-color: var(--lp-text-faint);
+  color: var(--lp-text);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--lp-accent-red);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/*
+ * The label takes the slack; the shortcut key never shrinks.
+ *
+ * `flex: 1` on the label is what spreads the label and the `/` badge to the ends of the control,
+ * so the row reads as one piece rather than as an icon with some text beside it. The key is
+ * `flex-shrink: 0`, because a `/` badge that collapses is worse than a label that truncates -
+ * it would read as a rendering fault rather than a narrow rail.
+ */
+.triggerLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Below the rail breakpoint the row goes full width.
+ *
+ * The collapsed rail is a bar across the bottom of the screen, so the centred 176px pill would sit
+ * as a small island in a wide strip. Filling the strip is what looks intentional there.
+ */
+@media (max-width: 1023px) {
+  .trigger {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+}
+
+/*
+ * The advertised shortcut.
+ *
+ * Sits in the row rather than only in the overlay, so `/` is discoverable before it is used.
+ */
+.triggerKey {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 5px;
+  border-radius: 6px;
+  background-color: var(--lp-pill-inactive);
+  border: 1px solid var(--lp-line);
+  font-family: var(--font-family-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--lp-text-faint);
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+
+.trigger:hover .triggerKey {
+  background-color: var(--lp-pill-inactive-hover);
+  color: var(--lp-accent-red);
+}

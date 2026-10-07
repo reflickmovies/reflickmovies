@@ -1,0 +1,264 @@
+/**
+ * The top bar: logo on the left, primary destinations dead centre, account on the right.
+ *
+ * No search styling lives here. Search belongs to the rail card so the app has exactly one
+ * search input; an earlier version duplicated it into this bar, which produced two competing
+ * controls and squeezed the destinations between them.
+ */
+
+/*
+ * Header container.
+ *
+ * Rounded and bordered like every other surface - the rail card, the shelf cards, the
+ * destination group - rather than the full-bleed band with a bottom rule it replaced. A
+ * single rule across the full viewport width read as a structural divider belonging to the
+ * page, while a bordered rounded card reads as one more object in the right-hand column
+ * beside the rail.
+ *
+ * `flex-shrink: 0` is load-bearing. As a flex child of `.shellMain` it defaults to
+ * `flex-shrink: 1`, so with long content below it the header would compress toward zero
+ * height and the destination row would start clipping. Pinning it keeps its height fixed and
+ * lets the sibling scrollport absorb the difference.
+ *
+ * No `position: sticky` and no `top`: the document never scrolls (the shell is height-locked
+ * to `100dvh` with `overflow: hidden`), so sticky would be inert here. The header is fixed
+ * because it lives outside the only scrollport on the page.
+ *
+ * Three tracks, not flex. `1fr auto 1fr` gives the centre track exactly the width of the
+ * destinations and splits the remainder evenly either side, so the group sits on the header's
+ * true midpoint. Under flex, centring the group with `margin-inline: auto` balanced it against
+ * whatever space was left over, which put it visibly off-centre by the difference between the
+ * logo and the profile button.
+ */
+.topNav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: 32px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .topNav {
+    border-radius: 24px;
+    padding-inline: var(--space-md);
+    gap: var(--space-sm);
+  }
+}
+
+/*
+ * The logo.
+ *
+ * Mobile only. On desktop the rail carries the wordmark, and a second copy here meant "Reflick"
+ * appeared twice on one screen with no reason for the duplication - so this track is empty and
+ * the destinations stay centred on the header's midpoint regardless.
+ *
+ * `grid-column` is declared on all three header children for the same reason: an item set to
+ * `display: none` is not a grid item, and auto-placement would slide the next child into the
+ * freed track. Pinning the columns means hiding one empties its track instead of reshuffling
+ * the row.
+ */
+.brand {
+  grid-column: 1;
+  display: none;
+  justify-self: start;
+  min-width: 0;
+  text-decoration: none;
+}
+
+/* The same red text SVG the rail and the tab icon use, sized for the compact header. */
+.brand img {
+  display: block;
+  height: 17px;
+  width: auto;
+}
+
+.brand:hover img {
+  opacity: 0.85;
+}
+
+@media (max-width: 1023px) {
+  /* Where the rail is not rendered, the wordmark needs a home in the header. */
+  .brand {
+    display: block;
+  }
+}
+
+/* ---------------------------------------------------------------- Destinations */
+
+/*
+ * One bordered group, so "where am I" is answerable at a glance.
+ *
+ * These are links now rather than the old in-place filter buttons. They were visually
+ * identical to links but only narrowed shelves below, which meant a genuine "Movies" page
+ * could never also exist. The active treatment is the same segmented-control look, because
+ * that part read correctly.
+ */
+.categoryGroup {
+  grid-column: 2;
+  /*
+   * No `margin-inline: auto`. The header grid's `1fr auto 1fr` does the centring, and doing it
+   * here as well would centre the group against the leftover space instead of the header,
+   * re-introducing the off-centre placement the grid exists to remove.
+   *
+   * `justify-self: center` keeps it centred inside its own track, which is what stops it
+   * stretching when the side tracks are wider than the destinations.
+   */
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  min-width: 0;
+  /*
+   * Scrolls rather than wraps. A wrapped second row would double the header height and eat
+   * into the content area on short viewports.
+   */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.categoryGroup::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  /*
+   * Below this width five destinations plus three action icons cannot both fit, so the group
+   * gives up its centring and takes only the leftover space, scrolling if it must.
+   */
+  .categoryGroup {
+    margin-inline: 0;
+    flex: 1;
+  }
+}
+
+.categoryPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 9px 18px;
+  border-radius: 9999px;
+  text-decoration: none;
+  color: var(--lp-text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.categoryPill:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text);
+}
+
+/*
+ * Active destination.
+ *
+ * Red fill plus white text, which is two cues rather than one. React Router adds `aria-current`
+ * to the link, so assistive technology gets the state without the colour carrying it alone.
+ */
+.categoryPillActive {
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+}
+
+.categoryPillActive:hover {
+  background-color: var(--lp-red-hover);
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------------------- Mobile nav */
+
+/*
+ * `.mobileAction` renders only below 1024px and `.hideOnMobile` only above it, so the header can
+ * carry a compact mobile cluster - search, theme, the dots menu - without the desktop pills and
+ * inert bell/profile controls competing for the same row.
+ */
+.mobileAction {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  /* The five destination pills move to the bottom tab bar; the dots menu carries the rest. */
+  .categoryGroup {
+    display: none;
+  }
+
+  /*
+   * The grid keeps its three tracks. The centre one is simply empty here, which is what holds the
+   * logo and the actions against the two edges - collapsing to two tracks would leave the actions
+   * auto-placed into the freed column and stranded in the middle.
+   */
+  .mobileAction {
+    display: inline-flex;
+  }
+
+  .hideOnMobile {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- Actions */
+
+.actions {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.circleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+  color: var(--lp-text);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.circleButton:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}
+
+.profileButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--lp-text-muted);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+.profileButton:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}

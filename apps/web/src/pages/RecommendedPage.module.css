@@ -1,0 +1,132 @@
+/*
+ * Recommended.
+ *
+ * Reads the shell's `--lp-*` tokens only. The page has no palette of its own, which is what
+ * lets it follow the theme toggle without duplicating the dark/light blocks.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xl);
+}
+
+/* ---------------------------------------------------------------- Summary */
+
+/*
+ * The evidence line.
+ *
+ * Small and faint, and positioned as a lead-in above the shelves rather than a disclaimer at
+ * the bottom. It is the part that makes the shelves claim checkable, so it belongs with them.
+ */
+.summary {
+  margin-top: calc(var(--space-lg) * -1);
+  font-size: 0.875rem;
+  color: var(--lp-text-faint);
+}
+
+/* ---------------------------------------------------------------- Empty */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+  padding: var(--space-3xl) var(--space-2xl);
+  border-radius: 28px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  color: var(--lp-accent-red);
+}
+
+.empty h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--lp-text);
+}
+
+.empty p {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--lp-text-muted);
+  max-width: 56ch;
+}
+
+/* The "nothing watched yet" caveat, quieter than the paragraph above it. */
+.emptyMeta {
+  color: var(--lp-text-faint) !important;
+  font-size: 0.875rem !important;
+}
+
+.emptyActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: var(--space-sm);
+}
+
+.primaryAction,
+.secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding-inline: 22px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.primaryAction {
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+}
+
+.primaryAction:hover {
+  background-color: var(--lp-red-hover);
+}
+
+.secondaryAction {
+  border: 1px solid var(--lp-line);
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+}
+
+.secondaryAction:hover {
+  color: var(--lp-accent-red);
+}
+
+/* ---------------------------------------------------------------- Reload */
+
+/*
+ * Retry, next to the header it belongs to.
+ *
+ * Only rendered when a lookup actually failed. An always-present retry button implies the page
+ * is unreliable; here it appears exactly when there is something to retry.
+ */
+.reload {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding-inline: 20px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-surface);
+  color: var(--lp-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.reload:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}

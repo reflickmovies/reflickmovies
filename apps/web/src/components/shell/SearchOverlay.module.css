@@ -1,0 +1,629 @@
+/*
+ * Centred search overlay.
+ *
+ * A modal rather than a dropdown, because the rail is 270px wide. The inline field it replaces
+ * left roughly 200px of input, which truncates any title worth searching for, and its dropdown
+ * was clipped by the rail's `overflow: hidden` so it was only usable while the pointer happened
+ * to stay inside the sidebar column.
+ *
+ * Centred by `margin: auto` on the dialog, not `top: 50%` - a top-level `margin: auto` centres
+ * in both axes inside the viewport's block direction, and survives a soft keyboard resizing the
+ * visual viewport on mobile.
+ */
+
+/*
+ * `showModal()` puts the dialog in the top layer, so it escapes the shell's `overflow: hidden`
+ * and the `z-index` war. Without this the browser centres it with `position: fixed`, which is
+ * what puts it over the sticky header rather than behind it.
+ */
+.dialog {
+  margin: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  /*
+    Side margins, and they scale.
+
+    `calc(100vw - 2 * var(--space-xl))` was a fixed gutter, which looked generous on a laptop and
+    almost none on a phone - 720px of panel against a 390px viewport left roughly 30px each side,
+    so the panel touched both edges of the screen and the rounded corners were cut off at the
+    sides. The `min()` now picks the smaller of the two, and the clamp below raises the margin on
+    wide screens so the panel stays a panel rather than a letterbox.
+  */
+  width: 100%;
+  max-width: clamp(320px, 90vw, 720px);
+  /* The element itself must not grow with its content or the backdrop is clipped. */
+  max-height: calc(100dvh - 2 * var(--space-xl));
+}
+
+/*
+ * Phone and tablet: a real margin on both sides.
+ *
+ * Separate from the `clamp` above so the gutter can be generous rather than a percentage of an
+ * already-narrow space. `4.5rem` leaves the panel clearly inset from both edges on a 390px phone
+ * (the panel lands near 310px), which is what makes it read as a dialog over a page instead of a
+ * full-bleed sheet.
+ */
+@media (max-width: 767px) {
+  .dialog {
+    max-width: calc(100vw - 2 * var(--space-2xl));
+  }
+}
+
+/*
+ * Very wide screens: a cap that is a width, not a percentage.
+ *
+ * Above roughly 1200px the percentage stops mattering and what matters is that the panel does not
+ * become a wide letterbox with a single result in it, so the measurement is pinned and the extra
+ * room becomes margin.
+ */
+@media (min-width: 1200px) {
+  .dialog {
+    max-width: 720px;
+  }
+}
+
+/*
+ * The backdrop.
+ *
+ * Blur plus a dark scrim. The blur alone left the shelves behind legible enough to compete
+ * with the suggestions; the scrim alone flattened the app to a grey wash. Together the
+ * background is clearly secondary, and the red accent stays the only saturated thing on screen.
+ */
+.dialog::backdrop {
+  background-color: rgba(8, 8, 10, 0.62);
+  backdrop-filter: blur(6px) saturate(0.8);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dialog[open] {
+    animation: overlayIn var(--motion-base) var(--motion-ease-out);
+  }
+}
+
+/*
+ * Lift and fade, not scale.
+ *
+ * A scale transform grows the panel from its centre, so the field and the results beneath it
+ * shift toward each other mid-animation; the row under the pointer moved a few pixels and the
+ * click landed on its neighbour.
+ */
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  border-radius: 28px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------- Field */
+
+/*
+ * One large field.
+ *
+ * 64px and a 1.25rem face, against the rail's 38px and 0.875rem. That is the actual complaint
+ * being fixed: the old field was too small to read the query you had typed while checking it
+ * against the suggestions below it.
+ */
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--lp-line);
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--lp-text-muted);
+}
+
+.input {
+  flex: 1;
+  /*
+    Load-bearing. Flex items default to `min-width: auto`, which refuses to shrink below the
+    input's intrinsic width, so without this a long query pushes the submit button out of the
+    dialog instead of the text ellipsising.
+  */
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--lp-text);
+  font-family: inherit;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.3;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.input::placeholder {
+  color: var(--lp-text-faint);
+  font-weight: 400;
+}
+
+/*
+ * Belt and braces on the native widget.
+ *
+ * The field is `type="text"`, which already avoids the focus-time white box, but Chrome keeps
+ * a search-shaped appearance for autofilled values, so the fill is forced transparent here too.
+ */
+.input::-webkit-search-cancel-button,
+.input::-webkit-search-decoration,
+.input:-webkit-autofill {
+  -webkit-text-fill-color: var(--lp-text);
+  /* Long enough to outlast Chrome's autofill transition, which otherwise flashes white. */
+  transition: background-color 6000000s 0s, color 6000000s 0s;
+}
+
+.clear {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text-muted);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.clear:hover {
+  background-color: var(--lp-pill-inactive-hover);
+  color: var(--lp-accent-red);
+}
+
+/*
+ * Submit, inside the field rather than below it.
+ *
+ * A separate row put the button a full row away from the caret, which meant two targets for one
+ * action; a visitor aiming for the button hit the results list instead.
+ */
+.submit {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 40px;
+  padding-inline: 18px;
+  border: none;
+  border-radius: 9999px;
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.submitIcon {
+  display: none;
+}
+
+.submit:hover {
+  background-color: var(--lp-red-hover);
+}
+
+/*
+ * Keys.
+ *
+ * `kbd` carries the actual key names and stays visible; `hint` below arranges them. The submit
+ * button hides its own on narrow screens because the Enter hint is already in the hint row.
+ */
+.kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.18);
+  font-family: var(--font-family-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: inherit;
+}
+
+/* ---------------------------------------------------------------- Results */
+
+/*
+ * Reserved height, from the moment the overlay opens.
+ *
+ * The panel is vertically centred, so every change to its contents' height moves its top edge by
+ * half that change. That is why this height is fixed rather than derived from the result count:
+ *
+ *  - It used to be `min-height: 440px` but collapsed to `0` whenever there was nothing to show,
+ *    via `[aria-hidden='true']`. So the overlay opened as a single field, then jumped to full
+ *    height on the first keystroke - the exact "expands when content loads" behaviour, and it
+ *    moved the field the visitor was typing into under their own cursor.
+ *  - Sizing it from the number of results instead means one result and seven results are two
+ *    different panel heights, so the field still moves as results arrive and disappear.
+ *
+ * A fixed box means the field is nailed in place for the whole session of the overlay, and only
+ * the region below it changes. The list scrolls inside that region, so the panel never resizes
+ * no matter how much TMDB returns.
+ *
+ * 440px is seven rows of 66px artwork plus padding, which is the most the list ever shows, and
+ * the footer is inside the same scroll area.
+ */
+.results {
+  display: flex;
+  flex-direction: column;
+  height: min(440px, 52dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/*
+ * Narrow screens get a shorter box rather than a taller margin.
+ *
+ * A 440px panel plus the 64px field is more than a small phone's viewport in landscape, and the
+ * dialog would then be taller than the screen with its own edges cut off.
+ */
+@media (max-height: 620px) {
+  .results {
+    height: min(300px, 46dvh);
+  }
+}
+
+.dropdown {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--space-sm);
+  list-style: none;
+  animation: overlayIn var(--motion-fast) var(--motion-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog[open],
+  .dropdown {
+    animation: none;
+  }
+}
+
+.dropdownEmpty {
+  padding: var(--space-lg) var(--space-md);
+  font-size: 0.9375rem;
+  color: var(--lp-text-faint);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* Fills the fixed-height region so the resting copy is centred in it. */
+  min-height: 100%;
+}
+
+/*
+ * The pre-typed resting state.
+ *
+ * Centred in the reserved results region, because it is standing in for a list rather than
+ * sitting at the top of one - a heading pinned to the top of a 440px box reads as a broken
+ * layout, the same as the empty version did.
+ */
+.restingTitle {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--lp-text);
+}
+
+.restingBody {
+  margin: 0;
+  max-width: 34ch;
+  margin-inline: auto;
+  line-height: 1.5;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: 16px;
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+/*
+ * Keyboard highlight.
+ *
+ * Background only, and muted rather than red: the highlight tracks the pointer as well as the
+ * arrows, so a red fill made the list look like it had selected something on hover.
+ */
+.optionActive,
+.option:hover {
+  background-color: var(--lp-pill-inactive);
+}
+
+/*
+ * 44x66 is a real 2:3 poster crop at a size the title inside the artwork can be read from.
+ *
+ * The inline version used 26x40, where the artwork was a smudge and rows were hard to
+ * distinguish from one another at a glance - which is the whole job of a suggestion row.
+ */
+.optionThumb,
+.optionThumbFallback {
+  flex-shrink: 0;
+  width: 44px;
+  height: 66px;
+  border-radius: 6px;
+  object-fit: cover;
+  background-color: var(--lp-surface-elevated);
+}
+
+/* Reserve the same box when TMDB has no poster, so rows do not reflow as they arrive. */
+.optionThumbFallback {
+  border: 1px solid var(--lp-line);
+}
+
+.optionText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.optionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--lp-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  color: var(--lp-text-faint);
+}
+
+/*
+ * Footer row.
+ *
+ * Separated by a hairline rather than a second pill, so it reads as a different kind of action
+ * from the results above it - going to a page instead of picking a title.
+ */
+.dropdownFooter {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--lp-line-subtle);
+}
+
+.footerButton {
+  display: block;
+  width: 100%;
+  padding: var(--space-md);
+  border: none;
+  border-radius: 16px;
+  background-color: transparent;
+  color: var(--lp-text-muted);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.footerButton:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}
+
+/* ---------------------------------------------------------------- Not found */
+
+/*
+ * A dead end with a way out.
+ *
+ * The previous behaviour was to stop at "no results" and hand the visitor back to the rail with
+ * nothing to click. Popular and Explore are real destinations built from real catalogue data, so
+ * offering them is a recommendation rather than a placeholder - and since this block is inside
+ * the reserved-height region, appearing does not shift the field.
+ */
+.notFound {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-2xl) var(--space-xl);
+}
+
+.notFoundIcon {
+  color: var(--lp-text-faint);
+}
+
+.notFoundText {
+  font-size: 1rem;
+  color: var(--lp-text-muted);
+}
+
+.notFoundText strong {
+  color: var(--lp-text);
+  font-weight: 600;
+}
+
+.notFoundActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+/*
+ * Real titles, not suggestions.
+ *
+ * A visitor whose search failed needs somewhere to go, and two link buttons asking them to
+ * start a new search is the wrong answer - they have just demonstrated they do not know what
+ * they are looking for. Highest-rated posters are a browsable shelf that needs no query, drawn
+ * from the same filtered endpoint the catalogue pages use, so every card is a title that
+ * genuinely exists and opens a real detail page.
+ */
+.notFoundHeading {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-text-faint);
+}
+
+.notFoundGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notFoundCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.notFoundPoster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--lp-line);
+  background-color: var(--lp-surface-elevated);
+  transition: border-color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
+}
+
+.notFoundCard:hover .notFoundPoster {
+  border-color: var(--lp-accent-red);
+  transform: translateY(-2px);
+}
+
+.notFoundCardTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--lp-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notFoundCard:hover .notFoundCardTitle {
+  color: var(--lp-text);
+}
+
+/*
+ * Two columns on a phone. Four posters across 300px would render each one around 60px wide,
+ * which is too small to recognise a film from and leaves every title truncated past three
+ * words.
+ */
+@media (max-width: 560px) {
+  .notFoundGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.notFoundLink {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding-inline: 18px;
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+  color: var(--lp-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.notFoundLink:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}
+
+/* ---------------------------------------------------------------- Hint */
+
+/*
+ * Keyboard legend.
+ *
+ * The list is fully operable by keyboard and none of that was discoverable, so arrow keys
+ * appeared to do nothing on a mouse. Muted and small: it is documentation, not content.
+ */
+.hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-xl);
+  border-top: 1px solid var(--lp-line-subtle);
+  background-color: var(--lp-surface-elevated);
+  font-size: 0.75rem;
+  color: var(--lp-text-faint);
+}
+
+.hint span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* On a phone there is no Enter key to press and no hover to hover. */
+@media (max-width: 640px) {
+  .field {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .input {
+    font-size: 1.0625rem;
+  }
+
+  .submit {
+    width: 40px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+
+  .submitLabel,
+  .submit .kbd,
+  .hint {
+    display: none;
+  }
+
+  /* The label and the `Enter` badge are the button's only content, and both are hidden above,
+     which left the shrunken 40px red circle empty. The magnifier is what has to carry it. */
+  .submitIcon {
+    display: inline-flex;
+  }
+}

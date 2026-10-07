@@ -1,0 +1,44 @@
+/*
+ * Search results.
+ *
+ * Only two rules of its own: the field's width, and the clear button. The header, grid and
+ * notices are shared with the other listing pages so search cannot drift from them.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/*
+ * The field, capped at a readable measure.
+ *
+ * Full width to the page gutter, as the previous version was. On a 2560px display that put a
+ * single-character input in front of 2400px of nothing, and the placeholder sat so far left it
+ * read as a separate label rather than as part of the field.
+ */
+.field {
+  max-width: 640px;
+}
+
+.clearButton {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding-inline: 20px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.clearButton:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}

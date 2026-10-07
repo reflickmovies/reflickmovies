@@ -1,0 +1,58 @@
+/*
+ * Not found.
+ *
+ * Centred in the available space rather than sitting at the top of the page, so a 404 reads as an
+ * error rather than as a page that has loaded with nothing on it.
+ */
+
+.notFound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  min-height: 70dvh;
+  margin-inline: auto;
+  max-width: 640px;
+  padding: var(--space-4xl) var(--space-lg);
+  text-align: center;
+  background: radial-gradient(ellipse 90% 60% at 50% 0%, color-mix(in srgb, var(--lp-tint) 45%, transparent), transparent), var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--lp-card-shadow);
+}
+
+.notFoundActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  justify-content: center;
+  margin-top: var(--space-sm);
+}
+
+.notFoundCode {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-micro);
+  letter-spacing: var(--letter-spacing-wider);
+  text-transform: uppercase;
+  color: var(--lp-text-faint);
+  padding: 4px 12px;
+  border: 1px solid var(--lp-line);
+  border-radius: var(--radius-pill);
+  background-color: var(--lp-surface-elevated);
+}
+
+.notFoundTitle {
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-display);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--lp-text);
+}
+
+.notFoundText {
+  max-width: 46ch;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-relaxed);
+  color: var(--lp-text-muted);
+}

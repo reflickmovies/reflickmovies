@@ -1,0 +1,99 @@
+/*
+ * The player.
+ *
+ * The iframe is third-party and unknown, so the important part of this component
+ * is the failure path: if the frame never signals ready, the visitor is told a
+ * source did not respond and can switch or report it, instead of staring at a
+ * black rectangle with a spinner that never resolves.
+ */
+
+.playerShell {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  /* Letterboxed embeds sit on near-black in both themes, so this frame does too. */
+  background-color: #0b0b0c;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background-color: #0b0b0c;
+}
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: var(--space-md);
+  align-content: center;
+  text-align: center;
+  padding: var(--space-lg);
+  color: #f4f3f1;
+  font-size: var(--font-size-body-sm);
+}
+
+.centerAction {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+/*
+ * Waiting state: a thin progress line rather than a spinner, because the load may
+ * legitimately take several seconds and a spinning circle reads as a bug.
+ */
+.waitingBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background-color: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.waitingBar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 40%;
+  background-color: var(--brand-red);
+  animation: waiting 1.2s ease-in-out infinite;
+}
+
+@keyframes waiting {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waitingBar::after {
+    animation: none;
+    width: 100%;
+  }
+}
+
+/* --------------------------------------------------------------- info bar */
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md) var(--space-lg);
+  font-size: var(--font-size-body-sm);
+  color: var(--lp-text-muted);
+}
+
+

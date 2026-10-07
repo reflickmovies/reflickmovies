@@ -1,0 +1,133 @@
+/*
+ * Shelf section: heading row plus a grid of cards.
+ *
+ * The header is `space-lg` from the grid and consecutive shelves are `space-3xl` apart.
+ * Those two gaps used to be the same value, which made the heading read as part of the
+ * cards above it rather than as the label for the ones below.
+ */
+.shelf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+/*
+ * The rail of cards.
+ *
+ * One scrolling row rather than a wrapping grid, for two reasons. A shelf is by definition a
+ * glimpse of more than it shows, and a grid that wraps to two lines either crops the second
+ * line (faking completeness) or doubles the height of every shelf on the page. And on a
+ * pointerless device a horizontal row is a straight swipe, whereas a grid needs a scroll to be
+ * discovered.
+ *
+ * The scrollbar is hidden because a visible track under a row of posters reads as a page-level
+ * control that belongs to the whole screen, not to this row. `scroll-snap` puts each card back
+ * at a whole offset when the swipe ends, so a card is never left half-cut.
+ *
+ * The negative inline margin lets the first and last cards sit flush with the page gutter while
+ * their shadows still have room, instead of the row being inset and the whole shelf looking
+ * narrower than the grids above it.
+ */
+.rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 1fr);
+  gap: var(--space-lg);
+  margin-inline: calc(var(--space-xs) * -1);
+  padding-inline: var(--space-xs);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.rail > * {
+  scroll-snap-align: start;
+}
+
+/*
+ * Four per row on wide screens, two on a phone.
+ *
+ * Fixed counts rather than `auto-fill`: `auto-fill` derives the column count from the measured
+ * width, so the same shelf rendered three, four or five across depending on the window, and the
+ * row length changed on resize with no content change.
+ */
+@media (max-width: 640px) {
+  .rail {
+    grid-auto-columns: minmax(140px, 42%);
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .rail {
+    grid-auto-columns: minmax(180px, 30%);
+  }
+}
+
+@media (min-width: 1536px) {
+  .rail {
+    grid-auto-columns: minmax(200px, 22%);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding-inline: var(--space-xs);
+}
+
+.kicker {
+  font-size: var(--font-size-micro);
+  font-weight: 500;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--lp-text-faint);
+  margin-bottom: 2px;
+}
+
+.title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--lp-text);
+}
+
+.skeletonTitle {
+  width: 180px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background-color: var(--lp-pill-inactive);
+}
+
+/*
+ * "See all" pairs an arrow with the label.
+ *
+ * The arrow is the non-colour half of the affordance. The previous version was bare muted
+ * text that only turned red on hover, so on a touch device, where there is no hover, it was
+ * indistinguishable from the heading it sat next to.
+ */
+.seeAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--lp-text-muted);
+  text-decoration: none;
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.seeAll:hover {
+  color: var(--lp-accent-red);
+}

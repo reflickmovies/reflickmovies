@@ -1,0 +1,261 @@
+{
+    "$comment": [
+        "Embed providers are deployment configuration, not catalogue data.",
+        "TMDB has no opinion about third-party embed hosts, so this file is the source of truth.",
+        "Placeholders: {{tmdb}} {{imdb}} {{slug}} {{kind}} {{season}} {{episode}}",
+        "A provider whose placeholder cannot be filled for a given title is skipped at",
+        "request time and reported in the `rejected` array of the servers response.",
+        "Any host in `hosts` must also be present in src/config/constants.ts ALLOWED_EMBED_HOSTS.",
+        "Redirect chains are resolved server-side by src/services/embedGuard.service.ts before a",
+        "URL reaches the browser. A chain that enters BLOCKED_AD_HOSTS or leaves the allowlist",
+        "rejects the provider; the iframe only ever receives the final URL.",
+        "This replaces the former iframe `sandbox`: a 302 is resolved by the network stack before",
+        "any attribute is read, so `sandbox` never prevented one. Note that no host here can have",
+        "its in-frame ads stripped - that is same-origin policy. Keep this list to hosts that are",
+        "authorized to be embedded.",
+        "`kinds` restricts a row to movies or TV: a TV-only template embeds {{season}}/{{episode}}",
+        "which cannot resolve for movies."
+    ],
+    "providers": [
+        {
+            "key": "cineverse-movie",
+            "name": "Cineverse",
+            "badge": "HD",
+            "priority": 2,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://rozgarlelo.modiplay.xyz/embed/tmdb/movie?id={{tmdb}}",
+            "hosts": [
+                "rozgarlelo.modiplay.xyz"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "cineverse-tv",
+            "name": "Cineverse",
+            "badge": "HD",
+            "priority": 2,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://rozgarlelo.modiplay.xyz/embed/tmdb/tv?id={{tmdb}}\u0026s={{season}}\u0026e={{episode}}",
+            "hosts": [
+                "rozgarlelo.modiplay.xyz"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "gdmirror-movie",
+            "name": "GD mirror",
+            "badge": "HD",
+            "priority": 2,
+            "idSpace": "imdb",
+            "urlTemplate": "https://streams.iqsmartgames.com/embed/movie/{{imdb}}?key=e11a7debaaa4f5d25b671706ffe4d2acb56efbd4",
+            "hosts": [
+                "streams.iqsmartgames.com"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "gdmirror-tv",
+            "name": "GD mirror",
+            "badge": "HD",
+            "priority": 2,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://streams.iqsmartgames.com/embed/tv/{{tmdb}}/{{season}}/{{episode}}?key=e11a7debaaa4f5d25b671706ffe4d2acb56efbd4",
+            "hosts": [
+                "streams.iqsmartgames.com"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vidout-movie",
+            "name": "VIDOUT",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "imdb",
+            "urlTemplate": "https://vidout.pages.dev/movie/{{imdb}}",
+            "hosts": [
+                "vidout.pages.dev"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vidout-tv",
+            "name": "VIDOUT",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidout.pages.dev/tv/{{tmdb}}/s{{season}}/e{{episode}}",
+            "hosts": [
+                "vidout.pages.dev"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "bingr-movie",
+            "name": "Bingr",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://bingr.one/watch/movie/{{tmdb}}",
+            "hosts": [
+                "bingr.one"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "bingr-tv",
+            "name": "Bingr",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://bingr.one/watch/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "bingr.one"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "filmu-movie",
+            "name": "Filmu",
+            "badge": "HD",
+            "priority": 1,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://embed.filmu.in/movie/{{tmdb}}",
+            "hosts": [
+                "embed.filmu.in"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "filmu-tv",
+            "name": "Filmu",
+            "badge": "HD",
+            "priority": 1,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://embed.filmu.in/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "embed.filmu.in"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vidbolt-movie",
+            "name": "VidBolt",
+            "badge": "HD",
+            "priority": 7,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidbolt.xyz/movie/{{tmdb}}",
+            "hosts": [
+                "vidbolt.xyz"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vidbolt-tv",
+            "name": "VidBolt",
+            "badge": "HD",
+            "priority": 7,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidbolt.xyz/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vidbolt.xyz"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "nxsha-movie",
+            "name": "Nxsha",
+            "badge": "HD",
+            "priority": 8,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://nxsha.space/embed/movie/{{tmdb}}",
+            "hosts": [
+                "nxsha.space"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "nxsha-tv",
+            "name": "Nxsha",
+            "badge": "HD",
+            "priority": 8,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://nxsha.space/embed/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "nxsha.space"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vaplayer-movie",
+            "name": "VA Player",
+            "badge": "HD",
+            "priority": 9,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vaplayer.ru/embed/movie/{{tmdb}}",
+            "hosts": [
+                "vaplayer.ru"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vaplayer-tv",
+            "name": "VA Player",
+            "badge": "HD",
+            "priority": 9,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vaplayer.ru/embed/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vaplayer.ru"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        }
+    ]
+}

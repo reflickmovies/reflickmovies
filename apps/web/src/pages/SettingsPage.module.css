@@ -1,0 +1,266 @@
+/*
+ * Settings.
+ *
+ * Sections rather than one column of controls, because there are three independent
+ * preferences and grouping them says they are unrelated. Everything reads the shell's
+ * `--lp-*` tokens, so the page follows the theme toggle with no theme query here.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xl);
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  /*
+   * A single column on every width.
+   *
+   * These panels are forms, not cards in a grid: two side-by-side would invite the reader to
+   * scan across for a relationship that does not exist, and the widest one ("Catalogue")
+   * would force its neighbours to shrink for no reason.
+   */
+  max-width: 860px;
+}
+
+/* ---------------------------------------------------------------- Section */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-2xl);
+  border-radius: 28px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.sectionIcon {
+  flex-shrink: 0;
+  color: var(--lp-accent-red);
+  margin-top: 2px;
+}
+
+.sectionTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--lp-text);
+}
+
+.sectionHint {
+  margin-top: 2px;
+  font-size: 0.875rem;
+  color: var(--lp-text-muted);
+}
+
+.body {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--lp-text-muted);
+  max-width: 68ch;
+}
+
+.body code,
+.footnote code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background-color: var(--lp-pill-inactive);
+  font-family: var(--font-family-mono);
+  font-size: 0.8125rem;
+  color: var(--lp-text);
+  /* Long keys like `reflick:watch-history` must not overflow their line. */
+  overflow-wrap: anywhere;
+}
+
+.footnote {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--lp-text-faint);
+  max-width: 68ch;
+}
+
+/* ---------------------------------------------------------------- Theme options */
+
+/*
+ * Two controls side by side: the mode button, then the automatic toggle.
+ *
+ * The mode button is a real button rather than a radio for one of Light/Dark. A three-way radio
+ * group was the previous design and it made "automatic" read as a third appearance instead of a
+ * rule about where the appearance comes from - and it put two real choices and one piece of
+ * behaviour in the same list, so picking between them required reading three hints.
+ *
+ * Side by side because they answer different questions and are used in different rhythms: the
+ * button is pressed often, the toggle occasionally. They wrap to a column on a phone rather than
+ * compressing, because each carries a label and a hint and neither is legible at half width.
+ */
+.themeRow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.themeToggle,
+.autoToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--lp-line);
+  border-radius: 18px;
+  background-color: var(--lp-surface-elevated);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.themeToggle {
+  color: var(--lp-text);
+}
+
+.themeToggle:hover {
+  background-color: var(--lp-pill-inactive);
+  border-color: var(--lp-accent-red);
+}
+
+.themeToggle:focus-visible,
+.autoToggle:focus-visible {
+  outline: 2px solid var(--lp-accent-red);
+  outline-offset: 2px;
+}
+
+.themeToggleText,
+.autoToggleText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * The hint sits under the label rather than replacing it.
+ *
+ * It says which mode pressing will produce, which is the part a switch has to get right: a
+ * reader who cannot tell whether the button shows the current state or the next one will press
+ * it twice to find out.
+ */
+.themeToggleLabel,
+.autoToggleLabel {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--lp-text);
+}
+
+.themeToggleHint,
+.autoToggleHint {
+  margin-top: 1px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--lp-text-muted);
+}
+
+/*
+ * The automatic toggle's icon box.
+ *
+ * Fixed-size and centred so the check does not shift the layout when it appears: the icon is a
+ * check when the mode is on and a monitor when it is off, and a swap of two different glyphs
+ * would otherwise change the control's width mid-press.
+ */
+.autoToggleIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text-muted);
+}
+
+/*
+ * On.
+ *
+ * Tinted and carrying a check rather than relying on the border alone, so the state is not
+ * communicated by colour only.
+ */
+.autoToggleOn {
+  border-color: var(--lp-accent-red);
+  background-color: var(--lp-pill-inactive);
+}
+
+.autoToggleOn .autoToggleIcon {
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+}
+
+.autoToggleOn:hover {
+  background-color: var(--lp-pill-inactive-hover);
+}
+
+/* ---------------------------------------------------------------- Buttons */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.button,
+.dangerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding-inline: 20px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease);
+}
+
+
+/*
+ * Destructive, and tinted rather than filled.
+ *
+ * A solid red button reads as the primary action on the page, which "clear my history" is not.
+ * The red text plus border marks it without competing with the controls that do something
+ * ordinary.
+ */
+.dangerButton {
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--lp-accent-red) 45%, transparent);
+  color: var(--lp-accent-red);
+}
+
+.dangerButton:hover {
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+}
+
+
+/* A note beside a control, for what it does that the label does not say. */
+.rowNote {
+  font-size: 0.8125rem;
+  color: var(--lp-text-faint);
+}
+

@@ -1,0 +1,603 @@
+/*
+ * Shared styles for the small primitives in `components/ui`.
+ *
+ * They share one stylesheet on purpose: a pill is a pill, whether it is a rating,
+ * a badge or a tab, and splitting that across five files would guarantee drift.
+ * Anything with its own layout gets its own module.
+ */
+
+/* ---------------------------------------------------------------- button */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-body-sm);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease);
+}
+
+.button:disabled,
+.button[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.size-sm {
+  height: 32px;
+  padding-inline: var(--space-md);
+  font-size: var(--font-size-meta);
+}
+
+.size-md {
+  height: 40px;
+  padding-inline: var(--space-lg);
+}
+
+.size-lg {
+  height: 48px;
+  padding-inline: var(--space-xl);
+  font-size: var(--font-size-body);
+}
+
+.size-icon {
+  height: 40px;
+  width: 40px;
+  padding: 0;
+}
+
+/* The single accent, used for the one primary action on screen. */
+.variant-primary {
+  background-color: var(--accent);
+  color: var(--accent-on);
+}
+
+.variant-primary:hover:not(:disabled) {
+  background-color: var(--accent-strong);
+}
+
+.variant-secondary {
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+  border-color: var(--lp-line);
+}
+
+.variant-secondary:hover:not(:disabled) {
+  background-color: var(--lp-line);
+  border-color: var(--lp-text-faint);
+}
+
+.variant-outline {
+  background-color: transparent;
+  color: var(--lp-text);
+  border-color: var(--lp-line);
+}
+
+.variant-outline:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.variant-ghost {
+  background-color: transparent;
+  color: var(--lp-text-muted);
+}
+
+.variant-ghost:hover:not(:disabled) {
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+}
+
+.variant-danger {
+  background-color: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.variant-danger:hover:not(:disabled) {
+  background-color: var(--danger);
+  color: var(--accent-on);
+}
+
+.button-block {
+  width: 100%;
+}
+
+/* ------------------------------------------------------------ icon button */
+
+.iconButton {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-circle);
+  color: var(--lp-text-muted);
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.iconButton:hover:not(:disabled) {
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+}
+
+.iconButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.iconButtonActive {
+  background-color: var(--accent);
+  color: var(--accent-on);
+}
+
+.iconButtonActive:hover:not(:disabled) {
+  background-color: var(--accent-strong);
+  color: var(--accent-on);
+}
+
+.iconButtonSm {
+  width: 32px;
+  height: 32px;
+}
+
+/* ------------------------------------------------------------------ badge */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 20px;
+  padding-inline: var(--space-sm);
+  border: 1px solid var(--lp-line);
+  border-radius: var(--radius-sm);
+  background-color: var(--lp-surface);
+  color: var(--lp-text-muted);
+  font-size: var(--font-size-micro);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.badgeAccent {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on);
+}
+
+.badgeSolid {
+  background-color: var(--lp-bg);
+  border-color: transparent;
+  color: var(--lp-text);
+}
+
+.badgeOutline {
+  background-color: transparent;
+}
+
+/* A rating needs a shape people already know without reading it. */
+.ratingPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 24px;
+  padding-inline: var(--space-sm);
+  border: 1px solid var(--lp-line);
+  border-radius: var(--radius-sm);
+  background-color: var(--lp-bg);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--lp-text);
+}
+
+.ratingIcon {
+  color: var(--accent);
+}
+
+.ratingMuted {
+  color: var(--lp-text-faint);
+}
+
+.ratingInline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+  color: var(--lp-text-muted);
+}
+
+/* ------------------------------------------------------------------ input */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.label {
+  font-size: var(--font-size-micro);
+  font-weight: 500;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--lp-text-faint);
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: var(--space-md);
+  color: var(--lp-text-faint);
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding-inline: var(--space-lg);
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+  border-radius: var(--radius-lg);
+  color: var(--lp-text);
+  font-size: var(--font-size-body);
+  transition:
+    border-color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+.input::placeholder {
+  color: var(--lp-text-faint);
+}
+
+.input:hover {
+  border-color: var(--lp-line);
+}
+
+.input:focus {
+  border-color: var(--lp-text-faint);
+  background-color: var(--lp-surface);
+  outline: none;
+}
+
+.inputHasIcon {
+  padding-left: 42px;
+}
+
+.inputHasTrailing {
+  padding-right: 42px;
+}
+
+.inputClear {
+  position: absolute;
+  right: var(--space-xs);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-circle);
+  color: var(--lp-text-faint);
+}
+
+.inputClear:hover {
+  background-color: var(--lp-line);
+  color: var(--lp-text);
+}
+
+/* ----------------------------------------------------------------- select */
+
+.select {
+  height: 40px;
+  padding: 0 var(--space-lg);
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+  border-radius: var(--radius-pill);
+  color: var(--lp-text);
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--motion-ease);
+}
+
+.select:hover {
+  border-color: var(--lp-text-faint);
+}
+
+.selectWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.selectChevron {
+  position: absolute;
+  right: var(--space-md);
+  color: var(--lp-text-faint);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------- chip */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 32px;
+  padding-inline: var(--space-md);
+  border: 1px solid var(--lp-line);
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--lp-text-muted);
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.chip:hover {
+  border-color: var(--lp-text-faint);
+  color: var(--lp-text);
+}
+
+.chipActive {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on);
+}
+
+.chipActive:hover {
+  color: var(--accent-on);
+}
+
+/* ------------------------------------------------------------------- tabs */
+
+.tabs {
+  display: flex;
+  gap: var(--space-xl);
+  border-bottom: 1px solid var(--lp-line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  padding-block: var(--space-md);
+  color: var(--lp-text-muted);
+  font-size: var(--font-size-body-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.tab:hover {
+  color: var(--lp-text);
+}
+
+.tabActive {
+  color: var(--lp-text);
+}
+
+/* The active marker, not colour alone. */
+.tabActive::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background-color: var(--accent);
+}
+
+/* ----------------------------------------------------------------- states */
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-4xl) var(--space-lg);
+  text-align: center;
+  color: var(--lp-text-muted);
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--lp-tint) 40%, transparent), transparent), var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lp-card-shadow);
+}
+
+.stateCompact {
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.stateIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--lp-line);
+  border-radius: var(--radius-circle);
+  color: var(--lp-text-faint);
+  background-color: var(--lp-surface-elevated);
+  box-shadow: var(--lp-card-shadow);
+}
+
+.stateTitle {
+  font-size: var(--font-size-heading);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--lp-text);
+}
+
+.stateBody {
+  max-width: 46ch;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--lp-text-muted);
+}
+
+.stateError .stateTitle {
+  color: var(--danger);
+}
+
+/* ----------------------------------------------------------------- spinner */
+
+.spinner {
+  display: inline-block;
+  border: 2px solid var(--lp-line);
+  border-top-color: var(--accent);
+  border-radius: var(--radius-circle);
+  animation: spin 700ms linear infinite;
+}
+
+.spinnerSm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.spinnerMd {
+  width: 24px;
+  height: 24px;
+}
+
+.spinnerLg {
+  width: 36px;
+  height: 36px;
+  border-width: 3px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1.6s;
+  }
+}
+
+/* ------------------------------------------------------------------ modal */
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.modalTitle {
+  font-size: var(--font-size-heading);
+  font-weight: 500;
+  color: var(--lp-text);
+}
+
+.modalDescription {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-body-sm);
+  color: var(--lp-text-muted);
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--lp-line);
+}
+
+/* ------------------------------------------------------------- pagination */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding-block: var(--space-3xl);
+}
+
+.pageStatus {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  color: var(--lp-text-muted);
+}
+
+/* ------------------------------------------------------- section heading */
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-heading-lg);
+  font-weight: 500;
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--lp-text);
+}
+
+.sectionKicker {
+  margin-bottom: var(--space-xs);
+}
+
+.sectionLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  font-size: var(--font-size-body-sm);
+  font-weight: 500;
+  color: var(--lp-text-muted);
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.sectionLink:hover {
+  color: var(--accent);
+}
+
+/*
+ * The metadata row and the tooltip-ish list row both lived here and were used by the old
+ * title card and shelf, which drew their own "2021 · 7.8" line and hover row. The unified
+ * `components/titles/TitleCard` owns that markup now, so these rules went unused. They are
+ * removed rather than kept "for later": nothing references them, and a shared stylesheet that
+ * accumulates dead selectors is how the next person ends up styling against a class that
+ * nothing renders.
+ */

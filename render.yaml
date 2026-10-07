@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: reflick-api
+    env: node
+    plan: free
+    rootDir: apps/server
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_DB_NAME
+        value: reflick
+      - key: TMDB_LANG
+        value: en-US
+      - key: SYNC_ENABLED
+        value: false
+  - type: web
+    name: reflick-web
+    env: static
+    plan: free
+    rootDir: .
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://reflick-api.onrender.com/api/*
+    headers:
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: autoplay=(self), fullscreen=(self), picture-in-picture=(), camera=(), microphone=(), geolocation=(), clipboard-read=(), clipboard-write=()
+      - path: /*
+        name: Content-Security-Policy
+        value: frame-ancestors 'none'

@@ -1,0 +1,319 @@
+/*
+ * Shared page furniture: headers, the sort control, and page-level notices.
+ *
+ * All of it reads the shell's `--lp-*` tokens, so a page never declares its own palette and
+ * follows the theme toggle automatically.
+ */
+
+/* ---------------------------------------------------------------- Header */
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--lp-text);
+  min-width: 0;
+}
+
+/*
+ * `flex-wrap` on the header, not on this element.
+ *
+ * The heading and its controls wrap together: a long control set moves below the title rather
+ * than squeezing it. `min-width: 0` stops the heading from refusing to shrink and pushing
+ * the controls off the row instead.
+ */
+.headerAction {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- Genre filter */
+
+/*
+ * The genre dropdown.
+ *
+ * `.filter` is the positioning context and nothing else: the popup is absolutely placed against
+ * it, so the trigger cannot be pushed around by the list, and the list scrolls inside its own box
+ * instead of growing the header.
+ */
+.filter {
+  position: relative;
+  min-width: 0;
+}
+
+.filterTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  height: 38px;
+  padding-inline: 14px;
+  border-radius: 9999px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  color: var(--lp-text-muted);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease);
+}
+
+.filterTrigger:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text);
+}
+
+.filterTriggerOpen,
+.filterTriggerOpen:hover {
+  background-color: var(--lp-pill-inactive-hover);
+  border-color: var(--lp-accent-red);
+  color: var(--lp-accent-red);
+}
+
+.filterTrigger:focus-visible {
+  outline: 2px solid var(--lp-accent-red);
+  outline-offset: 2px;
+}
+
+/*
+ * The chosen genre's name, truncated.
+ *
+ * "Sci-Fi & Fantasy" is the longest label the server sends; on a narrow header the trigger would
+ * otherwise push the sort control off the row.
+ */
+.filterTriggerLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Rotates to point up while the panel is open, so the trigger reports the state too. */
+.filterCaret {
+  flex-shrink: 0;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.filterTriggerOpen .filterCaret {
+  transform: rotate(180deg);
+}
+
+/*
+ * The popup.
+ *
+ * `max-height` plus an internal scroll is the load-bearing part here. The server sends the whole
+ * TMDB taxonomy - twenty-seven genres for this catalogue - and laying that out as a wrapped block
+ * produced a panel taller than the viewport below the header, so the genres past the first row
+ * were simply not reachable. Capping it at `min(60vh, 420px)` and scrolling inside keeps every
+ * genre on one short list that fits on any screen.
+ *
+ * `overflow-y: auto` with `overscroll-behavior: contain` so scrolling the list to its end does not
+ * start scrolling the page behind it.
+ */
+.filterPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(320px, calc(100vw - 4rem));
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border-radius: 18px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  animation: filterIn var(--motion-fast) var(--motion-ease);
+}
+
+@keyframes filterIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filterPanel {
+    animation: none;
+  }
+}
+
+.filterList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.filterOption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--lp-text-muted);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.filterOption:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text);
+}
+
+/* Selected, confirmed by weight and the check as well as the tint. */
+.filterOptionActive,
+.filterOptionActive:hover {
+  background-color: var(--lp-pill-inactive-hover);
+  color: var(--lp-accent-red);
+  font-weight: 700;
+}
+
+.filterOptionLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * How many titles the catalogue holds for this genre.
+ *
+ * Useful before choosing, and honest about the long tail: the list includes genres with three
+ * titles because TMDB defines them, and this makes that visible rather than surprising someone
+ * with an almost-empty grid.
+ */
+.filterOptionCount {
+  flex-shrink: 0;
+  font-family: var(--font-family-mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--lp-text-faint);
+}
+
+.filterOptionActive .filterOptionCount {
+  color: var(--lp-accent-red);
+}
+
+/* ---------------------------------------------------------------- Notices */
+
+.notice,
+.noticeError {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xl);
+  padding: var(--space-2xl);
+  border-radius: 28px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+}
+
+.noticeError {
+  border-color: color-mix(in srgb, var(--lp-accent-red) 40%, var(--lp-line));
+}
+
+.noticeIcon {
+  flex-shrink: 0;
+  color: var(--lp-accent-red);
+}
+
+.noticeBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.noticeTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--lp-text);
+}
+
+.noticeText {
+  margin-top: var(--space-xs);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--lp-text-muted);
+}
+
+.noticeText code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background-color: var(--lp-pill-inactive);
+  font-family: var(--font-family-mono);
+  font-size: 0.8125rem;
+  color: var(--lp-accent-red);
+}
+
+/*
+ * Notice action.
+ *
+ * A real button and a real link share this class. The shared shape is deliberate: the
+ * previous version styled the link as plain red text while the button was a bordered pill,
+ * so a page with both offered two different-looking ways to do the same thing.
+ */
+.noticeAction {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding-inline: 20px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.noticeAction:hover {
+  background-color: var(--lp-pill-inactive);
+  border-color: var(--lp-line);
+  color: var(--lp-accent-red);
+}
+
+.noticeAction:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+

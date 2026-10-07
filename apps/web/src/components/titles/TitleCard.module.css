@@ -1,0 +1,265 @@
+/**
+ * The single card surface used by every grid and shelf in the app.
+ *
+ * Consumes the `--lp-*` tokens the shell root defines, so a card needs no knowledge of which
+ * theme is active. These previously lived in three separate components with three sets of
+ * rules that had drifted apart in radius, hover behaviour and caption treatment.
+ */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  border-radius: 24px;
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  text-decoration: none;
+  color: #ffffff;
+  transition: transform var(--motion-slow) var(--motion-ease-out), box-shadow var(--motion-slow) var(--motion-ease-out);
+}
+
+/*
+ * Portrait 3:4.
+ *
+ * At four columns a 16:10 landscape left each card roughly 150px tall, which cropped the
+ * artwork to a letterbox strip: the poster's subject, almost always the top third, was cut
+ * off and the caption covered most of what was left. 3:4 gives a card about 300px tall at
+ * the same width, so the artwork has room to read and the caption sits over its lower margin.
+ *
+ * `aspect-ratio` rather than a fixed height so the cards stay proportional as a row goes two,
+ * three, then four columns. A fixed height left wide four-column cards stretched and squat.
+ */
+.cardPortrait {
+  aspect-ratio: 3 / 4;
+}
+
+.cardLandscape {
+  aspect-ratio: 16 / 9;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--lp-card-shadow);
+}
+
+/*
+ * The hover lift is transform-only.
+ *
+ * The earlier rule transitioned `all`, which meant `box-shadow` re-interpolated on every
+ * hover and the card appeared to swell. Naming the two properties keeps the movement crisp.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .card:hover {
+    transform: none;
+  }
+}
+
+.artwork,
+.artworkFallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--motion-slow) var(--motion-ease-out);
+}
+
+.artworkFallback {
+  /*
+   * Reserves the image box when TMDB has no artwork, so one incomplete title does not
+   * collapse its grid cell and shift the rest of the row.
+   */
+  background-color: var(--lp-surface-elevated);
+}
+
+.card:hover .artwork {
+  transform: scale(1.05);
+}
+
+/* ---------------------------------------------------------------- Caption */
+
+.caption {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: 10px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  /*
+   * A dim wash under the caption rather than a blurred panel.
+   *
+   * `backdrop-filter` sampled the frame behind the card, so the caption's contrast changed
+   * with the artwork and the blur did nothing at all over a flat grid background. A fixed
+   * alpha fill over artwork the image is already dimmed by gives a predictable floor.
+   */
+  background-color: rgba(16, 16, 19, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.captionInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.captionTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.captionMeta {
+  margin-top: 3px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------- Play button */
+
+.playButton {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: transform var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+.card:hover .playButton {
+  transform: scale(1.1);
+  background-color: var(--lp-red-hover);
+}
+
+/* ---------------------------------------------------------------- Rating mark */
+
+/*
+ * High-rating badge, top-left.
+ *
+ * Only shown at 7.5 and above so it means something. The earlier version rendered a star for
+ * every title regardless of score, which made a 3.0 and a 9.4 look identical and trained
+ * people to ignore it.
+ */
+.ratingMark {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  background-color: rgba(16, 16, 19, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #f5a524;
+}
+
+/* ---------------------------------------------------------------- Skeleton */
+
+.skeleton {
+  background-color: var(--lp-surface-elevated);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-color: rgba(255, 255, 255, 0.08);
+    animation: titleCardShimmer 1.5s infinite;
+  }
+}
+
+@keyframes titleCardShimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------------------------------------------------------------- Grids */
+
+/*
+ * Four columns at desktop, stated explicitly per breakpoint rather than
+ * `repeat(auto-fill, minmax(...))`.
+ *
+ * `auto-fill` derives the column count from the container's measured width, so identical
+ * content produced 3, 4 or 5 columns depending on viewport and window size: the row length
+ * changed on resize with no content change. Stating the count makes four-per-row the design
+ * rather than an accident of available space.
+ *
+ * `minmax(0, 1fr)` on each track, not a bare `1fr`. A bare `1fr` is `minmax(auto, 1fr)`, and
+ * that `auto` minimum is the content's intrinsic width, which lets a long unbroken title push
+ * its column wider than the container and reintroduce horizontal overflow.
+ */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Six across for dense "more like this" rows on wide screens. */
+.gridDense {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .gridDense {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1536px) {
+  .gridDense {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.gridLandscape {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .gridLandscape {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .gridLandscape {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

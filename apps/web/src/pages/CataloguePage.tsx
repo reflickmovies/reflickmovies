@@ -1,0 +1,235 @@
+import { useCallback, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { MagnifyingGlass, Warning } from '@phosphor-icons/react';
+import { useGenres } from '../hooks/useReflick';
+import { useInfiniteBrowse } from '../hooks/useInfiniteBrowse';
+import { KIDS_GENRE, ROUTES } from '../lib/routes';
+import { SORT_LABELS, isSort } from '../types/api';
+import type { Sort, TitleType } from '../types/api';
+import { TitleGrid, TitleGridSkeleton } from '../components/titles';
+import { FilterChips, Notice, PageHeader, SortTabs } from '../components/page';
+import styles from './CataloguePage.module.css';
+
+/**
+ * One listing page, parameterised by route.
+ *
+ * Films, Series, Kids and Popular are the same screen with different filters, so they are one
+ * component rather than four files that would drift apart. Each route passes its own kind.
+ */
+export interface CataloguePageProps {
+  kind: 'films' | 'series' | 'kids' | 'popular';
+}
+
+const COPY: Record<CataloguePageProps['kind'], { title: string; empty: string; type?: TitleType }> = {
+  films: { title: 'Movies', empty: 'No films yet.', type: 'movie' },
+  series: { title: 'Series', empty: 'No series yet.', type: 'tv' },
+  kids: { title: 'Kids', empty: 'Nothing in Kids yet.' },
+  popular: { title: 'Popular', empty: 'Nothing is trending yet.' },
+};
+
+/**
+ * Listing grid: sort, genre filter, and an endless grid.
+ *
+ * Sort and genre live in the URL. As component state they were unreachable, unfavourable and
+ * lost on reload: the address bar said `/films` while the list was sorted by rating, and the
+ * back button returned to a page-1 scroll position over a page-4 list.
+ *
+ * Pagination is gone. `useInfiniteBrowse` appends pages as the sentinel scrolls into view, so
+ * there is no page control to keep in sync with the grid - which is also what removed the need
+ * for `?page=` in the URL.
+ */
+export function CataloguePage({ kind }: CataloguePageProps) {
+  const copy = COPY[kind];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: genres } = useGenres();
+
+  const sortParam = searchParams.get('sort');
+  const sort: Sort = isSort(sortParam) ? sortParam : 'trending';
+
+  /*
+    Kids is a genre rather than a type, so its genre filter is not optional: on every other
+    page "All" removes the genre, but here the Family genre is the page. Offering it as a
+    removable chip would leave the page showing unfiltered titles under a "Kids" heading.
+  */
+  const isKids = kind === 'kids';
+
+  const genreParam = Number(searchParams.get('genre'));
+  const genre = isKids ? KIDS_GENRE : Number.isInteger(genreParam) && genreParam > 0 ? genreParam : null;
+
+  const update = useCallback(
+    (mutate: (params: URLSearchParams) => void) => {
+      const params = new URLSearchParams(searchParams);
+      mutate(params);
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
+  const setSort = useCallback(
+    (next: Sort) => {
+      update((params) => params.set('sort', next));
+    },
+    [update],
+  );
+
+  const setGenre = useCallback(
+    (next: number | null) => {
+      if (isKids) return;
+      update((params) => {
+        if (next != null) params.set('genre', String(next));
+        else params.delete('genre');
+      });
+    },
+    [isKids, update],
+  );
+
+  /*
+    Only genres the catalogue can actually return.
+
+    `/api/genres` is the server's own list from the sync - the complete TMDB taxonomy, sorted so
+    the curated nav genres lead and the rest follow alphabetically, each carrying a live count of
+    the titles that carry it.
+
+    Genres with no titles are dropped rather than shown disabled. The server filters on
+    `genres.id`, so an empty genre is guaranteed to produce an empty grid, and an option that
+    always returns nothing is worse than an absent one: it reads as a broken filter. The counts
+    are therefore load-bearing, not decoration.
+
+    Deduplicated by name because TMDB has separate movie and TV genres that share an id space
+    and occasionally a name, and two chips reading "Comedy" is a bug rather than a feature.
+  */
+  const genreOptions = useMemo(() => {
+    const seen = new Set<string>();
+
+    const usable = (genres ?? []).filter((row) => {
+      if (seen.has(row.name)) return false;
+      seen.add(row.name);
+
+      // Kids is scoped by page, so the Family chip there is a no-op; hide it.
+      if (isKids && row.tmdbId === KIDS_GENRE) return false;
+
+      return row.titleCount > 0;
+    });
+
+    return [
+      {
+        value: null as number | null,
+        label: 'All genres',
+        // The unfiltered total, so "All genres" is a real option with a real figure rather
+        // than an unlabelled escape hatch at the top of the list.
+        count: (genres ?? []).reduce((total, row) => total + row.titleCount, 0),
+      },
+      ...usable.map((row) => ({ value: row.tmdbId, label: row.name, count: row.titleCount })),
+    ];
+  }, [genres, isKids]);
+
+  /*
+    A genre in the URL that the catalogue no longer holds - a typo, a bookmark from before a
+    re-sync, or a genre dropped because it emptied out - would otherwise filter to nothing and
+    render an empty grid under a heading implying the genre exists. Falling back to `All` shows
+    the full list instead, which is both honest and useful.
+  */
+  const selectedGenre = useMemo(() => {
+    if (genre == null) return null;
+    return genreOptions.some((option) => option.value === genre) ? genre : null;
+  }, [genre, genreOptions]);
+
+  const { items, isLoading, isFetchingMore, isStale, error, appendError, refetch, retryAppend, sentinelRef, hasMore } =
+    useInfiniteBrowse({
+      type: copy.type,
+      genre: selectedGenre ?? undefined,
+      sort,
+    });
+
+  return (
+    <div className={styles.page ?? ''}>
+      <PageHeader
+        title={copy.title}
+        action={
+          <>
+            {isKids ? null : (
+              <FilterChips value={selectedGenre} options={genreOptions} onChange={setGenre} />
+            )}
+            {/* Offered on every list, including Popular, which defaults to trending. */}
+            <SortTabs value={sort} onChange={setSort} options={SORT_LABELS} />
+          </>
+        }
+      />
+
+      {error ? (
+        <Notice
+          icon={<Warning size={26} weight="fill" aria-hidden />}
+          title={`Could not load ${copy.title.toLowerCase()}`}
+          tone="error"
+          action={
+            <button type="button" onClick={refetch} className={styles.noticeAction ?? ''}>
+              Try again
+            </button>
+          }
+        >
+          {error.message}
+        </Notice>
+      ) : isLoading ? (
+        <TitleGridSkeleton count={24} />
+      ) : items.length === 0 ? (
+        /*
+          One line, and it is the truth rather than setup instructions.
+
+          The previous copy ran to four clauses and two code samples explaining how to sync,
+          which is documentation for a developer in a visitor's empty grid. The catalogue is
+          either populated or it is not; when it is not, "Nothing here yet" is the whole
+          honest message, and the sync command belongs in the README and the Settings page.
+        */
+        <Notice
+          icon={<MagnifyingGlass size={26} aria-hidden />}
+          title={copy.empty}
+          action={
+            <Link to={ROUTES.home} className={styles.noticeAction ?? ''}>
+              Back to home
+            </Link>
+          }
+        />
+      ) : (
+        <>
+          {/* `aria-busy` while a background refetch runs, so the change is announced. */}
+          <div className={isStale ? (styles.refreshing ?? '') : undefined} aria-busy={isStale || isFetchingMore}>
+            <TitleGrid titles={items} />
+          </div>
+
+          {/*
+            The sentinel.
+
+            Always rendered once there is a grid, so the observer has something to watch. It
+            carries the loading text too, which doubles as a `role="status"` announcement and
+            keeps the message in the flow where a screen reader will read it as new content
+            arrives, rather than in a fixed toast the reader has to go looking for.
+          */}
+          <div
+            ref={sentinelRef}
+            className={styles.sentinel ?? ''}
+            tabIndex={hasMore ? -1 : undefined}
+            role={hasMore ? 'status' : undefined}
+          >
+            {appendError ? (
+              /*
+                A failed append keeps the grid above it. Retrying here re-requests the page that
+                did not arrive and appends it in place, so the reader resumes from exactly where
+                they stopped instead of being returned to the top of the list.
+              */
+              <div className={styles.sentinelError ?? ''}>
+                <span>Could not load more {copy.title.toLowerCase()}.</span>
+                <button type="button" onClick={retryAppend} className={styles.sentinelRetry ?? ''}>
+                  Try again
+                </button>
+              </div>
+            ) : hasMore ? (
+              isFetchingMore ? 'Loading more' : 'Scroll for more'
+            ) : (
+              'End of catalogue'
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

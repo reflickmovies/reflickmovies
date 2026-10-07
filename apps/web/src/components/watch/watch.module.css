@@ -1,0 +1,523 @@
+/*
+ * Episode browser.
+ *
+ * The still image is the anchor: on a monochrome layout the frame is what makes a
+ * row of titles scannable, so every episode row reserves a 16:9 box whether or not
+ * TMDB has artwork for it.
+ *
+ * These components render on every series page - the detail page and the player page - and both
+ * live inside `AppShell`, so one set of theme-aware `--lp-*` tokens covers them.
+ *
+ * `--brand-red`, not `--accent`, for the accent colour: `--accent` is the warm off-white used
+ * elsewhere, which is invisible against the shell's white surfaces.
+ */
+.seasons,
+.episodeRow,
+.episodeList,
+.seasonHeader,
+.seasonList {
+  --ep-surface: var(--lp-surface);
+  --ep-surface-raised: var(--lp-surface-elevated);
+  --ep-line: var(--lp-line);
+  --ep-line-strong: var(--lp-pill-inactive-hover);
+  --ep-text: var(--lp-text);
+  --ep-text-muted: var(--lp-text-muted);
+  --ep-text-faint: var(--lp-text-faint);
+  --ep-accent: var(--brand-red);
+  --ep-accent-hover: var(--brand-red-hover);
+  /*
+   * The one hover fill, as an alpha accent tint rather than a surface token.
+   *
+   * The shell sets `--lp-surface` and `--lp-surface-elevated` both to `#ffffff`, so a hover fill
+   * drawn from the surface tokens is white on white in light mode - the state is invisible.
+   * `--lp-pill-inactive` is no better there: it is 5% flat black, which over a white panel is a grey
+   * wash that reads as dirt and dulls the accent text of the row it lands under.
+   *
+   * Alpha composites against whatever panel is behind it, so one value is correct on the white
+   * shell surfaces and on the near-black player surface with no per-theme override - which is what
+   * a surface token would have required, and the reason this component needed its own.
+   */
+  --ep-tint: var(--brand-red-tint);
+}
+
+/* --------------------------------------------------------------- seasons */
+
+/*
+ * One row, whatever the number of seasons.
+ *
+ * The rail this replaced was `display: flex` with `overflow-x: auto` on small screens and a
+ * 260px column with `max-height: 460px` on wide ones, so a twenty-season show needed a second
+ * scrollbar inside the page and the episode list sat beside it rather than under it. The
+ * `position: relative` here is what the panel is absolutely positioned against.
+ */
+.seasons {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- Trigger ------------------------------------------------------------- */
+
+/*
+ * A pill, like every other control in the shell.
+ *
+ * `9999px` rather than `--radius-lg`: the theme's radius scale tops out at 10px, which suits the
+ * watch page's near-square panels but not a control sitting in a rounded page heading next to 20px
+ * cards. The pill shape is what the site's own buttons use, so the picker matches them.
+ */
+.seasonTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  /* `width: fit-content` keeps the control sized to its label instead of stretching the row. */
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--ep-line);
+  border-radius: 9999px;
+  background-color: var(--ep-surface);
+  color: var(--ep-text);
+  text-align: left;
+  transition:
+    border-color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+.seasonTrigger:hover {
+  background-color: var(--ep-tint);
+}
+
+.seasonTriggerOpen {
+  border-color: var(--ep-accent);
+}
+
+/* Accent variant ------------------------------------------------------ */
+
+/*
+ * The treatment for a picker that sits in a page heading.
+ *
+ * Larger, pill-shaped, and outlined in the accent colour, because in a heading row the only thing
+ * competing with it is the word "Episodes" - the control has to read as pressable without being read.
+ * The border stays the accent in every state rather than filling on hover: a filled red pill beside a
+ * heading out-shouts the heading itself, and the accent border already marks it as interactive.
+ *
+ * These rules deliberately come *after* `.seasonTrigger:hover` above. Both selectors are one class
+ * plus one pseudo-class, so they score the same, and in a cascade the later declaration wins: with
+ * this block first, the plain hover surface was painted over the accent fill and the button lost
+ * its highlight exactly when it was being hovered.
+ */
+.seasonsAccent {
+  margin-bottom: 0;
+}
+
+.seasonTriggerAccent {
+  height: 40px;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  /* 2px rather than the default hairline so the accent border reads as intentional, not a focus ring. */
+  border-width: 2px;
+  border-color: var(--ep-accent);
+  background-color: transparent;
+}
+
+.seasonTriggerAccent .seasonTriggerName {
+  font-size: inherit;
+  color: var(--ep-accent);
+}
+
+.seasonTriggerAccent .seasonCaret {
+  color: var(--ep-accent);
+}
+
+.seasonTriggerAccent:hover,
+.seasonTriggerAccent.seasonTriggerOpen {
+  background-color: var(--ep-tint);
+  border-color: var(--ep-accent-hover);
+}
+
+/*
+ * The name and caret invert when the row is filled solid.
+ *
+ * This only applies to the open state, where the wash is strong enough in dark mode to warrant it;
+ * the hover wash is deliberately too light to need inverted text in either theme.
+ */
+.seasonTriggerAccent.seasonTriggerOpen .seasonTriggerName,
+.seasonTriggerAccent.seasonTriggerOpen .seasonCaret {
+  color: var(--ep-accent);
+}
+
+.seasonTriggerName {
+  font-size: var(--font-size-body-sm);
+  font-weight: 600;
+  color: var(--ep-text);
+  /* A season name with no spaces in it must not widen the control past the page. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.seasonTriggerCount {
+  font-size: var(--font-size-micro);
+  color: var(--ep-text-faint);
+  white-space: nowrap;
+}
+
+.seasonCaret {
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--ep-text-muted);
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.seasonTriggerOpen .seasonCaret {
+  transform: rotate(180deg);
+}
+
+/* Panel --------------------------------------------------------------- */
+
+/*
+ * The popup: accent-bordered and generously rounded, matching the trigger and the cards it sits over.
+ *
+ * The accent border is the point of the design - it is the one place in the episode area where a
+ * saturated line is used, and it ties the menu to the trigger that opened it. The border does the
+ * work of separating the panel from the page behind it, so there is no drop shadow.
+ *
+ * A 2px accent line is also what separates this panel in light mode: on the shell's white surfaces
+ * the previous `0 24px 70px rgba(0, 0, 0, 0.5)` shadow was near-black at half opacity, which read
+ * as a grey smudge under a white card rather than as elevation, and it darkened the rows nearest
+ * the panel's edges.
+ *
+ * 20px rather than `--radius-lg`, for the same reason the trigger is a pill: the scale in
+ * `theme/layout.ts` was built for the standalone player's flat panels and reads as a different site
+ * next to the shell's 20px cards.
+ *
+ * `overflow-x: hidden` so the option rows are clipped by the panel's own radius. Without it the first
+ * and last rows paint square corners over the rounded panel. The Y axis is `auto` rather than
+ * hidden because `useAnchoredPanel` caps `max-height` to the room below the trigger, and a hidden
+ * Y axis would cut the last seasons off instead of letting them scroll.
+ *
+ * Placement is not declared here. The panel hangs off whichever side of the trigger has room, which
+ * is measured per open by `useAnchoredPanel` and applied inline - a fixed `left: 0` or `right: 0`
+ * pushed it off the edge of the screen whenever the trigger sat near that edge.
+ */
+.seasonPanel {
+  position: absolute;
+  top: calc(100% + var(--space-sm));
+  left: 0;
+  z-index: 20;
+  width: max(100%, 240px);
+  max-width: 100%;
+  padding: var(--space-xs);
+  border: 2px solid var(--ep-accent);
+  border-radius: 20px;
+  background-color: var(--ep-surface);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.seasonList {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /*
+    A show with thirty specials must scroll inside the panel rather than push the episode list
+    off the page, so the panel is capped rather than left to grow to the number of seasons.
+  */
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/*
+ * Rounded rows, at 14px so they read as nested inside the 20px panel rather than as more panels.
+ *
+ * Hover used to fill with `--ep-surface-raised`, which the shell defines as `#ffffff` - the same
+ * value as `--lp-surface` behind it - so in light mode the hover state painted white on white and
+ * did nothing at all. It is an alpha accent tint instead, which composites correctly against both
+ * the white shell panel and the near-black player panel.
+ */
+.seasonOption {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 14px;
+  text-align: left;
+  color: var(--ep-text-muted);
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+.seasonOption:hover {
+  color: var(--ep-text);
+  background-color: var(--ep-tint);
+}
+
+/*
+ * The selected row carries no fill.
+ *
+ * A tinted background on the selected option fought the two cues that already identify it - the
+ * accent text and the dot - and the fill itself was the least useful of the three: it is a solid
+ * block of colour in the middle of an otherwise monochrome menu, and it is the row least in need of
+ * being pointed at. The dot and the weight do the work here.
+ *
+ * Hover still fills, because the pointer landing on the selected row is the one moment that needs
+ * a response. It was the active fill that had to go, not the feedback.
+ */
+.seasonOptionActive {
+  color: var(--ep-accent);
+  background-color: transparent;
+}
+
+.seasonOptionActive:hover {
+  background-color: var(--ep-tint);
+}
+
+.seasonOptionActive .seasonName {
+  color: var(--ep-accent);
+  font-weight: 600;
+}
+
+/*
+ * The active marker, mounted only on the selected row.
+ *
+ * Same 6px `currentColor` circle the sidebar nav uses, so the two read as one system. It has to be
+ * conditionally rendered rather than present-but-empty on every row: a dot on every option is not a
+ * dot that means something.
+ *
+ * In the third grid track, so it sits at the trailing edge without `margin-left: auto` - the
+ * tracks are sized for the widest row, which is the active one, so the dot does not shift when the
+ * selection changes.
+ */
+.seasonDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.seasonName {
+  font-size: var(--font-size-body-sm);
+  font-weight: 500;
+  /* `min-width: 0` on the grid track above is what lets this ellipsise rather than stretch. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seasonCount {
+  font-size: var(--font-size-micro);
+  color: var(--ep-text-faint);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- season */
+
+.seasonHeader {
+  /*
+    Less space under the heading than it used to carry.
+
+    The margin sat there to clear the season rail above it. The picker is now a single row with its
+    own bottom margin, and the old value stacked on top of that and opened a gap between the season
+    name and the first episode of roughly three times `--space-xl`.
+  */
+  margin-bottom: var(--space-lg);
+}
+
+.seasonTitle {
+  font-size: var(--font-size-heading);
+  font-weight: 500;
+  color: var(--ep-text);
+}
+
+.seasonOverview {
+  margin-top: var(--space-sm);
+  max-width: 70ch;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--ep-text-muted);
+}
+
+/* -------------------------------------------------------------- episodes */
+
+/*
+ * An episode card: 20px radius to match the site's other cards, a hairline border, and a filled
+ * surface rather than a transparent row.
+ *
+ * The radius and the surface are what make it read as a card. At `--radius-lg` (6px) with a
+ * transparent background these were list rows, which is the other visual language from the rounded
+ * cards everywhere else on the page - and rows that stretch the full width gave a series page a very
+ * different rhythm from a film page, where everything is a rounded tile.
+ *
+ * `minmax(0, 1fr)` on the text track is the horizontal-scroll fix: a bare `1fr` is
+ * `minmax(auto, 1fr)`, so the track is sized by its content's min-content width and one episode
+ * with a long unbroken title would push the row wider than the page.
+ */
+.episodeRow {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: var(--space-lg);
+  padding: var(--space-md);
+  border: 1px solid var(--ep-line);
+  border-radius: 20px;
+  background-color: var(--ep-surface);
+  text-align: left;
+  transition:
+    border-color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+.episodeRow:hover {
+  border-color: var(--ep-accent);
+  background-color: var(--ep-tint);
+}
+
+/* The episode currently playing, kept distinguishable from a plain hover. */
+.episodeRowActive {
+  border-color: var(--ep-accent);
+  background-color: var(--ep-tint);
+}
+
+.episodeRowActive:hover {
+  background-color: var(--ep-tint);
+}
+
+/*
+ * Two columns once there is room for them.
+ *
+ * On a season of twenty the single column was a very long ribbon; at this width each card still has
+ * room for a readable title and synopsis. `auto-fit` with a `340px` floor means the layout responds
+ * to the container rather than the viewport, so it stays two-up in a narrow sidebar and reflows
+ * without a media query when the shell is resized.
+ */
+@media (min-width: 768px) {
+  .episodeRow {
+    grid-template-columns: 200px minmax(0, 1fr);
+    padding: var(--space-lg);
+  }
+}
+
+/* Below this the thumbnail is not worth its row and the text needs the width. */
+@media (max-width: 460px) {
+  .episodeRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm);
+  }
+}
+
+/* Nested inside a 20px card, so the still is inset a step rather than matching it exactly. */
+.still {
+  position: relative;
+  aspect-ratio: var(--aspect-landscape);
+  overflow: hidden;
+  border-radius: 14px;
+  background-color: var(--ep-surface-raised);
+}
+
+.stillImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--motion-base) var(--motion-ease);
+}
+
+.stillImageLoaded {
+  opacity: 1;
+}
+
+.stillFallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ep-text-faint);
+}
+
+.episodeBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.episodeHeading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.episodeNumber {
+  flex-shrink: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  color: var(--ep-text-faint);
+}
+
+.episodeTitle {
+  font-size: var(--font-size-subheading);
+  font-weight: 500;
+  color: var(--ep-text);
+  /*
+    Wraps anywhere.
+
+    Episode titles are the most likely place on the whole page to hit a long unbreakable run -
+    "Peter's+Vrabbit's+Great+Escape" and similar - and a word that will not break is what forces
+    a track wider than its container.
+  */
+  overflow-wrap: anywhere;
+}
+
+.episodeOverview {
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--ep-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.episodeMeta {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-meta);
+  color: var(--ep-text-faint);
+}
+
+.episodeWatchHint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+  color: var(--ep-text-faint);
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.episodeRow:hover .episodeWatchHint,
+.episodeRowActive .episodeWatchHint {
+  opacity: 1;
+}
+
+.episodeRowActive .episodeWatchHint {
+  color: var(--ep-accent);
+}

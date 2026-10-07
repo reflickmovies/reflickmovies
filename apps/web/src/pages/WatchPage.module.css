@@ -1,0 +1,355 @@
+/*
+ * Watch.
+ *
+ * A normal shell route, and it is written like one. It used to be a sibling of `AppShell` with its
+ * own `min-height: 100dvh`, its own background and its own sticky bar, on the theory that the
+ * player wants the whole viewport. That arrangement put the page outside `AppShell.module.css`,
+ * so the `--lp-*` palette was never defined on it and it fell back to a fixed dark one: pressing
+ * play dropped a light-mode reader onto a black screen. It also meant a second bar, a second back
+ * button and a second set of responsive rules, all of which could drift from the shell's.
+ *
+ * What the player actually needed from being outside was a viewport-wide frame, and the shell
+ * already provides that through its scrollport. So this file no longer sets a page background or a
+ * document height - the shell owns both - and only styles what is genuinely the page's own.
+ *
+ * The one place that stays dark in both themes is the frame itself. That is not a styling
+ * preference: an embed letterboxes against whatever its host serves, and a light surface around a
+ * letterboxed video shows the pillarbox bars as though they belonged to the page.
+ *
+ * The page reads in three bands: a slim bar identifying what is playing, the frame, then the
+ * episode list. Nothing displaces the frame - every control sits outside the 16:9 box - because a
+ * player that moves when you interact with it is one you have to re-find.
+ */
+
+/*
+ * Content only, exactly as the landing page is written.
+ *
+ * `min-width: 0` because this is a flex child of the shell's grid track, and the default `auto`
+ * minimum is the content's intrinsic width - which a 16:9 frame plus a long title would otherwise
+ * use to push the column past the viewport.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+/* ----------------------------------------------------------------- Bar */
+
+/*
+ * The identity strip: back, what is playing, and how to move through it.
+ *
+ * Not sticky. The shell already pins its own header, and a second pinned band under it would put
+ * two stacked bars above the player and eat a slice of the viewport that the video wanted - and
+ * because the episode list below is long, the bar scrolls away exactly as everything else does.
+ */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.barBack {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--lp-line);
+  border-radius: 50%;
+  background-color: var(--lp-surface);
+  box-shadow: var(--lp-card-shadow);
+  color: var(--lp-text);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.barBack:hover {
+  background-color: var(--lp-surface-elevated);
+  border-color: var(--lp-accent-red);
+  color: var(--lp-accent-red);
+}
+
+.barText {
+  min-width: 0;
+  flex: 1;
+}
+
+.barTitle {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-heading-sm);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--lp-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The season/episode line under the title.
+ *
+ * `tabular-nums` because this string changes as the reader moves through episodes, and a
+ * proportional font makes the bar's contents jitter sideways on every step.
+ */
+.barContext {
+  margin: 2px 0 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--lp-text-faint);
+}
+
+/*
+ * Previous and next, as a pair.
+ *
+ * Back is a bare icon and forward is the labelled action, which puts the emphasis on going
+ * forwards while still making going back discoverable. `gap: 2px` because the labelled button
+ * carries its own padding and a wider gap here read as two unrelated controls.
+ *
+ * The pair wraps to its own line under 640px rather than compressing. A title, a back button and
+ * four words of label do not fit one line at phone widths, and the title is the one that must
+ * survive, so the transport drops instead.
+ */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--lp-line);
+  border-radius: 50%;
+  background-color: var(--lp-surface);
+  box-shadow: var(--lp-card-shadow);
+  color: var(--lp-text-muted);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.step:hover:not(:disabled) {
+  background-color: var(--lp-surface-elevated);
+  border-color: var(--lp-accent-red);
+  color: var(--lp-accent-red);
+}
+
+.step:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ----------------------------------------------------------------- Main */
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+/* ----------------------------------------------------------------- Player */
+
+/*
+ * The player block, capped and centred.
+ *
+ * The frame is 16:9, so its height is set by its width. Left to fill the shell's content column -
+ * which runs to 1600px - a 1600px-wide frame is 900px tall, taller than a laptop viewport, and the
+ * video is pushed below the fold with the sources and episodes entirely underneath it. The same
+ * content at 1180px is 664px tall, which fits beside a browser chrome on a 1080p screen.
+ *
+ * Centred rather than left-aligned so the frame is not hard against the rail with a wide gutter on
+ * the far side, and so the sources row underneath lines up with the frame's edges rather than
+ * stretching away from it.
+ */
+.player {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+/*
+ * Reserves the 16:9 frame exactly.
+ *
+ * The fallback occupies the same box the iframe will, so the layout does not jump when a source
+ * resolves and the message appears where the video would have been rather than at the top of the
+ * page.
+ */
+.stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 20px;
+  overflow: hidden;
+  background-color: #0b0b0c;
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+}
+
+.fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  height: 100%;
+  padding: var(--space-xl);
+  text-align: center;
+  color: #f4f3f1;
+}
+
+.fallbackTitle {
+  margin: 0;
+  font-size: var(--font-size-body);
+  font-weight: 700;
+}
+
+.fallbackBody {
+  margin: 0;
+  max-width: 46ch;
+  font-size: var(--font-size-body-sm);
+  color: #a2a09b;
+}
+
+/*
+ * The one gap between the button in the fallback and its text.
+ *
+ * The fallback is a centred column of children, so without this the button sits flush against the
+ * paragraph with no separation at all - the gap was previously provided by the `npm` code block
+ * that has since been removed.
+ */
+.fallback > * + * {
+  margin-top: var(--space-sm);
+}
+
+.skeletonStage {
+  aspect-ratio: 16 / 9;
+  border-radius: 20px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+}
+
+/* ----------------------------------------------------------------- Narrow */
+
+/*
+ * Below this the bar cannot hold a title, a 40px back button and a pair of transport controls on
+ * one line, so it wraps rather than letting the title be squeezed to nothing. The stepper is the
+ * thing that drops: it is duplicated by the arrow keys on a keyboard, and it is the only element
+ * here that is purely an accelerator.
+ */
+@media (max-width: 640px) {
+  .bar {
+    flex-wrap: wrap;
+  }
+
+  .barText {
+    flex: 1 1 auto;
+  }
+
+  .stepper {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    padding-top: var(--space-xs);
+  }
+}
+
+
+/* ----------------------------------------------------------------- Episodes */
+
+.episodes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+/*
+ * The episodes heading.
+ *
+ * Serif and the same `clamp` as the title page's `.episodesHeading`, because it is the same heading
+ * for the same content - a viewer moving from the detail page to the player should not see the
+ * typography change underneath them. The picker sits on the right, as it does there.
+ */
+.episodesHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.episodesHeading {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: clamp(1.6rem, 3.2vw, 2.125rem);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--lp-text);
+  min-width: 0;
+}
+
+/*
+ * Episodes still loading.
+ *
+ * The spinner alone is a rotating arc, which tells a sighted reader that something is happening but
+ * not what. The words are the fix, and they sit beside the arc rather than under it so the pair
+ * reads as one line. `aria-live` is on the spinner already, so the text is picked up on arrival
+ * without this block needing its own announcement.
+ */
+.loadingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-block: var(--space-lg);
+}
+
+.loadingText {
+  font-size: var(--font-size-body-sm);
+  color: var(--lp-text-muted);
+}
+
+/*
+ * The episode grid.
+ *
+ * Byte-for-byte the same rule as the title page's `.episodeList`, deliberately. Both render the
+ * same `EpisodeRow`, and two containers describing the same layout is how a card ends up 340px wide
+ * on one page and full-width on the other. If this layout needs to change, it should change in both.
+ */
+.episodeList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 900px) {
+  .episodeList {
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  }
+}

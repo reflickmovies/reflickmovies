@@ -1,0 +1,751 @@
+/*
+ * The landing page.
+ *
+ * Content only. The rail, header, search field and the single scrollport all live in
+ * `components/shell/AppShell.module.css`, and the `--lp-*` tokens this module reads are
+ * declared there on `.shellRoot`. Nothing here may declare its own theme, own `100dvh`, or
+ * own `overflow`: the shell locks the document height so that only its scrollport scrolls, and
+ * a page that scrolls itself reintroduces horizontal and vertical overflow under the header.
+ */
+
+/* ---------------------------------------------------------------- Stack */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- Hero */
+
+.heroCard {
+  position: relative;
+  width: 100%;
+  min-height: 420px;
+  border-radius: 32px;
+  overflow: hidden;
+  background-color: #0b0b0c;
+  color: #ffffff;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--space-xl);
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .heroCard {
+    min-height: 480px;
+    padding: var(--space-2xl);
+  }
+}
+
+@media (min-width: 1200px) {
+  .heroCard {
+    min-height: 520px;
+    padding: var(--space-3xl);
+  }
+}
+
+/*
+ * Artwork at full opacity.
+ *
+ * `brightness()` on the image rather than a stack of translucent overlays above it. One
+ * compositing pass, and the whole frame shifts together: an overlay that ramps top-to-bottom
+ * necessarily leaves the middle of the frame at full brightness, which is what made the
+ * artwork read as patchy rather than cinematic.
+ */
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  filter: brightness(0.8) saturate(0.92);
+  transition: opacity 400ms ease, transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.heroBackdrop:hover {
+  transform: scale(1.02);
+}
+
+/*
+ * Bottom-weighted ramp, transparent at the top.
+ *
+ * A ramp, not a flat panel: the copy sits at the bottom, so the darkening has to be strongest
+ * exactly at the headline's baseline and gone by the time it reaches the artwork's subject,
+ * which usually sits above centre. A flat wash was either too weak to help the type or too
+ * strong to read as a highlight, with no middle setting.
+ */
+.heroBottomFade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(11, 11, 12, 0) 0%,
+    rgba(11, 11, 12, 0.12) 45%,
+    rgba(11, 11, 12, 0.55) 74%,
+    rgba(11, 11, 12, 0.86) 100%
+  );
+  pointer-events: none;
+}
+
+/*
+ * A second, much weaker top ramp.
+ *
+ * Only for the Trending badge and the chevrons, which sit near the top edge where the bottom
+ * ramp has nothing to say. Kept separate so its strength can be tuned without disturbing the
+ * headline's contrast.
+ */
+.heroTopWash {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 26%;
+  background: linear-gradient(to bottom, rgba(11, 11, 12, 0.5) 0%, rgba(11, 11, 12, 0) 100%);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- Hero transition */
+
+/*
+ * The slide change replays these by remounting the media and copy wrappers via a `key`.
+ *
+ * Toggling a class would be simpler, but CSS animations run once per mount, so returning to a
+ * slide would leave a static frame. The pair reads as one motion: artwork settles while
+ * fading, copy rises into place behind it, staggered by 90ms so the eye follows the content
+ * rather than two things at once.
+ */
+@keyframes heroShuffleUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes heroArtworkIn {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.heroMedia {
+  position: absolute;
+  inset: 0;
+  animation: heroArtworkIn 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.heroCopyEnter {
+  animation: heroShuffleUp 620ms cubic-bezier(0.22, 0.61, 0.36, 1) 90ms both;
+}
+
+/*
+ * `prefers-reduced-motion` is a request, not a suggestion. Drop the transform and the stagger,
+ * keep a short crossfade, so the slide still changes without anything moving.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .heroMedia,
+  .heroCopyEnter {
+    animation-name: heroFadeOnly;
+    animation-duration: 200ms;
+    animation-delay: 0ms;
+  }
+
+  @keyframes heroFadeOnly {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .heroBackdrop:hover {
+    transform: none;
+  }
+
+  .watchButton:hover,
+  .glassActionButton:hover {
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------- Hero chrome */
+
+.trendingBadge {
+  position: absolute;
+  top: var(--space-xl);
+  left: var(--space-xl);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  background-color: rgba(13, 13, 15, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.heroNav {
+  position: absolute;
+  top: 50%;
+  right: var(--space-xl);
+  transform: translateY(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/*
+ * Chevrons to the top edge on narrow screens.
+ *
+ * Vertically centred at `top: 50%` they sat over the copy on a phone, where the hero is short
+ * and the copy fills most of it.
+ */
+@media (max-width: 767px) {
+  .heroNav {
+    right: var(--space-md);
+    top: var(--space-xl);
+    transform: none;
+    flex-direction: row;
+  }
+}
+
+.heroNavButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background-color: rgba(13, 13, 15, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  cursor: pointer;
+  /* Transform and background only. `transition: all` here re-interpolated the box-shadow on
+     every hover, so the button appeared to swell as well as scale. */
+  transition: transform var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.heroNavButton:hover {
+  background-color: rgba(13, 13, 15, 0.94);
+  transform: scale(1.08);
+}
+
+/* ---------------------------------------------------------------- Hero copy */
+
+/*
+ * Copy directly on the artwork, with no panel behind it.
+ *
+ * The opaque box this replaced was solving contrast by walling the text off from the image.
+ * With `.heroBottomFade` ramping to ~86% black along the headline's baseline the panel was
+ * redundant, and it was the last dark rectangle in the card, which is what made the hero read
+ * as a black highlight laid over the artwork.
+ *
+ * No `backdrop-filter`: blur samples whatever is underneath, so a busy backdrop bled through
+ * the type and the headline's effective contrast changed slide to slide. The gradient is
+ * deterministic, so contrast no longer varies with the artwork.
+ *
+ * `text-shadow` is the safety net for a bright frame: short, low-opacity, so it reads as the
+ * shape sitting on a dark field rather than as a drop shadow. SC 1.4.8 exempts text shadows
+ * from the contrast requirement, which is what makes that acceptable; the ramp does the work.
+ */
+.heroContent {
+  position: relative;
+  z-index: 2;
+  max-width: 640px;
+  text-shadow: 0 1px 12px rgba(11, 11, 12, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+@media (max-width: 767px) {
+  .heroContent {
+    max-width: 100%;
+  }
+}
+
+.heroTitle {
+  font-family: var(--font-family-sans);
+  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin: 0;
+}
+
+.heroMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/*
+ * Metadata separator.
+ *
+ * A dot child of the flex row, not a pseudo-element on the value before it. Interpolating the
+ * separator unconditionally is what produced lines reading "2021 · ·" on titles with no
+ * runtime and no rating.
+ */
+.heroMetaDot {
+  width: 4px;
+  height: 4px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Wraps a value that is not a bare string, so the dot lands between items, not inside one. */
+.heroMetaItem {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ratingBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.heroOverview {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.78);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+/* Watch: solid white pill, black text. The hero's one primary action. */
+.watchButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding-inline: 28px;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  color: #0b0b0c;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.watchButton:hover {
+  background-color: #efece4;
+  transform: translateY(-2px);
+}
+
+/* Secondary: translucent pill over the artwork. */
+.glassActionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding-inline: 24px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+.glassActionButton:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* ---------------------------------------------------------------- Shelves */
+
+.shelfSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.shelfHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding-inline: var(--space-xs);
+}
+
+.shelfTitle {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--lp-text);
+  letter-spacing: -0.01em;
+}
+
+/*
+ * "See all" pairs an arrow with the label.
+ *
+ * The previous version was bare muted text that only turned red on hover, so on a touch
+ * device - which has no hover - it was indistinguishable from the heading beside it.
+ */
+.shelfSeeAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--lp-text-muted);
+  text-decoration: none;
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.shelfSeeAll:hover {
+  color: var(--lp-accent-red);
+}
+
+/*
+ * Four cards per row.
+ *
+ * Explicit counts per breakpoint rather than `repeat(auto-fill, minmax(...))`, which derives
+ * the column count from the container's measured width - the same content produced 3, 4 or 5
+ * columns depending on the window size, so the row could change length on resize with no
+ * content change.
+ *
+ * `minmax(0, 1fr)`, not a bare `1fr`. A bare `1fr` is `minmax(auto, 1fr)`, and that `auto`
+ * minimum is the content's intrinsic width, which lets a long unbroken title widen its column
+ * past the container and reintroduce the horizontal overflow the auto-fill version masked.
+ *
+ * The rail takes 270px plus page padding, so four cards only clear a comfortable width at
+ * 1024px.
+ */
+.cardsRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+
+@media (min-width: 640px) {
+  .cardsRow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .cardsRow {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/*
+ * Shelf card, 3:4.
+ *
+ * At four columns a 16:10 landscape left each card roughly 150px tall, cropping the artwork to
+ * a letterbox strip: the subject, almost always the top third, was cut off and the caption bar
+ * covered most of what was left. 3:4 gives about 300px at the same width.
+ *
+ * `aspect-ratio` rather than a fixed height so the cards stay proportional as the row goes two,
+ * then three, then four columns.
+ */
+.shelfCard {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  background-color: var(--lp-surface-elevated);
+  box-shadow: var(--lp-card-shadow);
+  border: 1px solid var(--lp-line);
+  text-decoration: none;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  transition: transform var(--motion-slow) var(--motion-ease-out),
+    box-shadow var(--motion-slow) var(--motion-ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shelfCard:hover {
+    transform: none;
+  }
+}
+
+.shelfCard:hover {
+  transform: translateY(-4px);
+}
+
+.cardArtwork {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 400ms ease;
+}
+
+.shelfCard:hover .cardArtwork {
+  transform: scale(1.05);
+}
+
+/*
+ * Caption bar over the lower edge.
+ *
+ * A dim wash rather than a blurred panel: `backdrop-filter` sampled the frame behind the card,
+ * so contrast varied with the artwork and the blur did nothing at all over a flat grid
+ * background. A fixed alpha fill over an image that is already dimmed gives a predictable floor.
+ */
+.cardGlassOverlay {
+  position: relative;
+  z-index: 2;
+  margin: 10px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background-color: rgba(16, 16, 19, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.cardGlassInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.cardGlassTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.cardGlassMeta {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.redPlayButton {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: transform var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+.shelfCard:hover .redPlayButton {
+  transform: scale(1.1);
+  background-color: var(--lp-red-hover);
+}
+
+/* ---------------------------------------------------------------- Empty state */
+
+.emptyCard {
+  background-color: var(--lp-surface);
+  border-radius: 28px;
+  padding: var(--space-2xl);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xl);
+}
+
+.emptyIcon {
+  color: var(--lp-accent-red);
+  flex-shrink: 0;
+}
+
+.emptyTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--lp-text);
+}
+
+.emptyText {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--lp-text-muted);
+  margin-top: var(--space-xs);
+  max-width: 62ch;
+}
+
+.emptyText code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background-color: var(--lp-pill-inactive);
+  font-family: var(--font-family-mono);
+  font-size: 0.8125rem;
+  color: var(--lp-accent-red);
+}
+
+/*
+ * The empty-state action.
+ *
+ * Shared shape with the hero's secondary pill on purpose: both are "do something about this",
+ * and having two button styles for it made the empty state look like a different product.
+ */
+.retryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  margin-top: var(--space-lg);
+  padding-inline: 20px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.retryButton:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}
+
+/* ---------------------------------------------------------------- Skeleton */
+
+.skeletonBlock {
+  height: 480px;
+  border-radius: 28px;
+  background-color: var(--lp-surface);
+  position: relative;
+  overflow: hidden;
+}
+
+/*
+ * Sweep gated on `no-preference`.
+ *
+ * An infinite animation running under `prefers-reduced-motion: reduce` is exactly what the
+ * global `0.01ms` override in `globals.css` cannot fix: it stops the motion but leaves the
+ * shimmer loop running forever, still consuming compositor work.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .skeletonBlock::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-color: rgba(255, 255, 255, 0.08);
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- Footer */
+
+.homeFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  padding-top: var(--space-lg);
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--lp-line);
+}
+
+.footerText {
+  font-size: 0.8125rem;
+  color: var(--lp-text-faint);
+}
+
+.footerLink {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--lp-text-muted);
+  text-decoration: none;
+}
+
+.footerLink:hover {
+  color: var(--lp-accent-red);
+}
+
+/* ---------------------------------------------------------------- Mobile shelf */
+
+/*
+ * The Continue watching row, shown only where the rail is not.
+ *
+ * Declared after `.shelfSection` because both are a single class on the same element, and the
+ * later one wins: `display: none` here has to beat the section's own `display: flex`. Hence the
+ * rule cannot move up next to the shelf rules it shares a selector with.
+ *
+ * The markup is the page's own shelf markup rather than the rail's compact list, so the row reads
+ * as part of the page instead of a widget dropped into it.
+ */
+.mobileShelf {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .mobileShelf {
+    display: flex;
+  }
+}

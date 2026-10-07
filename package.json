@@ -1,0 +1,30 @@
+{
+    "name":  "reflick",
+    "private":  true,
+    "version":  "1.0.0",
+    "description":  "Reflick - Cinema in monochrome. Streaming front-end + Express API.",
+    "workspaces":  [
+                       "apps/web",
+                       "apps/server"
+                   ],
+    "scripts":  {
+                    "dev":  "npm run dev --workspaces --if-present",
+                    "dev:web":  "npm run dev --workspace apps/web",
+                    "dev:server":  "npm run dev --workspace apps/server",
+                    "build":  "npm run build --workspace apps/server \u0026\u0026 npm run build --workspace apps/web",
+                    "start":  "npm run start --workspace apps/server",
+                    "preview":  "npm run preview --workspace apps/web",
+                    "typecheck":  "npm run typecheck --workspaces --if-present",
+                    "lint":  "npm run lint --workspaces --if-present",
+                    "clean":  "npm run clean --workspaces --if-present",
+                    "test":  "npm test --workspace apps/server",
+                    "inspect:embeds":  "node scripts/inspect-embeds.mjs",
+                    "probe:providers":  "node scripts/probe-providers.mjs"
+                },
+    "engines":  {
+                    "node":  "\u003e=20.19.0"
+                },
+    "devDependencies":  {
+                            "typescript":  "^5.7.2"
+                        }
+}

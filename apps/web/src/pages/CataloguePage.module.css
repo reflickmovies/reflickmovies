@@ -1,0 +1,146 @@
+/*
+ * Films, Series, Kids and Popular.
+ *
+ * One module for all four because they are one screen with different filters. The layout is
+ * deliberately thin: header, grid, sentinel. Everything with real structure lives in
+ * `components/page` and `components/titles`, so this file holds only the page's own spacing.
+ *
+ * All colours come from the shell's `--lp-*` tokens, which is what lets these pages follow
+ * the theme toggle without a single theme query here.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-width: 0;
+}
+
+.noticeAction {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding-inline: 20px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.noticeAction:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}
+
+/* ---------------------------------------------------------------- Refreshing */
+
+/*
+ * Dimmed while a background refetch is in flight.
+ *
+ * The cached rows stay on screen and stay readable, so paging through a list never blanks it
+ * to a skeleton. The opacity is what tells you the copy is about to change; without it the
+ * swap looks like a glitch.
+ *
+ * Not applied while appending a later page: there the rows already on screen are correct and
+ * only new ones are coming, so dimming them would be signalling a change that is not
+ * happening to them.
+ */
+.refreshing {
+  opacity: 0.55;
+  transition: opacity var(--motion-base) var(--motion-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refreshing {
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------- Sentinel */
+
+/*
+ * The endless-scroll trigger and its status line.
+ *
+ * It carries real content rather than being an empty marker, for three reasons:
+ *
+ *  - `role="status"` on it means "Loading more" is announced as pages arrive, which an empty
+ *    observer target cannot do. The reader is told the list is growing without the focus ever
+ *    moving.
+ *  - It is the only place the grid can honestly say it has reached the end. Without it the
+ *    last row looks like a mistake - like more should be there and the page failed.
+ *  - It gives the observer a box with height, so a grid that exactly fills the viewport still
+ *    triggers the next page. A zero-height sentinel at the very bottom can sit outside the
+ *    root's margin in some engines.
+ */
+.sentinel {
+  display: grid;
+  place-items: center;
+  min-height: 64px;
+  padding-block: var(--space-lg);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  color: var(--lp-text-faint);
+  text-align: center;
+}
+
+/*
+ * `outline: none` is deliberate but paired with a visible replacement: the sentinel is
+ * focusable so keyboard scrolling stops on it, and removing the ring without the text would
+ * make that stop invisible.
+ */
+.sentinel:focus-visible {
+  outline: 2px solid var(--lp-accent-red);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/* ---------------------------------------------------------- Append failure */
+
+/*
+ * A page that failed to load, with the grid still on screen above it.
+ *
+ * This is deliberately not a full-page notice. Everything already fetched is correct and the
+ * reader has scrolled through it; replacing a hundred titles with an error card to report that
+ * the *next* twenty did not arrive throws away work the reader already did. The retry lives
+ * where the failure happened, at the end of the list.
+ */
+.sentinelError {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm) var(--space-md);
+  color: var(--lp-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.sentinelRetry {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding-inline: 16px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.sentinelRetry:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}

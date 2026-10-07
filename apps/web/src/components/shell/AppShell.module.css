@@ -1,0 +1,501 @@
+/*
+ * Reflick app shell.
+ *
+ * The fixed two-column frame every page renders inside: a rail on the left, and a right
+ * column holding the header plus the one scrollport. Pages supply their own content and
+ * nothing else, which is why this owns the layout rather than each page re-deriving it.
+ *
+ * The height lock (`100dvh` plus `overflow: hidden` on the container) is the load-bearing
+ * part. Because the document never scrolls, `position: sticky` is inert everywhere below, so
+ * the rail and header stay put for free and `.shellScroll` becomes the only scrollport on the
+ * page. That is also why pages must not add their own `overflow` or `100vh`.
+ *
+ * The `--lp-*` surface palette used to be declared here, across four blocks to cover the base
+ * case, `prefers-color-scheme` and `data-theme`. It now lives on `:root` in `styles/globals.css`,
+ * because the player page renders outside this shell and could not reach tokens scoped to it.
+ */
+
+.shellRoot {
+  height: 100dvh;
+  background-color: var(--lp-bg);
+  color: var(--lp-text);
+  font-family: var(--font-family-sans);
+  box-sizing: border-box;
+  transition: background-color var(--motion-base) var(--motion-ease), color var(--motion-base) var(--motion-ease);
+}
+
+
+/* ---------------------------------------------------------------- Layout Container */
+
+.shellContainer {
+  max-width: 1600px;
+  margin-inline: auto;
+  /*
+   * Height-locked to the viewport, with `overflow: hidden`.
+   *
+   * This is the mechanism that keeps the sidebar and header still while the shelves scroll:
+   * the page body must never scroll, or every `position: sticky` child inside it moves with
+   * the document. Locking the container to `100dvh` and clipping it means the only element
+   * with a scrollport is `.shellScroll` further down. `dvh` rather than `vh` because `vh`
+   * ignores the collapsing mobile URL bar and would leave a gap under it.
+   */
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/*
+ * Two columns: rail, and right-hand column.
+ *
+ * `minmax(0, 1fr)` on the right rather than `1fr` - a bare `1fr` is `minmax(auto, 1fr)`, and
+ * that `auto` minimum is the content's intrinsic width, which lets a wide shelf or long
+ * title push the column past the viewport and reintroduce horizontal overflow.
+ */
+.shellGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  height: 100%;
+  min-height: 0;
+  gap: var(--space-lg);
+  /*
+   * Inset padding for the rail and content column, matching the gutter `.shellContainer`
+   * used to carry. `height: 100%` against a `100dvh` parent means the box already fills the
+   * viewport, so no top margin is needed here - and there is none.
+   */
+  padding: var(--space-md);
+}
+
+@media (min-width: 768px) {
+  .shellGrid {
+    padding: var(--space-lg);
+  }
+}
+
+@media (min-width: 1200px) {
+  .shellGrid {
+    padding: var(--space-xl);
+  }
+}
+
+/* Right-hand column: header on top, scrolling content beneath. */
+.shellMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  /*
+   * Both properties are load-bearing. As a flex child of the grid, `shellMain` defaults
+   * to `min-height: auto`, which refuses to shrink below its content - so the shelves would
+   * push it taller than the viewport and the *page* would scroll, taking the sticky header
+   * with it. `min-height: 0` lets it shrink, which is what allows the inner scroll area to
+   * actually become a scrollport.
+   */
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  .shellGrid {
+    grid-template-columns: 270px minmax(0, 1fr);
+    gap: var(--space-xl);
+  }
+}
+
+/* The single scrollport on the page. */
+/*
+ * The single scrollport on the page, with its scrollbar hidden.
+ *
+ * `scrollbar-width: none` plus the WebKit pseudo-element are both needed: `scrollbar-width`
+ * is the standard property and Firefox honours it, but Chromium still requires the
+ * `::-webkit-scrollbar { display: none }` rule. Setting only one leaves a visible track in
+ * the other engine.
+ *
+ * Scrolling is very much still active - `overflow-y: auto` is untouched. This hides only the
+ * affordance, so mouse wheel, trackpad, keyboard and touch all keep working. Anyone who
+ * cannot use a wheel can still reach everything with the keyboard; the shelves are all
+ * rendered in the DOM, not virtualised, so nothing is reachable only by scrolling.
+ */
+.shellScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /*
+   * The header is a sibling above this box, so content scrolling up to it needs clearance
+   * for the header's shadow to read. Without it the first shelf sits flush against it.
+   */
+  padding-block-end: var(--space-2xl);
+}
+
+.shellScroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* ---------------------------------------------------------------- Sidebar column */
+
+/*
+ * The rail fills its grid track and manages its own overflow.
+ *
+ * No `position: sticky` here, and none is needed. Sticky was the previous mechanism for
+ * keeping the sidebar still, but it only works while the *document* scrolls - and the
+ * document no longer scrolls at all, since `.shellContainer` is height-locked to `100dvh`
+ * with `overflow: hidden`. Under that arrangement sticky is inert; the sidebar is still
+ * because nothing it lives in ever moves.
+ *
+ * `min-height: 0` alongside the container's `height: 100%` is what lets the card shrink to
+ * the track rather than being sized by its content, so the inner scroller below can take
+ * over when the nav plus Continue watching exceed the viewport.
+ */
+.sidebarColumn {
+min-width: 0;
+  min-height: 0;
+  /*
+    `overflow: hidden` on both axes, and that is the whole of the horizontal rule.
+
+    The rail is a grid track in a `100dvh` container that already clips. Any child measuring
+    wider than the track - a long nav label, a long title in Continue watching, the old inline
+    search field's intrinsic input width - would otherwise either widen the column or produce a
+    horizontal scrollbar here, and a sidebar that scrolls sideways on a desktop is the single
+    most obviously broken thing a layout like this can do. Content that cannot fit truncates;
+    it never scrolls the rail off its own track.
+
+    The search dropdown no longer lives inside this box, which is why nothing here has to
+    accommodate it any more.
+  */
+  overflow: hidden;
+}
+
+/*
+ * The rail's inner column scrolls; the card itself does not.
+ *
+ * `min-height: 0` on this flex child is load-bearing. A flex child defaults to
+ * `min-height: auto`, which refuses to shrink below its content and pushes the card past
+ * the viewport instead of scrolling - the symptom being a sidebar whose Continue watching
+ * rows run off the bottom of the screen with no way to reach them.
+ */
+.sidebarInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  /* No sideways movement: see `.sidebarColumn`. */
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lp-line) transparent;
+}
+
+.sidebarRail {
+  /*
+   * The card owns its background and clipping; `.sidebarInner` owns the layout and the
+   * scrolling. Keeping `overflow: hidden` here is what clips the inner column's content to
+   * the rounded corners, so a shelf row scrolled to its edge does not paint square corners
+   * over the radius.
+   */
+  background-color: var(--lp-surface);
+  border-radius: 32px;
+  padding: var(--space-xl) var(--space-lg);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 1023px) {
+  .sidebarRail {
+    border-radius: 24px;
+    padding: var(--space-lg);
+  }
+}
+
+/* ---------------------------------------------------------------- Brand */
+
+.brandHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--space-sm);
+}
+
+.brandWordmark {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/*
+ * The wordmark is a red text SVG rather than live text, so the logo reads identically
+ * wherever it is placed and the tab icon can be the same file. The SVG carries its own
+ * colour and tracking, so none of the old type properties apply to it - only the box.
+ */
+.brandWordmark img {
+  display: block;
+  height: 22px;
+  width: auto;
+}
+
+.brandWordmark:hover img {
+  opacity: 0.85;
+}
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /*
+    `min-width: 0` so a long unbroken label ellipsises instead of widening the row. The rail is
+    a fixed 270px grid track inside a height-locked, `overflow: hidden` container, so a row
+    that grew past its track would be clipped at the card edge with no way to scroll to it -
+    which is the horizontal overflow this rail must never have.
+  */
+  min-width: 0;
+}
+
+.navList span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1023px) {
+  .navList {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+  }
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 9px 14px;
+  border-radius: 14px;
+  color: var(--lp-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+  position: relative;
+}
+
+/*
+ * Hover: a tint and a colour change, nothing else.
+ *
+ * The row used to translate 2px right, which made the whole nav shuffle sideways on every
+ * pass of the pointer and left a row visibly out of alignment with its neighbours while
+ * hovered. Nothing is gained by moving a navigation target; the colour is the signal.
+ */
+.navItem:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text);
+}
+
+.navItemActive {
+  color: var(--lp-accent-red) !important;
+  font-weight: 600;
+  /*
+   * Tinted background as well as colour and weight.
+   *
+   * The dot alone is a very small target for a non-colour cue: it is 6px of red next to red
+   * text. Pairing it with a filled row means the active item is still identifiable if the dot
+   * is missed or suppressed, which is the whole point of having more than one cue.
+   */
+  background-color: var(--lp-pill-inactive);
+}
+
+/*
+ * Active marker, rendered only on the active row.
+ *
+ * It used to be an empty `<span>` on every item, so all five rows carried a dot-coloured
+ * circle and the active state was carried by nothing at all - a dot rendered everywhere is
+ * not a dot that means something. `AppShell` now mounts it conditionally.
+ *
+ * `margin-left: auto` pushes it to the trailing edge of the row.
+ */
+.navDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.sidebarDivider {
+  height: 1px;
+  background-color: var(--lp-line);
+  margin-block: var(--space-xs);
+}
+
+@media (max-width: 1023px) {
+  .sidebarDivider {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- Content stack */
+
+/*
+ * Vertical rhythm inside the scroll area: hero, then shelves.
+ *
+ * `shellScroll` is the scrollport (see its own rule); this is just the stack laid out
+ * within it. Kept as a separate rule from the scrollport's `flex: 1` so the gap stays
+ * `space-2xl` between shelves while the header-to-first-shelf spacing is `space-lg`, set
+ * on `.shellMain`. Collapsing them into one rule would have made the header gap as large
+ * as the gap between shelves, which made the header read as part of the content.
+ */
+.pageStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- Mobile nav */
+
+/*
+ * Below 1024px the rail is gone and a bottom tab bar takes over primary navigation. The pills
+ * in the header stay on desktop only, where they do not have to share a line with a rail.
+ */
+@media (max-width: 1023px) {
+  .sidebarColumn {
+    display: none;
+  }
+
+  /*
+   * The tab bar is `position: fixed`, so it floats over the scrollport. Without clearance the
+   * last row of content sits permanently underneath it.
+   */
+  .shellScroll {
+    padding-bottom: 84px;
+  }
+}
+
+.mobileTabBar {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .mobileTabBar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 60;
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: var(--space-xs) var(--space-sm);
+    padding-bottom: max(var(--space-xs), env(safe-area-inset-bottom));
+    background-color: var(--lp-surface);
+    border-top: 1px solid var(--lp-line);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.mobileTab {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 7px 2px;
+  border-radius: 12px;
+  color: var(--lp-text-muted);
+  text-decoration: none;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+}
+
+.mobileTab:hover {
+  color: var(--lp-text);
+  background-color: var(--lp-pill-inactive);
+}
+
+.mobileTabActive {
+  color: var(--lp-accent-red);
+}
+
+/*
+ * The overflow menu, behind the dots button in the header.
+ *
+ * `position: fixed` with the offsets supplied inline by `useAnchoredPanel` rather than declared
+ * here. The panel is not a descendant of the button, so it cannot be anchored with `calc(100% +
+ * gap)` against it, and a hardcoded `top`/`right` pair is only correct while the button happens
+ * to sit where the header layout puts it. The hook measures the button and clamps the panel to
+ * the viewport on every open.
+ */
+.overflowMenu {
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 190px;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 16px));
+  padding: 6px;
+  border: 1px solid var(--lp-line);
+  border-radius: 16px;
+  background-color: var(--lp-surface);
+  box-shadow: var(--lp-card-shadow);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.overflowMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--lp-text-muted);
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+
+.overflowMenuItem:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text);
+}
+
+.overflowMenuItem > span {
+  white-space: nowrap;
+}
+
+/*
+ * Secondary detail on a menu row, right-aligned.
+ *
+ * The theme row carries "Auto device" or "Manual" as well as the current appearance, which is the
+ * difference between a setting and a two-state switch: the reader can see that the app is
+ * following the system before deciding to override it.
+ */
+.overflowMenuHint {
+  margin-left: auto;
+  padding-left: 16px;
+  color: var(--lp-text-faint);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}

@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        {
+          "key": "Permissions-Policy",
+          "value": "autoplay=(self), fullscreen=(self), picture-in-picture=(), camera=(), microphone=(), geolocation=(), clipboard-read=(), clipboard-write=()"
+        },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" }
+      ]
+    }
+  ]
+}

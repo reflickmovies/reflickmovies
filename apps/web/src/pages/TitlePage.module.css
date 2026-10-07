@@ -1,0 +1,680 @@
+/*
+ * Title detail.
+ *
+ * A cinematic hero rather than a banner with a card under it.
+ *
+ * The previous structure was a full-width backdrop band with a separate rounded panel pulled up
+ * over its bottom edge by a negative margin. That worked, but it spent the entire viewport on
+ * artwork and then put the text the reader came for in a box below it, so the title, its poster
+ * and its synopsis were never visible at the same time.
+ *
+ * Here the poster and the copy share the hero and sit over the scrimmed backdrop together, which
+ * is the arrangement every streaming title page uses: one glance gives the artwork, the name, the
+ * year and what it is about. Everything below the fold is the part that is genuinely secondary.
+ *
+ * Colours come from the shell's `--lp-*` tokens, so the page follows the theme toggle with no
+ * theme query here.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  min-width: 0;
+  /*
+    Belt and braces against horizontal scrolling.
+
+    Every track on this page is `minmax(0, 1fr)` and long text wraps, so this should never have
+    anything to clip. It is here because the failure mode is invisible and total: one element
+    somewhere deeper - a shelf, an episode still, a long IMDb id - that mismeasures makes the
+    entire page draggable sideways, which reads as a broken layout rather than as one bad child.
+
+    `clip` rather than `hidden` deliberately: `hidden` would make this element a scroll container
+    and re-introduce the very behaviour it is preventing, while `clip` contains the overflow with
+    no scrolling of its own and no new formatting context.
+  */
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* ---------------------------------------------------------------- Hero */
+
+.hero {
+  position: relative;
+  border-radius: 32px;
+  overflow: hidden;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  isolation: isolate;
+}
+
+/*
+ * The artwork, behind everything.
+ *
+ * `position: absolute` with a `z-index` below the content rather than a background on the hero,
+ * because the copy needs a scrim to sit on and a background-image cannot take one. Object
+ * position is high: a backdrop is composed with the subject in the upper third, and centring it
+ * crops faces out of the frame.
+ */
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+}
+
+.heroBackdropFallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(135deg, var(--lp-pill-inactive) 0%, var(--lp-surface) 100%);
+}
+
+/*
+ * The scrim, and the reason the copy is legible.
+ *
+ * Two gradients rather than one flat wash: a diagonal that darkens the lower-left where the text
+ * sits, and a bottom fade that blends the hero into the page so the hero reads as the top of the
+ * page rather than a card floating above it.
+ *
+ * This is why the copy is inside the hero. On a scrimmed backdrop there is no separation
+ * problem to solve, and no surface panel is needed at all.
+ */
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to top, rgba(9, 9, 10, 0.94) 0%, rgba(9, 9, 10, 0.72) 34%, rgba(9, 9, 10, 0.18) 68%, rgba(9, 9, 10, 0.42) 100%),
+    linear-gradient(to right, rgba(9, 9, 10, 0.82) 0%, rgba(9, 9, 10, 0.32) 52%, rgba(9, 9, 10, 0) 78%);
+}
+
+/*
+ * Poster and copy, side by side.
+ *
+ * `align-items: flex-end` puts the copy's baseline near the poster's foot, so the title reads as
+ * a caption on the artwork rather than floating beside it. The poster keeps its 2:3 ratio and is
+ * capped by height, not width, so it never pushes the text column off a narrow screen.
+ */
+.heroBody {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  /*
+    `minmax(0, 1fr)`, not `1fr`.
+
+    A single-column `1fr` is still `minmax(auto, 1fr)`, so on a phone the track is floored by its
+    content's min-content width. A title with a long unbroken word - a compound, a hyphenless
+    foreign title, a bot handle - then set the floor above the viewport and the whole page could be
+    dragged sideways. The copy column is allowed to shrink to the container's width and wrap
+    instead.
+  */
+  grid-template-columns: minmax(0, 1fr);
+  align-items: flex-end;
+  gap: var(--space-xl);
+  padding: var(--space-2xl);
+  min-height: min(62vh, 560px);
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .heroBody {
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: var(--space-2xl);
+    padding: var(--space-3xl);
+  }
+}
+
+/*
+ * A framed poster with a soft shadow, so it sits above the backdrop instead of dissolving into
+ * it. TMDB has no poster for some titles; the fallback keeps the exact same box so the copy
+ * column does not reflow when a poster is missing.
+ */
+.heroPoster,
+.heroPosterFallback {
+  width: 100%;
+  max-width: 200px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid var(--lp-line);
+  background-color: var(--lp-surface-elevated);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+}
+
+.heroPosterFallback {
+  display: grid;
+  place-items: center;
+  color: var(--lp-text-faint);
+}
+
+.heroCopy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+/*
+ * The wordmark, above the text heading.
+ *
+ * Decoration only. The `h1` below is always the real, selectable title text: a logo image cannot
+ * be selected, cannot be read aloud, does not scale with the type around it, and vanishes
+ * entirely on a title whose mark is light against a bright frame - which would leave the page
+ * with no visible heading at all.
+ */
+.heroLogo {
+  max-height: 56px;
+  width: auto;
+  max-width: min(360px, 100%);
+  object-fit: contain;
+  object-position: left bottom;
+  margin-bottom: var(--space-xs);
+}
+
+.heroTitle {
+  font-size: clamp(1.875rem, 4.6vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  text-wrap: balance;
+  /*
+    The headline is the most likely thing on the page to be unbreakable, and it is the largest
+    text on the page, so it is where a horizontal scrollbar is most visible. Breaks inside a word
+    only when the word genuinely cannot fit on a line of its own.
+  */
+  overflow-wrap: anywhere;
+  overflow-wrap: anywhere;
+}
+
+.heroTagline {
+  font-size: 1rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.74);
+  max-width: 52ch;
+}
+
+/*
+ * Year, type, runtime, rating.
+ *
+ * On the scrim rather than on a surface, so the separators are translucent white instead of the
+ * `--lp-line` grey, which is calibrated for panels and disappears against dark artwork.
+ */
+.heroMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.heroMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.heroMetaItem + .heroMetaItem {
+  padding-left: var(--space-md);
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.heroRating {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  color: #f5a524;
+}
+
+.heroVotes {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.heroGenres {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+/*
+ * Genre pills, translucent so they sit on the artwork rather than punching light holes in it.
+ */
+.heroGenre {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding-inline: 13px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background-color: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.heroGenre:hover {
+  background-color: var(--lp-accent-red);
+  border-color: var(--lp-accent-red);
+  color: #ffffff;
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: var(--space-sm);
+}
+
+/*
+ * The one primary action.
+ *
+ * Red on white text, and 52px rather than 48: it is the largest control on the page and the only
+ * reason most visitors arrive, so it should not be the same size as the secondary buttons beside
+ * it.
+ */
+.playButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding-inline: 30px;
+  border-radius: 9999px;
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
+}
+
+.playButton:hover {
+  background-color: var(--lp-red-hover);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playButton:hover {
+    transform: none;
+  }
+}
+
+/* Secondary action: translucent to match the hero rather than a solid panel control. */
+.heroSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding-inline: 24px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background-color: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease);
+}
+
+.heroSecondary:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+/* ---------------------------------------------------------------- Section */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/*
+ * The section label.
+ *
+ * Visible rather than screen-reader-only because these sections are the page's structure now:
+ * with the tab bar gone, "Overview" and "Episodes" are the only thing telling a reader where the
+ * synopsis stops and the episode list starts. Small and quiet, so it labels the block without
+ * competing with the synopsis it sits above.
+ */
+.sectionHeading {
+  font-family: var(--font-family-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--lp-text);
+}
+
+/*
+ * The synopsis in a readable measure.
+ *
+ * 1.0625rem and 1.75 line-height: body copy on a dark surface needs more leading than the
+ * 0.9375rem used elsewhere, because light text on a dark background blooms and a tight leading
+ * makes the lines touch.
+ */
+.overview {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--lp-text-muted);
+  max-width: 72ch;
+}
+
+.overviewEmpty {
+  font-size: 1.0625rem;
+  color: var(--lp-text-faint);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------- Facts */
+
+/*
+ * A real `dl`, because these are term/definition pairs and the semantics are what let a screen
+ * reader move between them.
+ *
+ * Label above value, in one bordered row each, rather than the previous two-column grid: at four
+ * facts across, the values were truncating mid-id on a laptop and the borders read as a table
+ * the page had not earned.
+ */
+.facts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  max-width: 720px;
+  margin: 0;
+  border-top: 1px solid var(--lp-line);
+}
+
+@media (min-width: 640px) {
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-2xl);
+  }
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding-block: var(--space-md);
+  border-bottom: 1px solid var(--lp-line);
+}
+
+.factLabel {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-micro);
+  font-weight: 500;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--lp-text-faint);
+}
+
+.factValue {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--lp-text);
+  /* Long TMDB and IMDb ids must not overflow their column. */
+  overflow-wrap: anywhere;
+}
+
+.factValue a {
+  color: var(--lp-accent-red);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.factValue a:hover {
+  color: var(--lp-red-hover);
+}
+
+/*
+ * The episodes heading row.
+ *
+ * A plain heading plus the season picker, and not a disclosure button. The section was a
+ * heading-shaped `<button>` that folded the list away, with the episode total sitting between the
+ * label and the caret so the row's right edge was a stable set of indicators. Two problems with
+ * that: the total was the only thing on the page reporting how much of the show was indexed, and
+ * hiding it behind a hover-coloured heading made the count look like a status the reader had to
+ * click to reveal; and on a show with 2,868 episodes that figure is not a useful summary beside
+ * the word "Episodes" anyway, since it describes every season while the list below shows one.
+ *
+ * `space-between` puts the picker against the right edge: it filters the list underneath, and
+ * centred next to the heading it read as a label for the heading.
+ */
+.episodesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/*
+ * Larger than `.sectionHeading`.
+ *
+ * On a series page the episodes are the reason for the visit, where the overview is context, so the
+ * two headings are no longer peers. `clamp` rather than a fixed size because a 2rem heading plus a
+ * picker will not fit one row at phone widths.
+ */
+.episodesHeading {
+  font-family: var(--font-family-serif);
+  font-size: clamp(1.6rem, 3.2vw, 2.125rem);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--lp-text);
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- Episodes */
+
+.episodes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+/*
+ * One episode per row, two once there is room for them.
+ *
+ * This was a single-column flex list, which meant the "responsive two-column" rule that already
+ * existed in `components/watch/watch.module.css` never ran anywhere - it was written against a
+ * `.episodeList` class that no component renders, because both pages define their own. A season of
+ * ten episodes was therefore always a single tall column, and on a wide screen half the page was
+ * empty beside it.
+ *
+ * `minmax(340px, 1fr)` with `auto-fit` rather than a fixed `repeat(2, 1fr)` so the count follows
+ * the available width instead of being pinned at two and leaving a wide gap on a large display.
+ * The `340px` floor is the point where the still plus the synopsis stop fitting on one line; below
+ * it the card stacks, which the row itself handles at 768px.
+ */
+.episodeList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 900px) {
+  .episodeList {
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  }
+}
+
+/*
+ * The "no episodes yet" card.
+ *
+ * Rounded 20px with a soft surface and a hairline border, matching the episode rows it replaces -
+ * it is a card in the same column, and a bare line of grey text read as an error where the
+ * situation is usually just an unaired season.
+ *
+ * The accent edge is on the icon rather than the whole card: it marks the state without painting a
+ * large red block into a page that is otherwise monochrome.
+ */
+.episodePending {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+  border: 1px solid var(--lp-line);
+  border-radius: 20px;
+  background-color: var(--lp-surface);
+}
+
+.episodePendingIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}
+
+.episodePendingBody {
+  display: grid;
+  gap: var(--space-xs);
+  /* Without this a long unbroken season name stretches the row rather than wrapping. */
+  min-width: 0;
+}
+
+.episodePendingTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--lp-text);
+  overflow-wrap: anywhere;
+}
+
+.episodePendingNote {
+  font-size: 0.9375rem;
+  line-height: var(--line-height-relaxed);
+  color: var(--lp-text-muted);
+}
+
+.episodeSkeletons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Matches the episode row's height so the list does not jump when rows land. */
+.episodeSkeleton {
+  height: 116px;
+  border-radius: 20px;
+  background-color: var(--lp-pill-inactive);
+}
+
+/* ---------------------------------------------------------------- Notices */
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  margin-top: var(--space-md);
+  padding-inline: 20px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.action:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}
+
+/* ---------------------------------------------------------------- Skeleton */
+
+/*
+ * Mirrors the real hero's geometry - backdrop, poster and three lines of copy - so nothing on the
+ * page moves when the data arrives. A skeleton that is only a grey box makes the layout jump the
+ * moment the title lands, which is more disruptive than the wait.
+ */
+.skeletonHero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: flex-end;
+  gap: var(--space-xl);
+  min-height: min(62vh, 560px);
+  padding: var(--space-2xl);
+  border-radius: 32px;
+  overflow: hidden;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+}
+
+@media (min-width: 768px) {
+  .skeletonHero {
+    grid-template-columns: 200px minmax(0, 1fr);
+    padding: var(--space-3xl);
+  }
+}
+
+.skeletonPoster {
+  width: 100%;
+  max-width: 200px;
+  aspect-ratio: 2 / 3;
+  border-radius: 18px;
+  background-color: var(--lp-pill-inactive);
+}
+
+.skeletonCopy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.skeletonLine {
+  border-radius: var(--radius-sm);
+  background-color: var(--lp-pill-inactive);
+}
+
+/*
+ * A single slow pulse, shared by every skeleton box.
+ *
+ * The animation is opacity-only and disabled under `prefers-reduced-motion`, because a
+ * full-block shimmer sweeps a bright band across the screen and is exactly the kind of motion
+ * that setting exists to suppress.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .skeletonPoster,
+  .skeletonLine {
+    animation: skeletonPulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
