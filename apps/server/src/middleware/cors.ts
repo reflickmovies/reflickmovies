@@ -21,7 +21,7 @@ function isPrivateOrigin(origin: string): boolean {
   }
 }
 
-export const corsMiddleware: RequestHandler = cors({
+const corsHandler = cors({
   origin(origin, callback) {
     // Same-origin, curl, server-to-server: no Origin header at all.
     if (!origin) return callback(null, true);
@@ -62,6 +62,29 @@ export const corsMiddleware: RequestHandler = cors({
   exposedHeaders: ['x-request-id', 'x-cache', 'x-reflick-stale'],
   maxAge: 86_400,
 });
+
+/**
+ * The allowlist answers for the web app's origins, but a request the browser stamps
+ * with THIS server's own origin is same-origin, not cross-origin: the mirrored player
+ * document lives here, and because its module scripts and stylesheet carry `crossorigin`
+ * Chrome attaches `Origin: https://<this-api>` to every one of those requests. Routing
+ * them through the allowlist - which has never heard of this server's own hostname -
+ * answered 403 for the player's entire module graph and left the frame a blank page.
+ * Same-origin requests are never checked for `Access-Control-Allow-Origin`, so they
+ * skip CORS entirely; every genuinely cross-origin request still goes through the
+ * allowlist above and is denied when its origin is unknown.
+ */
+export const corsMiddleware: RequestHandler = (req, res, next) => {
+  const origin = req.get('origin');
+  if (origin) {
+    try {
+      if (new URL(origin).host === req.get('host')) return next();
+    } catch {
+      // A malformed Origin falls through to the allowlist, which rejects it.
+    }
+  }
+  corsHandler(req, res, next);
+};
 
 export function noStore(_req: Request, res: Response, next: NextFunction): void {
   res.setHeader('cache-control', 'no-store');
