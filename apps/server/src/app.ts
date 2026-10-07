@@ -7,6 +7,7 @@ import { accessLog, requestId } from './middleware/requestId.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { generalLimiter } from './middleware/rateLimit.js';
 import { router } from './routes/index.js';
+import { embedMirror } from './routes/embedMirror.js';
 
 export function createApp(): Express {
   const app = express();
@@ -41,9 +42,16 @@ export function createApp(): Express {
     res.status(200).json({ status: 'ok', service: 'reflick-api', api: API_PREFIX });
   });
 
+  /*
+   * The mirrored player comes before the API: two of its paths are `/api/...` calls the player
+   * makes against its own origin, and Express matches routes in order, so they have to be claimed
+   * before `/api` below. Nothing else overlaps.
+   */
+  app.use(embedMirror);
+
   app.use(API_PREFIX, generalLimiter, router);
 
-  // Nothing outside /api is ours. Answer in the API's own shape, never an HTML page.
+  // Everything else, mirrored or not, is answered in the API's own shape, never an HTML page.
   app.use(notFoundHandler);
   app.use(errorHandler);
 

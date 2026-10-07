@@ -41,6 +41,36 @@ const API_ORIGIN = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '
 
 const BASE = `${API_ORIGIN}/api`;
 
+/**
+ * Hosts whose player is mirrored behind our own origin (see `EMBED_MIRROR` in the API).
+ *
+ * The mirror exists because that player's ad layer opens popunders from inside a cross-origin
+ * frame, where no referrer policy, CSP directive or parent-side code can switch it off. The API
+ * replays the page and its module graph under its own origin with a guard injected first, so the
+ * frame is pointed at the mirror instead of the provider.
+ *
+ * In development the same path is served through the dev server's proxy - `/movie`, `/tv` and
+ * `/assets` are forwarded like `/api` is - so a local session never needs the API's origin.
+ */
+const MIRRORED_EMBED_HOSTS = new Set(['embed.filmu.in']);
+
+/** Where a provider URL should actually be loaded from: the mirror when it has one, else itself. */
+export function playerUrl(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return raw;
+  }
+
+  if (!MIRRORED_EMBED_HOSTS.has(url.hostname)) return raw;
+  if (import.meta.env.DEV) return `${url.pathname}${url.search}`;
+  // A production build without `VITE_API_URL` has no API origin to mirror through; fall back to
+  // the provider rather than pointing the frame at our own static host, which serves no such path.
+  if (!API_ORIGIN) return raw;
+  return `${API_ORIGIN}${url.pathname}${url.search}`;
+}
+
 /** Aborts the request when the component unmounts or the query changes. */
 export class ApiError extends Error {
   readonly status: number;

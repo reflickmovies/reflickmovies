@@ -182,14 +182,7 @@ export function VideoPlayer({ src, title, sourceName, onSourceFailed, onHijack }
         title={`${title} — ${sourceName}`}
         allow={ALLOW}
         allowFullScreen
-        /*
-         * No referrer into the embed. With `origin`, the frame is told exactly which site is
-         * embedding it - a real hostname arms the provider's ad layer, while the same build
-         * served from `localhost:5173` stays clean because a local host is treated as test
-         * traffic. An empty referrer keeps every deployment in that state. It is also safe for
-         * the provider's own referrer check: their blocklist test does not match an empty value.
-         */
-        referrerPolicy="no-referrer"
+        referrerPolicy="origin"
         loading="eager"
       />
 

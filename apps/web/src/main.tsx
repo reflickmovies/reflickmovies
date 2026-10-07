@@ -13,6 +13,14 @@ import './styles/globals.css';
  */
 applyTheme();
 
+/*
+ * A mirrored embed still runs third-party code, and the browser lets a cross-origin frame call
+ * methods on the parent window - `window.top.open(...)` is reachable from inside the frame, so
+ * freezing `window.open` inside the frame alone would leave that door open. Reflick never opens a
+ * window itself, so the parent freezes it too, before any frame exists to call it.
+ */
+window.open = () => null;
+
 const container = document.getElementById('root');
 
 if (!container) {

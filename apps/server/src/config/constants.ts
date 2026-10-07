@@ -76,6 +76,30 @@ export const MAX_EMBED_REDIRECTS = 5;
 /** How long a resolved chain stays cached. Chains are stable in practice. */
 export const EMBED_RESOLVE_TTL_MS = 10 * 60_000;
 
+/**
+ * The embed we mirror behind our own origin.
+ *
+ * `embed.filmu.in` serves a player whose ad layer opens popunders and redirect tabs, and nothing a
+ * parent page does can switch that off: the code runs inside a cross-origin frame, `Referer` cannot
+ * be forged, and the provider's "premium" check only recognises its own domains and partners. The
+ * one lever left is to stop serving their document at all - so this API replays the player's own
+ * paths (page, module scripts, and the handful of `/api/*` calls the player makes) under our
+ * origin, with a guard injected as the first script that freezes `window.open` and cancels
+ * new-window navigation. Their HTML never reaches the browser untouched.
+ *
+ * `origin` is fixed and every mirrored path is matched against an explicit prefix, so the mirror
+ * cannot be steered at an arbitrary host.
+ */
+export const EMBED_MIRROR = {
+  origin: 'https://embed.filmu.in',
+  /** Player documents. Path prefix of the watch pages the frame is ever handed. */
+  documents: ['/movie/', '/tv/'],
+  /** Module scripts and stylesheets the document references root-relative. */
+  assets: '/assets/',
+  /** Backend calls the player makes against its own origin, replayed verbatim. */
+  api: ['/api/tmdb', '/api/opensubs-search', '/api/sub-proxy'],
+} as const;
+
 export const QUALITY_TIERS = ['4k', '2160p', '1440p', '1080p', '720p', '480p', 'cam'] as const;
 export type Quality = (typeof QUALITY_TIERS)[number];
 

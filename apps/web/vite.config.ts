@@ -68,7 +68,9 @@ function cspPlugin(origins: string[], apiOrigin: string): Plugin {
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    `frame-src ${origins.join(' ')}`,
+    // `'self'` covers the mirrored player, which the dev server proxies onto this origin and
+    // which production loads from the API's own origin - hence `apiOrigin` when there is one.
+    `frame-src 'self' ${origins.join(' ')}${apiOrigin ? ` ${apiOrigin}` : ''}`,
     "img-src 'self' data: blob: https://image.tmdb.org",
     "media-src 'self' blob:",
     "font-src 'self' https://fonts.gstatic.com",
@@ -120,6 +122,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, here, '');
   const apiOrigin = (env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
+  // Everything the API owns travels through one target: the public API, and - in development -
+  // the mirrored player paths (`/movie`, `/tv`, `/assets`), which Express answers directly.
+  const apiTarget = process.env.VITE_API_TARGET ?? 'http://localhost:4000';
+
   return {
     plugins: [react(), cspPlugin(embedOrigins(), apiOrigin)],
     server: {
@@ -130,9 +136,12 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         '/api': {
-          target: process.env.VITE_API_TARGET ?? 'http://localhost:4000',
+          target: apiTarget,
           changeOrigin: true,
         },
+        '/movie': { target: apiTarget, changeOrigin: true },
+        '/tv': { target: apiTarget, changeOrigin: true },
+        '/assets': { target: apiTarget, changeOrigin: true },
       },
       allowedHosts: APP_HOSTS,
     },
