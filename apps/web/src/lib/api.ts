@@ -21,12 +21,25 @@ import type {
 /**
  * One place where the browser talks to the API.
  *
- * `/api` is same-origin: Vite proxies it to Express in development, and in
- * production the server serves the built assets. No API key ever reaches this
- * file, which is the entire point of the sync job existing on the server.
+ * Two shapes, chosen once at build time:
+ *
+ *  - Same origin (`/api`): local dev, where Vite proxies the path to Express, and any
+ *    deployment where a rewrite forwards `/api/*` to the API service. Nothing to configure.
+ *  - Separate origins: set `VITE_API_URL` to the API's own origin and every request goes
+ *    straight there. This is the one to use when the web and the API are different
+ *    Render projects, because a static host's rewrite is a convenience rather than a
+ *    contract - and it also survives the API moving to its own domain unchanged. The API
+ *    has to list the web origin in `WEB_ORIGIN` for the browser to read the response.
+ *
+ * Development always uses the proxy: `VITE_API_URL` is ignored there, so a committed value
+ * cannot silently point a local session at production and then fail CORS against localhost.
+ *
+ * No API key ever reaches this file, which is the entire point of the sync job existing on
+ * the server.
  */
+const API_ORIGIN = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
-const BASE = '/api';
+const BASE = `${API_ORIGIN}/api`;
 
 /** Aborts the request when the component unmounts or the query changes. */
 export class ApiError extends Error {

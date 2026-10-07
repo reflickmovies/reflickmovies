@@ -86,6 +86,20 @@ function cspPlugin(origins: string[]): Plugin {
 }
 
 /**
+ * Hosts that may reach the dev and preview servers.
+ *
+ * Vite rejects any request whose `Host` header it does not recognise, and answers with
+ * "Blocked request. This host (...) is not allowed." - which is what a Render deployment
+ * hits the moment its project hostname changes, because every project gets its own
+ * subdomain. Listed once and used by both servers so the two lists cannot drift.
+ */
+const APP_HOSTS = [
+  'reflickmovies-web.onrender.com',
+  'reflick-web.onrender.com',
+  'movies.reflick.linkpc.net',
+];
+
+/**
  * The dev server proxies /api to Express, so the browser only ever talks to one
  * origin. That keeps CORS out of the picture in development and matches how the
  * API will be deployed (same origin).
@@ -104,10 +118,16 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-    allowedHosts: ['reflick-web.onrender.com', 'movies.reflick.linkpc.net'],
+    allowedHosts: APP_HOSTS,
   },
   preview: {
-    allowedHosts: ['reflick-web.onrender.com', 'movies.reflick.linkpc.net'],
+    /*
+     * Render (and every other host) tells the process which port to bind through $PORT;
+     * `vite preview` otherwise defaults to 4173 and the platform's router never reaches it.
+     * Local previews keep the default when the variable is unset.
+     */
+    port: Number(process.env.PORT) || 4173,
+    allowedHosts: APP_HOSTS,
   },
   build: {
     target: 'es2022',

@@ -4,8 +4,11 @@ services:
     env: static
     plan: free
     rootDir: .
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://reflick-api.onrender.com
     routes:
       - type: rewrite
         source: /api/*
