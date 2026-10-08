@@ -1,17 +1,30 @@
+import { lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AppShell } from './components/shell/AppShell';
 import { ThemeModeProvider } from './components/shell/ThemeMode';
 import { ToastProvider } from './components/ui';
-import { CataloguePage } from './pages/CataloguePage';
-import { ExplorePage } from './pages/ExplorePage';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage, RouteErrorPage } from './pages/NotFoundPage';
-import { RecommendedPage } from './pages/RecommendedPage';
-import { SearchPage } from './pages/SearchPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { TitlePage } from './pages/TitlePage';
-import { WatchPage } from './pages/WatchPage';
+
+/*
+ * Everything except the landing page and the catch-all loads on demand.
+ *
+ * `HomePage` stays eager because it is the first paint on every entry point, and `NotFoundPage`
+ * stays eager because it is the fallback for anything - including a chunk that failed to load -
+ * and a fallback that itself has to be fetched is not a fallback. The rest are the heavy ones:
+ * `WatchPage` brings the player, `TitlePage` and `CataloguePage` bring the poster grids.
+ *
+ * Suspense lives in `AppShell`, which wraps the outlet, so a route swap that is already cached
+ * shows nothing and one that has to download gets `LoadingState` instead of a blank frame.
+ */
+const ExplorePage = lazy(() => import('./pages/ExplorePage').then((m) => ({ default: m.ExplorePage })));
+const CataloguePage = lazy(() => import('./pages/CataloguePage').then((m) => ({ default: m.CataloguePage })));
+const TitlePage = lazy(() => import('./pages/TitlePage').then((m) => ({ default: m.TitlePage })));
+const SearchPage = lazy(() => import('./pages/SearchPage').then((m) => ({ default: m.SearchPage })));
+const RecommendedPage = lazy(() => import('./pages/RecommendedPage').then((m) => ({ default: m.RecommendedPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const WatchPage = lazy(() => import('./pages/WatchPage').then((m) => ({ default: m.WatchPage })));
 
 /**
  * Routes.

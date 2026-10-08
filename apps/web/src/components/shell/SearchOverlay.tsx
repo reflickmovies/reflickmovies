@@ -66,7 +66,13 @@ function NothingFound({ term, onNavigate }: { term: string; onNavigate: () => vo
                     modal the reader can no longer see or dismiss. */}
                 <Link to={title.path} className={styles.notFoundCard ?? ''} onClick={onNavigate}>
                   {title.posterSmall ? (
-                    <img src={title.posterSmall} alt="" className={styles.notFoundPoster ?? ''} loading="lazy" />
+                    <img
+                      src={title.posterSmall}
+                      alt=""
+                      className={styles.notFoundPoster ?? ''}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : null}
                   <span className={styles.notFoundCardTitle ?? ''}>{title.title}</span>
                 </Link>
@@ -306,7 +312,13 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
                       onClick={() => choose(item)}
                     >
                       {item.poster ? (
-                        <img src={item.poster} alt="" className={styles.optionThumb ?? ''} loading="lazy" />
+                        <img
+                          src={item.poster}
+                          alt=""
+                          className={styles.optionThumb ?? ''}
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : (
                         /*
                           Same box as the image, so the row does not reflow when a title has no

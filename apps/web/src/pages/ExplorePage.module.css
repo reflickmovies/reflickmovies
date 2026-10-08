@@ -116,12 +116,37 @@
   break-inside: avoid;
   -webkit-column-break-inside: avoid;
   page-break-inside: avoid;
-  transition: transform var(--motion-slow) var(--motion-ease-out),
+  transition:
+    transform var(--motion-spring-soft-duration) var(--motion-spring-soft),
     box-shadow var(--motion-slow) var(--motion-ease-out);
 }
 
 .tile:hover {
   transform: translateY(-3px);
+}
+
+/*
+ * The wall cascades in, same recipe as the grids: `--tile-i` from the map index in
+ * `ExplorePage.tsx`, a clamped per-tile delay, backwards fill so the hover lift above still
+ * works once the entrance is over. Skeleton tiles get no index and arrive instantly, which
+ * is right for placeholder geometry that is about to be replaced.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .tile {
+    animation: tileIn var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
+    animation-delay: min(calc(var(--tile-i, 0) * 45ms), 450ms);
+  }
+}
+
+@keyframes tileIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ---------------------------------------------------------------- Artwork */

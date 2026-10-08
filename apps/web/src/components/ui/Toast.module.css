@@ -30,7 +30,12 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   pointer-events: auto;
-  animation: toast-in var(--motion-base) var(--motion-ease-out);
+  /*
+   * Springs up from below on arrival, fades and drops on the way out. The exit itself is the
+   * transition on `[data-leaving]` below - the toast has to stay mounted for it, which is
+   * what `EXIT_DURATION` in `Toast.tsx` is for.
+   */
+  animation: toast-in var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -49,7 +54,7 @@
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px) scale(0.96);
   }
   to {
     opacity: 1;

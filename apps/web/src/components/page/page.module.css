@@ -142,17 +142,23 @@
   background-color: var(--lp-surface);
   border: 1px solid var(--lp-line);
   box-shadow: var(--lp-card-shadow);
-  animation: filterIn var(--motion-fast) var(--motion-ease);
+  /*
+   * Unfolds from the top edge, where the trigger is, on the soft spring - a menu this size
+   * should settle rather than snap. The origin keeps the scale anchored to the trigger so the
+   * panel appears to grow out of it instead of inflating at its centre.
+   */
+  transform-origin: top right;
+  animation: filterIn var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 @keyframes filterIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-6px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 

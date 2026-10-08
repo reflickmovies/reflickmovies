@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -18,6 +18,7 @@ import {
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import { ROUTES } from '../../lib/routes';
+import { LoadingState } from '../ui';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
 import { useSpringIndicator } from '../../hooks/useSpringIndicator';
 import { useThemeMode } from './ThemeMode';
@@ -364,9 +365,22 @@ export function AppShell() {
               this become a scrollport instead of pushing the page taller than the viewport.
             */}
             <main id="main" ref={scrollRef} className={styles.shellScroll ?? ''} tabIndex={-1}>
-              <div className={styles.pageStack ?? ''}>
-                <Outlet />
-              </div>
+              {/*
+                Route-level suspense.
+
+                Pages are lazy (see `App.tsx`), so the boundary sits over the outlet rather than
+                inside any one route: a cached navigation renders straight through with no flash,
+                and a first visit to a section downloads its chunk behind `LoadingState`.
+
+                The wrapper is keyed on the pathname, which does two jobs. It remounts the page
+                on navigation so `pageEnter` replays on every route change, and it keeps the
+                query string out of it - picking an episode or a sort does not restart the page.
+              */}
+              <Suspense fallback={<LoadingState />}>
+                <div key={location.pathname} className={`${styles.pageStack ?? ''} ${styles.pageEnter ?? ''}`.trim()}>
+                  <Outlet />
+                </div>
+              </Suspense>
             </main>
           </div>
         </div>

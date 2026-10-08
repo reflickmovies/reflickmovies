@@ -166,6 +166,8 @@ export function TitlePage({ type }: TitlePageProps) {
             className={styles.heroBackdrop ?? ''}
             loading="eager"
             decoding="async"
+            /* The first thing this page paints and its LCP candidate. */
+            fetchPriority="high"
           />
         ) : (
           <div className={styles.heroBackdropFallback ?? ''} aria-hidden />
@@ -189,7 +191,9 @@ export function TitlePage({ type }: TitlePageProps) {
               with the type around it, and it disappears on any title whose mark is light against
               a bright frame - which would leave the page with no visible heading.
             */}
-            {title.logo ? <img className={styles.heroLogo ?? ''} src={title.logo} alt="" /> : null}
+            {title.logo ? (
+              <img className={styles.heroLogo ?? ''} src={title.logo} alt="" decoding="async" />
+            ) : null}
 
             <h1 className={styles.heroTitle ?? ''}>{title.title}</h1>
 

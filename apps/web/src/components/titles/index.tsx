@@ -48,6 +48,7 @@ export function TitleGrid({ titles, dense = false, playable = true, orientation 
             the first two rows regardless of window height.
           */
           priority={index < 10}
+          index={index}
         />
       ))}
     </div>
@@ -136,7 +137,7 @@ export function TitleShelf({ title, kicker, items, viewAll, limit = 4, children 
       {children ?? (
         <div className={shelfStyles.rail ?? ''}>
           {visible.map((title_, index) => (
-            <TitleCard key={`${title_.type}-${title_.id}`} title={title_} priority={index < 4} />
+            <TitleCard key={`${title_.type}-${title_.id}`} title={title_} priority={index < 4} index={index} />
           ))}
         </div>
       )}

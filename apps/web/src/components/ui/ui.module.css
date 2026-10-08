@@ -23,7 +23,17 @@
     background-color var(--motion-fast) var(--motion-ease),
     color var(--motion-fast) var(--motion-ease),
     border-color var(--motion-fast) var(--motion-ease),
-    opacity var(--motion-fast) var(--motion-ease);
+    opacity var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+
+/*
+ * Press, not hover, is the tactile moment: a thumb lands, the button dips, it comes back.
+ * Fast in, fast out - a spring on the press itself reads as lag, and the overshoot would be
+ * in the wrong direction (further down) at this size.
+ */
+.button:active:not(:disabled):not([aria-disabled='true']) {
+  transform: scale(0.97);
 }
 
 .button:disabled,
@@ -128,7 +138,12 @@
   color: var(--lp-text-muted);
   transition:
     background-color var(--motion-fast) var(--motion-ease),
-    color var(--motion-fast) var(--motion-ease);
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+
+.iconButton:active:not(:disabled) {
+  transform: scale(0.9);
 }
 
 .iconButton:hover:not(:disabled) {
@@ -359,12 +374,17 @@
   transition:
     background-color var(--motion-fast) var(--motion-ease),
     border-color var(--motion-fast) var(--motion-ease),
-    color var(--motion-fast) var(--motion-ease);
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
 }
 
 .chip:hover {
   border-color: var(--lp-text-faint);
   color: var(--lp-text);
+}
+
+.chip:active {
+  transform: scale(0.95);
 }
 
 .chipActive {
@@ -398,11 +418,17 @@
   font-size: var(--font-size-body-sm);
   font-weight: 500;
   white-space: nowrap;
-  transition: color var(--motion-fast) var(--motion-ease);
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
 }
 
 .tab:hover {
   color: var(--lp-text);
+}
+
+.tab:active {
+  transform: scale(0.97);
 }
 
 .tabActive {
@@ -507,6 +533,14 @@
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation-duration: 1.6s;
+  }
+
+  /* The press dip is motion; with movement off, colour and opacity still say "pressed". */
+  .button:active,
+  .iconButton:active,
+  .chip:active,
+  .tab:active {
+    transform: none;
   }
 }
 

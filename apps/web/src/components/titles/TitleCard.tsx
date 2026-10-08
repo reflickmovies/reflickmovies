@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, Star } from '@phosphor-icons/react';
 import { typeLabel } from '../../lib/format';
@@ -25,6 +26,13 @@ export interface TitleCardProps {
   /** Landscape crops differently; used by the vertical feed where width is the constraint. */
   orientation?: 'portrait' | 'landscape';
   priority?: boolean;
+  /**
+   * Position within the grid or shelf, for the staggered entrance.
+   *
+   * Omit it where order is meaningless (a single card, a skeleton) and the card simply
+   * arrives with no delay; the CSS falls back to zero either way.
+   */
+  index?: number;
   className?: string;
 }
 
@@ -34,6 +42,7 @@ export function TitleCard({
   playable = true,
   orientation = 'portrait',
   priority = false,
+  index,
   className,
 }: TitleCardProps) {
   const href = to ?? (playable ? watchPath(title.type, title.slug) : titlePath(title.type, title.slug));
@@ -49,6 +58,7 @@ export function TitleCard({
       ]
         .filter(Boolean)
         .join(' ')}
+      style={index !== undefined ? ({ '--card-i': index } as CSSProperties) : undefined}
     >
       {artwork ? (
         <img

@@ -193,13 +193,19 @@
   color: var(--lp-text-muted);
   font-size: 0.875rem;
   font-weight: 600;
-  transition: background-color var(--motion-fast) var(--motion-ease),
-    color var(--motion-fast) var(--motion-ease);
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
 }
 
 .categoryPill:hover {
   background-color: var(--lp-pill-inactive);
   color: var(--lp-text);
+}
+
+.categoryPill:active {
+  transform: scale(0.96);
 }
 
 /*
@@ -269,13 +275,19 @@
   border: 1px solid var(--lp-line);
   color: var(--lp-text);
   cursor: pointer;
-  transition: background-color var(--motion-fast) var(--motion-ease),
-    color var(--motion-fast) var(--motion-ease);
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
 }
 
 .circleButton:hover {
   background-color: var(--lp-pill-inactive);
   color: var(--lp-accent-red);
+}
+
+.circleButton:active {
+  transform: scale(0.9);
 }
 
 .profileButton {
@@ -290,11 +302,25 @@
   background-color: transparent;
   color: var(--lp-text-muted);
   cursor: pointer;
-  transition: color var(--motion-fast) var(--motion-ease),
-    background-color var(--motion-fast) var(--motion-ease);
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
 }
 
 .profileButton:hover {
   background-color: var(--lp-pill-inactive);
   color: var(--lp-accent-red);
+}
+
+.profileButton:active {
+  transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .categoryPill:active,
+  .circleButton:active,
+  .profileButton:active {
+    transform: none;
+  }
 }

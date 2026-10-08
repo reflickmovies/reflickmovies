@@ -1,0 +1,41 @@
+/*
+ * The three shared entrance shapes: pop, rise, fade.
+ *
+ * Kept in their own file rather than in `globals.css` because a `.module.css` cannot reference
+ * a keyframe defined outside itself - the module pipeline renames any animation it sees to a
+ * scoped name, so `animation: premiumRise ...` in a module would look for
+ * `_premiumRise_<hash>_`, find nothing, and silently do nothing. Importing this file from both
+ * `globals.css` (unscoped, for the overlay rules) and from a module (scoped, generating a
+ * matching copy of the same keyframes) keeps one definition as the source while every
+ * reference still resolves.
+ */
+@keyframes premiumPop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes premiumRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes premiumFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

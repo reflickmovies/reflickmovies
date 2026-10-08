@@ -104,6 +104,14 @@ export const MOTION = {
   SPRING: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
   /** Long enough for the spring to overshoot and settle rather than snap. */
   SPRING_DURATION: '520ms',
+  /**
+   * The same overshoot dialled down to roughly 10%, for things that should feel
+   * alive but not playful: cards, menus and panels that carry content. SPRING
+   * is for chrome (nav indicators, sheets) where a visible bounce is the point.
+   */
+  SPRING_SOFT: 'cubic-bezier(0.3, 1.28, 0.5, 1)',
+  /** Short enough that a hover or a pop-up never feels sluggish. */
+  SPRING_SOFT_DURATION: '400ms',
 } as const;
 
 export const Z_INDEX = {
@@ -173,4 +181,6 @@ export const layoutVariables = {
   '--motion-ease-out': MOTION.EASE_OUT,
   '--motion-spring': MOTION.SPRING,
   '--motion-spring-duration': MOTION.SPRING_DURATION,
+  '--motion-spring-soft': MOTION.SPRING_SOFT,
+  '--motion-spring-soft-duration': MOTION.SPRING_SOFT_DURATION,
 } as const;

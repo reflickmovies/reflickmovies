@@ -12,6 +12,12 @@
  */
 
 /*
+ * The shared entrance keyframes, for the backdrop fade below - see `styles/keyframes.css`
+ * for why a module cannot simply name them.
+ */
+@import '../../styles/keyframes.css';
+
+/*
  * `showModal()` puts the dialog in the top layer, so it escapes the shell's `overflow: hidden`
  * and the `z-index` war. Without this the browser centres it with `position: fixed`, which is
  * what puts it over the sticky header rather than behind it.
@@ -77,7 +83,12 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .dialog[open] {
-    animation: overlayIn var(--motion-base) var(--motion-ease-out);
+    animation: overlayIn var(--motion-spring-soft-duration) var(--motion-spring-soft);
+  }
+
+  /* The scrim arrives with the panel rather than being there before it. */
+  .dialog[open]::backdrop {
+    animation: premiumFade var(--motion-base) var(--motion-ease-out);
   }
 }
 
@@ -288,11 +299,12 @@
   margin: 0;
   padding: var(--space-sm);
   list-style: none;
-  animation: overlayIn var(--motion-fast) var(--motion-ease-out);
+  animation: overlayIn var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dialog[open],
+  .dialog[open]::backdrop,
   .dropdown {
     animation: none;
   }

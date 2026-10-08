@@ -36,7 +36,13 @@ export function ContinueWatching() {
             className={styles.item ?? ''}
           >
             {entry.backdrop ?? entry.poster ? (
-              <img src={entry.backdrop ?? entry.poster ?? ''} alt="" className={styles.thumb ?? ''} loading="lazy" />
+              <img
+                src={entry.backdrop ?? entry.poster ?? ''}
+                alt=""
+                className={styles.thumb ?? ''}
+                loading="lazy"
+                decoding="async"
+              />
             ) : (
               <span className={styles.thumbFallback ?? ''} aria-hidden />
             )}

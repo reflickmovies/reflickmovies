@@ -13,6 +13,13 @@
  *  - colour never carries meaning on its own; it is always paired with a label
  */
 
+/*
+ * The shared entrance keyframes. Imported at the top because `@import` has to be,
+ * and because everything below can then name them unscoped (see `keyframes.css`
+ * for what a module has to do differently and why).
+ */
+@import './keyframes.css';
+
 /* ------------------------------------------------------------------ reset */
 
 *,
@@ -40,6 +47,7 @@ html {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
@@ -225,6 +233,7 @@ h6 {
   background-color: var(--overlay);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+  animation: premiumFade var(--motion-base) var(--motion-ease-out);
 }
 
 @media (min-width: 768px) {
@@ -248,7 +257,7 @@ h6 {
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: var(--space-lg);
   padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom));
-  animation: sheet-in var(--motion-base) var(--motion-ease-out);
+  animation: sheet-in var(--motion-spring-duration) var(--motion-spring);
 }
 
 @media (min-width: 768px) {
@@ -260,7 +269,7 @@ h6 {
     border: 1px solid var(--lp-line);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-overlay);
-    animation: modal-in var(--motion-base) var(--motion-ease-out);
+    animation: modal-in var(--motion-spring-soft-duration) var(--motion-spring-soft);
   }
 }
 

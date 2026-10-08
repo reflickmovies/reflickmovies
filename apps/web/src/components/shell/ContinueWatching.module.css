@@ -45,11 +45,21 @@
   border-radius: 18px;
   text-decoration: none;
   color: inherit;
-  transition: all var(--motion-fast) var(--motion-ease);
+  /*
+   * Named properties, not `all`: `all` re-interpolated the radius and the flex box on every
+   * hover, and the transform is here so the press below springs rather than snapping.
+   */
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 .item:hover {
   background-color: var(--lp-pill-inactive);
+}
+
+.item:active {
+  transform: scale(0.98);
 }
 
 .thumb {
@@ -99,7 +109,9 @@
   place-items: center;
   color: var(--lp-text-muted);
   flex-shrink: 0;
-  transition: all var(--motion-fast) var(--motion-ease);
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 .item:hover .playBtn {

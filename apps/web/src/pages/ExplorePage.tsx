@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Compass, Play, Warning } from '@phosphor-icons/react';
 import { useBrowse } from '../hooks/useReflick';
@@ -129,7 +130,7 @@ export function ExplorePage() {
         </div>
       ) : (
         <div className={styles.wall ?? ''}>
-          {entries.map(({ id, title }) => {
+          {entries.map(({ id, title }, index) => {
             const meta = joinMeta([
               title.year ? String(title.year) : null,
               typeLabel(title.type, true),
@@ -137,7 +138,11 @@ export function ExplorePage() {
             ]);
 
             return (
-              <article key={id} className={styles.tile ?? ''}>
+              <article
+                key={id}
+                className={styles.tile ?? ''}
+                style={{ '--tile-i': index } as CSSProperties}
+              >
                 {/*
                   The detail page is the card.
 

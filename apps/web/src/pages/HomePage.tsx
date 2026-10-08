@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretDown, CaretUp, Database, Flame, Info, Play, Star } from '@phosphor-icons/react';
 import { useHome } from '../hooks/useReflick';
@@ -184,6 +185,8 @@ export function HomePage() {
               alt={activeHero.title}
               className={styles.heroBackdrop ?? ''}
               loading="eager"
+              /* The one image on the page the first paint waits on. */
+              fetchPriority="high"
             />
 
             {/* Darkest where the copy sits, clear by mid-frame. */}
@@ -309,7 +312,7 @@ export function HomePage() {
           </div>
 
           <div className={styles.cardsRow ?? ''}>
-            {continueEntries.map((entry) => (
+            {continueEntries.map((entry, index) => (
               <Link
                 key={`${entry.type}:${entry.slug}:${entry.season ?? ''}:${entry.episode ?? ''}`}
                 to={watchPath(
@@ -318,12 +321,14 @@ export function HomePage() {
                   entry.season !== undefined ? { season: entry.season, episode: entry.episode } : undefined,
                 )}
                 className={styles.shelfCard ?? ''}
+                style={{ '--card-i': index } as CSSProperties}
               >
                 <img
                   src={entry.backdrop ?? entry.poster ?? ''}
                   alt={entry.title}
                   className={styles.cardArtwork ?? ''}
                   loading="lazy"
+                  decoding="async"
                 />
 
                 <div className={styles.cardGlassOverlay ?? ''}>
@@ -364,17 +369,19 @@ export function HomePage() {
           </div>
 
           <div className={styles.cardsRow ?? ''}>
-            {shelf.items.slice(0, SHELF_LIMIT).map((item) => (
+            {shelf.items.slice(0, SHELF_LIMIT).map((item, index) => (
               <Link
                 key={`${item.type}-${item.id}`}
                 to={watchPath(item.type, item.slug)}
                 className={styles.shelfCard ?? ''}
+                style={{ '--card-i': index } as CSSProperties}
               >
                 <img
                   src={item.backdrop ?? item.poster ?? ''}
                   alt={item.title}
                   className={styles.cardArtwork ?? ''}
                   loading="lazy"
+                  decoding="async"
                 />
 
                 <div className={styles.cardGlassOverlay ?? ''}>
@@ -423,17 +430,19 @@ export function HomePage() {
           </div>
 
           <div className={styles.cardsRow ?? ''}>
-            {shelf.items.slice(0, SHELF_LIMIT).map((item) => (
+            {shelf.items.slice(0, SHELF_LIMIT).map((item, index) => (
               <Link
                 key={`${item.type}-${item.id}`}
                 to={watchPath(item.type, item.slug)}
                 className={styles.shelfCard ?? ''}
+                style={{ '--card-i': index } as CSSProperties}
               >
                 <img
                   src={item.backdrop ?? item.poster ?? ''}
                   alt={item.title}
                   className={styles.cardArtwork ?? ''}
                   loading="lazy"
+                  decoding="async"
                 />
 
                 <div className={styles.cardGlassOverlay ?? ''}>

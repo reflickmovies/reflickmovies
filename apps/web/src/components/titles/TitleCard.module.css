@@ -18,7 +18,14 @@
   box-shadow: var(--lp-card-shadow);
   text-decoration: none;
   color: #ffffff;
-  transition: transform var(--motion-slow) var(--motion-ease-out), box-shadow var(--motion-slow) var(--motion-ease-out);
+  /*
+   * The lift rides the soft spring - a card that settles past its target reads as light -
+   * while the shadow keeps the plain ease, because a shadow that overshoots reads as a
+   * flicker rather than as depth.
+   */
+  transition:
+    transform var(--motion-spring-soft-duration) var(--motion-spring-soft),
+    box-shadow var(--motion-slow) var(--motion-ease-out);
 }
 
 /*
@@ -57,6 +64,41 @@
   }
 }
 
+/*
+ * Entrance, staggered by position.
+ *
+ * `--card-i` arrives from the grid or shelf that renders the card, so a page of posters
+ * cascades in instead of landing as one slab - the standard "premium" cue, and the one place
+ * a delay is allowed to hide content because it is a few hundred milliseconds over a page
+ * that is already painted.
+ *
+ * `backwards` fill only, never `forwards`/`both`: the final keyframe and the resting state
+ * are identical, and a held animation would outrank `:hover` transforms for the life of the
+ * page. Backwards still keeps the card invisible during its delay, which is the entire point
+ * of having one. The delay clamps so cards past the tenth row arrive with the rest rather
+ * than the last row waiting its turn.
+ *
+ * Wrapped in `no-preference` rather than relying on the global reduced-motion override:
+ * with movement off there is nothing to stagger, and content should not start at opacity 0.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    animation: cardIn var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
+    animation-delay: min(calc(var(--card-i, 0) * 50ms), 400ms);
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .artwork,
 .artworkFallback {
   position: absolute;
@@ -64,7 +106,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform var(--motion-slow) var(--motion-ease-out);
+  transition: transform var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 .artworkFallback {

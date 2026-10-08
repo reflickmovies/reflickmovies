@@ -15,6 +15,12 @@
  * because the player page renders outside this shell and could not reach tokens scoped to it.
  */
 
+/*
+ * The shared entrance keyframes, imported so `premiumRise` and `premiumPop` below survive
+ * this file's module scoping - see `styles/keyframes.css` for the full reason.
+ */
+@import '../../styles/keyframes.css';
+
 .shellRoot {
   height: 100dvh;
   background-color: var(--lp-bg);
@@ -362,6 +368,33 @@ min-width: 0;
   min-width: 0;
 }
 
+/*
+ * The route change, as one gesture.
+ *
+ * Keyed on the pathname by the shell, so every navigation remounts this wrapper and replays
+ * the entrance: a soft rise rather than a fade, because content arriving upward reads as
+ * "the next screen" while a bare crossfade reads as a glitch. `backwards` fill only, never
+ * `both` - the final keyframe and the element's resting state are identical, so once the
+ * animation is over it holds nothing and hover transforms inside the page work normally.
+ *
+ * A few pixels of Y is deliberate. A larger travel would clear the fixed header on its way
+ * in and make the page appear to fall through it.
+ */
+.pageEnter {
+  animation: pageIn var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
+}
+
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ---------------------------------------------------------------- Mobile nav */
 
 /*
@@ -420,6 +453,13 @@ min-width: 0;
     touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
+    /*
+     * Rises once when the shell mounts rather than sitting flat against the viewport edge
+     * from the first frame. It is a floating capsule - it should arrive like one. One
+     * animation on mount only; it is outside any keyed element, so navigation never
+     * replays it.
+     */
+    animation: premiumRise var(--motion-spring-duration) var(--motion-spring);
   }
 }
 
@@ -467,12 +507,19 @@ min-width: 0;
   text-decoration: none;
   font-size: 0.6875rem;
   font-weight: 600;
-  transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
 }
 
 .mobileTab:hover {
   color: var(--lp-text);
   background-color: var(--lp-pill-inactive);
+}
+
+.mobileTab:active {
+  transform: scale(0.95);
 }
 
 /*
@@ -485,6 +532,12 @@ min-width: 0;
 .mobileTabActive:hover {
   background-color: transparent;
   color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobileTab:active {
+    transform: none;
+  }
 }
 
 /*
@@ -513,6 +566,13 @@ min-width: 0;
   overflow-x: hidden;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+  /*
+   * Pops open from its top edge, where the dots button is, so the panel reads as unfolding
+   * from the control rather than materialising under it. The panel mounts and unmounts with
+   * `menuOpen`, so this plays on every open with no state to track.
+   */
+  transform-origin: top center;
+  animation: premiumPop var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 .overflowMenuItem {
