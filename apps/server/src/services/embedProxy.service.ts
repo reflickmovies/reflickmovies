@@ -1,4 +1,4 @@
-import { EMBED_MIRROR } from '../config/constants.js';
+import { EMBED_MIRROR, OWN_API_SEGMENTS } from '../config/constants.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('embed-mirror');
@@ -10,12 +10,18 @@ export type MirrorKind = 'document' | 'asset';
  *
  * Everything outside the lists below never reaches the mirror, which is what keeps it from
  * becoming an open proxy: the upstream origin is a constant and the path is checked here.
+ *
+ * The API branch is inverted on purpose. The player's `/api/*` surface is open-ended — scrapers
+ * ship new endpoints (`/api/proxy`, `/api/singularity-tv`, ...) faster than any allowlist could
+ * follow — so every `/api/<segment>` except this API's own (`OWN_API_SEGMENTS`) is mirrored, and
+ * the segments that are ours fall through to the public router instead.
  */
 export function mirrorKind(path: string): MirrorKind | null {
   if (EMBED_MIRROR.documents.some((prefix) => path.startsWith(prefix))) return 'document';
-  if (path.startsWith(EMBED_MIRROR.assets)) return 'asset';
-  if (EMBED_MIRROR.api.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) {
-    return 'asset';
+  if (path.startsWith(EMBED_MIRROR.assets) || path === EMBED_MIRROR.serviceWorker) return 'asset';
+  if (path.startsWith('/api/')) {
+    const segment = path.split('/')[2] ?? '';
+    return OWN_API_SEGMENTS.has(segment) ? null : 'asset';
   }
   return null;
 }
@@ -43,9 +49,18 @@ export async function fetchUpstream(pathWithQuery: string): Promise<MirrorRespon
     return null;
   }
 
+  // The upstream API refuses direct fetches — `{"error":"Direct access forbidden. Invalid or
+  // missing Referer/Origin."}` — and accepts only its own origin, so the API calls are replayed
+  // with the Referer its own pages send. Static paths (HTML, module graph) are not gated and are
+  // fetched exactly as before.
+  const headers: Record<string, string> = { 'user-agent': BROWSER_UA, accept: '*/*' };
+  if (target.pathname.startsWith('/api/')) {
+    headers.referer = `${EMBED_MIRROR.origin}/`;
+  }
+
   try {
     const response = await fetch(target, {
-      headers: { 'user-agent': BROWSER_UA, accept: '*/*' },
+      headers,
       redirect: 'follow',
       signal: AbortSignal.timeout(15_000),
     });

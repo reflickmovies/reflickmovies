@@ -9,6 +9,10 @@ import { generalLimiter, searchLimiter, streamLimiter } from '../middleware/rate
  *
  * `/api/home` is the one that matters: it returns everything the landing page
  * renders, in a single request, straight from MongoDB.
+ *
+ * Every first segment of this file's routes must be listed in `OWN_API_SEGMENTS`
+ * (config/constants.ts): the embed mirror proxies any other `/api/<segment>` to the
+ * player's origin and would otherwise answer for a route defined here.
  */
 export const router: Router = Router();
 

@@ -1,13 +1,15 @@
-import { Router, type Request, type Response } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { allowedOrigins, isDevelopment } from '../config/env.js';
-import { fetchUpstream, guardDocument } from '../services/embedProxy.service.js';
+import { fetchUpstream, guardDocument, mirrorKind } from '../services/embedProxy.service.js';
 
 /**
  * Replays the mirrored embed under this API's own origin.
  *
- * Mounted before the `/api` router on purpose: two of the mirrored paths are `/api/...` calls the
+ * Mounted before the `/api` router on purpose: most of the mirrored paths are `/api/...` calls the
  * player makes, and Express matches in order, so they have to be claimed before the public API
- * sees them. There is no overlap with the API's own routes.
+ * sees them. The claim itself is inverted — every `/api/*` except this API's own first segments
+ * (`OWN_API_SEGMENTS` in constants) belongs to the player and is proxied upstream, so new player
+ * endpoints work without a mirror edit while the API's own routes fall through to the router.
  */
 export const embedMirror: Router = Router();
 
@@ -78,6 +80,22 @@ embedMirror.get(/^\/(movie|tv)\/.*$/, documentHandler);
 
 /* Module graph the document references root-relative, and the player's own backend calls. */
 embedMirror.get(/^\/assets\/.*$/, assetHandler);
-embedMirror.get(/^\/api\/tmdb(?:\/.*)?$/, assetHandler);
-embedMirror.get(/^\/api\/opensubs-search$/, assetHandler);
-embedMirror.get(/^\/api\/sub-proxy$/, assetHandler);
+embedMirror.get(/^\/api\/.*$/, (req: Request, res: Response, next: NextFunction): void => {
+  if (mirrorKind(req.path) !== 'asset') {
+    next();
+    return;
+  }
+  void assetHandler(req, res);
+});
+
+/**
+ * The player registers `/sw.js` for HLS segment caching; upstream's worker is vestigial (their
+ * own source says segment caching moved into the hls.js loader) and would 404 here. An inert
+ * local worker answers instead: registration succeeds, the console stays clean, and no
+ * third-party code is ever installed as a worker at this origin.
+ */
+embedMirror.get(/^\/sw\.js$/, (_req: Request, res: Response): void => {
+  res.setHeader('content-type', 'application/javascript; charset=utf-8');
+  res.setHeader('cache-control', 'public, max-age=3600');
+  res.send("self.addEventListener('install',function(){self.skipWaiting()});self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim())});");
+});

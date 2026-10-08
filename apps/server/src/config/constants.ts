@@ -83,9 +83,9 @@ export const EMBED_RESOLVE_TTL_MS = 10 * 60_000;
  * parent page does can switch that off: the code runs inside a cross-origin frame, `Referer` cannot
  * be forged, and the provider's "premium" check only recognises its own domains and partners. The
  * one lever left is to stop serving their document at all - so this API replays the player's own
- * paths (page, module scripts, and the handful of `/api/*` calls the player makes) under our
- * origin, with a guard injected as the first script that freezes `window.open` and cancels
- * new-window navigation. Their HTML never reaches the browser untouched.
+ * paths (page, module scripts, and its `/api/*` backend calls) under our origin, with a guard
+ * injected as the first script that freezes `window.open` and cancels new-window navigation.
+ * Their HTML never reaches the browser untouched.
  *
  * `origin` is fixed and every mirrored path is matched against an explicit prefix, so the mirror
  * cannot be steered at an arbitrary host.
@@ -96,9 +96,28 @@ export const EMBED_MIRROR = {
   documents: ['/movie/', '/tv/'],
   /** Module scripts and stylesheets the document references root-relative. */
   assets: '/assets/',
-  /** Backend calls the player makes against its own origin, replayed verbatim. */
-  api: ['/api/tmdb', '/api/opensubs-search', '/api/sub-proxy'],
+  /** The service worker the player registers. Served from a local inert worker (see embedMirror). */
+  serviceWorker: '/sw.js',
 } as const;
+
+/**
+ * First path segments of this API's own public surface — keep in sync with `routes/index.ts`.
+ *
+ * The embed mirror inverts this list: any `/api/<segment>` that is NOT here belongs to the player
+ * and is proxied upstream. The player's endpoint list grows constantly (`/api/proxy`,
+ * `/api/singularity-tv`, whatever scraper ships next), and inverting means new endpoints work
+ * without a mirror edit while the API's own routes keep falling through to the router. A route
+ * added to `routes/index.ts` must be added here too, or the mirror will answer for it.
+ */
+export const OWN_API_SEGMENTS = new Set([
+  'health',
+  'home',
+  'shelves',
+  'titles',
+  'genres',
+  'providers',
+  'search',
+]);
 
 export const QUALITY_TIERS = ['4k', '2160p', '1440p', '1080p', '720p', '480p', 'cam'] as const;
 export type Quality = (typeof QUALITY_TIERS)[number];
