@@ -75,10 +75,10 @@ export interface ProviderRow {
  *
  * Ordering used to come from `priority` plus an alphabetical tie-break, which meant a stale
  * or tied priority let "Cineverse" sort ahead of Filmu on the name comparison alone. The
- * listing order is a product decision, not data, so it is pinned here: Bingr leads, and
+ * listing order is a product decision, not data, so it is pinned here: Filmu leads, and
  * everything else follows the configured priority.
  */
-const PREFERRED_PROVIDER_PREFIX = 'bingr-';
+const PREFERRED_PROVIDER_PREFIX = 'filmu-';
 
 /**
  * Providers are configuration. If the collection is empty the site simply reports
