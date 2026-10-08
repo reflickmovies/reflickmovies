@@ -409,6 +409,7 @@ export function WatchPage({ type }: WatchPageProps) {
         <span>
           <strong>Important notice:</strong> If the current server doesn't work, please try switching
           to another server using the buttons above. Some servers may take a few seconds to load.
+          If you get rickrolled, please refresh the website and try again with a fresh search.
         </span>
       </p>
     ) : null;
