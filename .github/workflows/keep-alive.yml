@@ -1,16 +1,23 @@
 name: Keep Reflick awake
 
 # Render's free plan spins a web service down after ~15 idle minutes; the next request then waits
-# for a cold boot (30-60s) before it answers. This workflow keeps the API and the web app answering
-# through the hours people actually use them - 05:00 to 23:00 Nepal time (UTC+5:45) - and lets them
-# rest from 23:00 to 05:00, which also keeps the free instance-hours well inside the 750/month cap.
+# for a cold boot (30-60s) before it answers. Only the API sleeps - the web app is a static site -
+# so this workflow wakes the API through the hours people use it, 05:00 to 23:00 Nepal time
+# (UTC+5:45), and lets it rest from 23:00 to 05:00.
 #
-# Why every 10 minutes: the cooldown is ~15 minutes, so any tick below that keeps the container up.
-# Ten gives one minute of slack on either side without dragging the private-repo Actions budget
-# (2000 min/month) past its limit; a 5-minute tick would roughly double the minutes for no gain in
-# wakefulness. The `Asia/Kathmandu` guard below is the real enforcement of the sleep window - it
-# makes a mistimed run a no-op rather than a 3am wake-up, so "cooldown only 23:00-05:00" holds even
-# if the cron is ever edited wrong.
+# Two timers point at the same health route:
+#
+#   * cron-job.org is the primary one. It fires every 10 minutes and, unlike GitHub's scheduler,
+#     does so on time. Nothing here affects it.
+#   * This workflow is the free backstop. On a PUBLIC repository, standard runner minutes are free,
+#     so the frequent tick is affordable again; its job is to cover the windows when GitHub's own
+#     scheduler runs late - it is best-effort, worst at the top of the hour - and cron-job.org alone
+#     would have let the service fall asleep.
+#
+# The repository must stay public for that to hold. On a private repository the 2,000 metered
+# minutes/month cannot cover a 10-minute tick (~3,200), the account runs dry mid-cycle and scheduled
+# runs stop firing - which is exactly what looked like "irregular, then does nothing at all". If the
+# repository ever goes private again, lower the cadence to every 30 minutes.
 #
 # UTC translations of the Nepal-time window:
 #   05:00 NPT = 23:15 UTC (previous day)
@@ -25,27 +32,26 @@ on:
     - cron: '0,10 17 * * *'
   workflow_dispatch:
 
-# A cold start can outlast a tick, so never run two warm-ups at once.
+# Never run two warm-ups at once. Cancelling the older run rather than queueing behind it matters:
+# a queued tick lands even later, which is exactly when the API can have fallen asleep.
 concurrency:
   group: keep-alive
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   API_URL: https://reflickmovies-api.onrender.com
-  WEB_URL: https://reflick-web.onrender.com
-  SITE_URL: https://www.reflickmovies.linkpc.net
 
 jobs:
-  # One job, not two: a single runner can keep both services awake, which halves the Actions minutes
-  # the schedule costs and makes "both are warm" a property of one run instead of two that can drift.
+  # One job, one service. The web app is static and never sleeps, so checking it on every tick was
+  # busy-work; the API's health route is the only thing that needs waking.
   keep-warm:
-    name: Keep the API and the web awake
+    name: Wake the API
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       # The sleep window is enforced here, in the runner's own clock, so the schedule above is a
       # hint and this is the rule: outside 05:00-23:00 Nepal time the run stops without touching
-      # either service. `workflow_dispatch` is deliberately subject to the same rule.
+      # the service. `workflow_dispatch` is subject to the same rule.
       - name: Respect the 23:00-05:00 rest window
         id: window
         run: |
@@ -54,51 +60,22 @@ jobs:
           echo "Nepal time now: $(TZ='Asia/Kathmandu' date '+%F %H:%M')"
           if [ "$hour" -ge 23 ] || [ "$hour" -lt 5 ]; then
             echo "asleep=true" >> "$GITHUB_OUTPUT"
-            echo "Outside waking hours; letting both services rest."
+            echo "Outside waking hours; letting the API rest."
           else
             echo "asleep=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # The API is the one that actually sleeps. A cold Render container holds the connection open
-      # until it is ready, so the first attempt often blocks for 30-60s and then succeeds; the retry
-      # loop covers a 502/504 during boot or a network hiccup mid-cold-start.
+      # A cold Render container holds the connection open until it is ready, so the first attempt
+      # often blocks for 30-60s and then succeeds. `--retry` with `--retry-all-errors` covers the
+      # 502/504 during boot and a network hiccup, without the old 12 x 15s loop that held the
+      # concurrency lock for minutes and starved the next tick.
       - name: Wake and confirm the API
         if: steps.window.outputs.asleep == 'false'
         run: |
           set -u
-          url="$API_URL/api/health"
-          for attempt in $(seq 1 12); do
-            code=$(curl -sS -o /tmp/health.json -w '%{http_code}' --max-time 60 "$url" || echo 000)
-            echo "attempt $attempt -> HTTP $code"
-            if [ "$code" = "200" ]; then
-              echo "API is awake."
-              cat /tmp/health.json
-              exit 0
-            fi
-            sleep 15
-          done
-          echo "API still cold after 12 attempts; failing so the outage is visible."
-          exit 1
-
-      # The health route proves the process is up; this proves the database is reachable and builds
-      # the home payload (and its cache entries) before a viewer asks for it.
-      - name: Warm the catalogue
-        if: steps.window.outputs.asleep == 'false'
-        run: |
-          set -u
-          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 "$API_URL/api/home" || echo 000)
-          echo "/api/home -> HTTP $code"
+          code=$(curl -sS -o /tmp/health.json -w '%{http_code}' \
+            --retry 5 --retry-delay 10 --retry-all-errors --max-time 90 \
+            "$API_URL/api/health" || echo 000)
+          echo "/api/health -> HTTP $code"
+          cat /tmp/health.json || true
           test "$code" = "200"
-
-      # A static site does not sleep, so this is a genuine availability check rather than a wake-up:
-      # it covers the Render hostname and the custom domain, and fails loudly if either stops
-      # answering.
-      - name: Confirm the web app answers
-        if: steps.window.outputs.asleep == 'false'
-        run: |
-          set -u
-          for url in "$WEB_URL" "$SITE_URL"; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 60 "$url" || echo 000)
-            echo "$url -> HTTP $code"
-            test "$code" = "200"
-          done
