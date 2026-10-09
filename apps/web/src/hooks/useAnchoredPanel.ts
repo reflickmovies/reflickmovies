@@ -8,9 +8,11 @@ const GAP = 6;
  * Breathing room kept between the panel and every viewport edge.
  *
  * A panel flush against the edge of the screen reads as clipped even when it is not clipped,
- * because there is no margin to show that the edge is the screen's and not the panel's.
+ * because there is no margin to show that the edge is the screen's and not the panel's. Set to a
+ * full `--space-lg` so a phone leaves a visible gutter on both sides, which is also the margin the
+ * notification panel's own width reserves.
  */
-const VIEWPORT_MARGIN = 8;
+const VIEWPORT_MARGIN = 16;
 
 /** Never shrink the list below this, even in a very short viewport. */
 const MIN_HEIGHT = 140;

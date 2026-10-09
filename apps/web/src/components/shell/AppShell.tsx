@@ -10,6 +10,7 @@ import {
   House,
   MagnifyingGlass,
   Moon,
+  SignIn,
   Sun,
   Target,
   Television,
@@ -488,7 +489,7 @@ export function AppShell() {
                 openAuth('signin');
               }}
             >
-              <UserCircle size={16} aria-hidden />
+              <SignIn size={16} aria-hidden />
               <span>Sign in</span>
             </button>
           )}

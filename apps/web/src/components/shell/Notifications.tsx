@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Sparkle, UserCircle } from '@phosphor-icons/react';
+import { Bell, Popcorn, UserCircleGear } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
 import { useExitFade } from '../../hooks/useExitFade';
@@ -26,9 +26,16 @@ import styles from './Notifications.module.css';
  */
 const READ_KEY = 'reflick:notifications:read';
 
+/*
+ * One glyph per source, and only two sources.
+ *
+ * `Popcorn` reads as "something new to watch" - a title, not a generic sparkle - and the account
+ * glyph is deliberately not the `UserCircle` the header's own avatar uses, so an account notice
+ * does not look like a stray copy of the profile button.
+ */
 const KIND_ICON: Record<NotificationKind, Icon> = {
-  releases: Sparkle,
-  account: UserCircle,
+  releases: Popcorn,
+  account: UserCircleGear,
 };
 
 function loadRead(): string[] {
