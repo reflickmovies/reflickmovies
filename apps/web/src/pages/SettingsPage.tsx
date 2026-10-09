@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Check, Moon, PaintBrush, Sun, Trash } from '@phosphor-icons/react';
 import { useThemeMode } from '../components/shell/ThemeMode';
+import { useAuth } from '../components/account/AuthProvider';
 import { useWatchHistory } from '../hooks/useWatchHistory';
 import { WATCH_HISTORY_KEY } from '../lib/watchHistory';
 import { PageHeader } from '../components/page';
@@ -9,9 +10,9 @@ import styles from './SettingsPage.module.css';
 /**
  * Settings.
  *
- * Two things, both real preferences on this browser: how the theme is decided, and the local
- * watch history. There is no sign-in and no account, so neither is stubbed in and there is
- * nothing here that pretends to be a server control.
+ * Two things: how the theme is decided, and the watch history. The theme is a preference kept
+ * on the device. The history is kept there too, and mirrored to the account when signed in, so
+ * it follows you to every device rather than living on one browser.
  *
  * Deliberately absent: the server health panel that used to live here. It was read-only - four
  * numbers from `/api/health` and a Refresh button - and it made Settings look like an operations
@@ -21,6 +22,7 @@ import styles from './SettingsPage.module.css';
  */
 export function SettingsPage() {
   const { mode, resolved, setMode } = useThemeMode();
+  const { user } = useAuth();
   const { entries, clear } = useWatchHistory(12);
 
   /*
@@ -119,10 +121,10 @@ export function SettingsPage() {
           </div>
 
           <p className={styles.footnote ?? ''}>
-            Stored in <code>reflick:theme-mode</code> as <code>{mode}</code>.
-            Reflick has no accounts, so there is no profile behind these entries. They record which
-            titles this browser opened, and are used to match related titles and to fill Continue
-            watching. Nothing is uploaded.
+            Stored in <code>reflick:theme-mode</code> as <code>{mode}</code>.{' '}
+            {user === null
+              ? 'Watch history stays in this browser, where it is kept to match related titles and to fill Continue watching.'
+              : 'Watch history is saved to your account, so related titles and Continue watching are the same on every device you sign in to.'}
           </p>
 
           {/*
@@ -141,7 +143,11 @@ export function SettingsPage() {
                 Clear {entries.length} entr{entries.length === 1 ? 'y' : 'ies'}
               </button>
 
-              <span className={styles.rowNote ?? ''}>Removes them from this browser only.</span>
+              <span className={styles.rowNote ?? ''}>
+                {user === null
+                  ? 'Removes them from this browser only.'
+                  : 'Removes them from your account and this browser.'}
+              </span>
             </div>
           ) : (
             <p className={styles.footnote ?? ''}>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { EnvelopeSimple, LockKey, User } from '@phosphor-icons/react';
 import { ApiError } from '../../lib/api';
+import { useSpringIndicator } from '../../hooks/useSpringIndicator';
 import { Button, Input, Modal } from '../ui';
 import styles from './AuthModal.module.css';
 
@@ -63,6 +64,14 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  /*
+    One red fill behind the two tabs, springing between them exactly like the header and the
+    bottom bar - the same hook, the same curve. It reads the active tab from `aria-selected`,
+    which the tablist already sets for assistive technology, so there is no second source of
+    truth for "which tab is open".
+  */
+  const tabIndicator = useSpringIndicator<HTMLDivElement>('[aria-selected="true"]');
 
   // Reset on close so reopening never shows the previous attempt - or a stale error.
   useEffect(() => {
@@ -148,7 +157,21 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
   return (
     <Modal open={open} onClose={onClose} title={copy.heading} header={header}>
       <div className={styles.panel ?? ''}>
-        <div className={styles.tabs ?? ''} role="tablist" aria-label="Authentication">
+        <div
+          ref={tabIndicator.containerRef}
+          className={styles.tabs ?? ''}
+          role="tablist"
+          aria-label="Authentication"
+        >
+          <span
+            ref={tabIndicator.indicatorRef}
+            className={styles.tabIndicator ?? ''}
+            style={tabIndicator.indicatorStyle}
+            aria-hidden
+          >
+            {/* Keyed on the mode so each move remounts the fill and replays its stretch. */}
+            <span key={mode} className={styles.tabIndicatorFill ?? ''} />
+          </span>
           <button
             type="button"
             role="tab"

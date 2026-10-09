@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, RefObject } from 'react';
 
-export interface SpringIndicator {
+export interface SpringIndicator<T extends HTMLElement = HTMLElement> {
   /** The tab container. Must be `position: relative`; it may also scroll horizontally. */
-  containerRef: RefObject<HTMLElement>;
+  containerRef: RefObject<T>;
   /** The sliding fill. `position: absolute`, `left/top: 0`, sized entirely by `indicatorStyle`. */
   indicatorRef: RefObject<HTMLSpanElement>;
   /** Inline placement for the indicator, or `{ opacity: 0 }` when there is nothing to mark. */
@@ -25,12 +25,15 @@ export interface SpringIndicator {
  * first measure lands before the browser paints (no slide-in from the origin on load) and
  * later measures that find nothing changed do not render again.
  *
- * The active tab is found through `aria-current`, which React Router writes on the matching
- * `NavLink`. Querying for it means the hook needs no ref per tab and no knowledge of which
- * route is active - it reads exactly what assistive technology reads.
+ * The active tab is found through `activeSelector` - `[aria-current="page"]` by default, which is
+ * what React Router writes on the matching `NavLink`, or `[aria-selected="true"]` for a tablist.
+ * Querying for it means the hook needs no ref per tab and no knowledge of which route is active -
+ * it reads exactly what assistive technology reads.
  */
-export function useSpringIndicator(): SpringIndicator {
-  const containerRef = useRef<HTMLElement>(null);
+export function useSpringIndicator<T extends HTMLElement = HTMLElement>(
+  activeSelector = '[aria-current="page"]',
+): SpringIndicator<T> {
+  const containerRef = useRef<T>(null);
   const indicatorRef = useRef<HTMLSpanElement>(null);
   const lastRef = useRef('');
   const [indicatorStyle, setIndicatorStyle] = useState<CSSProperties>({ opacity: 0 });
@@ -53,7 +56,7 @@ export function useSpringIndicator(): SpringIndicator {
       return;
     }
 
-    const active = container.querySelector<HTMLElement>('[aria-current="page"]');
+    const active = container.querySelector<HTMLElement>(activeSelector);
     if (!active) {
       if (lastRef.current === 'empty') return;
       lastRef.current = 'empty';
