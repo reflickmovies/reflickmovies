@@ -1,20 +1,83 @@
 name: Keep API Alive
 
+# Keeps the Render free-tier services warm through the hours people actually watch.
+#
+# The previous version was a single `curl ... || true`, which could never do its job: a free web
+# service is spun down after ~15 idle minutes, and the first request to a sleeping instance is
+# held until the container boots (or answered with a 502/504 while it does). One short attempt,
+# its failure swallowed by `|| true`, therefore reported success while the API stayed cold - so
+# the "keep-alive" run never confirmed anything.
+#
+# This version retries through the cold start, prints the HTTP code of every attempt, and only
+# passes once the API actually answers. It then warms `/api/home` so the catalogue cache is hot
+# before the peak window rather than being built by the first real visitor.
+
 on:
   schedule:
-    # Pings every 10 min from 05:00 to 22:55 NPT (UTC+5:45).
-    # Sleeps 23:00-05:00 NPT so the free instance saves ~6h of the 750 monthly hours.
+    # Every 10 min, 05:00-22:55 NPT (UTC+5:45) - the waking hours.
+    # Quiet 23:00-05:00 NPT so the free instance saves ~6h of the 750 monthly hours.
     - '15,25,35,45,55 23 * * *'
     - '*/10 0-16 * * *'
     - '0,10 17 * * *'
   workflow_dispatch:
 
+# A cold start can outlast the 10-minute tick, so never run two warm-ups at once.
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
+
+env:
+  API_URL: https://reflickmovies-api.onrender.com
+  WEB_URL: https://reflickmovies-web.onrender.com
+  SITE_URL: https://www.reflickmovies.linkpc.net
+
 jobs:
-  ping:
+  api:
+    name: Wake and warm the API
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Ping API health endpoint
-        continue-on-error: true
+      # A cold Render container holds the connection open until it is ready, so the first
+      # attempt often blocks for 30-60s and then succeeds. Retrying matters for the rest:
+      # a 502/504 during boot, or a network hiccup mid-cold-start.
+      - name: Wake /api/health, retrying through the cold start
         run: |
-          curl -fsS --max-time 100 \
-            https://reflickmovies-api.onrender.com/api/health || true
+          set -u
+          url="$API_URL/api/health"
+          for attempt in $(seq 1 12); do
+            code=$(curl -sS -o /tmp/health.json -w '%{http_code}' --max-time 60 "$url" || echo 000)
+            echo "attempt $attempt -> HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "API is awake."
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "API still cold after 12 attempts; failing so the outage is visible."
+          exit 1
+
+      # The health route proves the process is up; this proves the database is reachable and
+      # builds the home payload (and its cache entries) before a viewer asks for it.
+      - name: Warm the catalogue
+        run: |
+          set -u
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 "$API_URL/api/home" || echo 000)
+          echo "/api/home -> HTTP $code"
+          test "$code" = "200"
+
+  web:
+    name: Confirm the web app answers
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Static sites do not sleep, so these are a genuine availability check rather than a
+      # wake-up: if either stops answering, the deployment is broken.
+      - name: Ping the app and the custom domain
+        run: |
+          set -u
+          for url in "$WEB_URL" "$SITE_URL"; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 60 "$url" || echo 000)
+            echo "$url -> HTTP $code"
+            test "$code" = "200"
+          done

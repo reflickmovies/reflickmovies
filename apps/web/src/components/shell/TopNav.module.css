@@ -253,6 +253,13 @@
   }
 }
 
+/* The inverse: controls that belong to the desktop rail and have no home in the mobile header. */
+@media (min-width: 1024px) {
+  .hideOnDesktop {
+    display: none;
+  }
+}
+
 /* ---------------------------------------------------------------- Actions */
 
 .actions {

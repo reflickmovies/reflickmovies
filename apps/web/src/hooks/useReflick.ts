@@ -3,6 +3,7 @@ import * as api from '../lib/api';
 import { invalidateQuery, useQuery } from './useQuery';
 import { useDebouncedValue } from './useDebouncedValue';
 import type {
+  AppNotification,
   BrowseResult,
   Episode,
   GenreRow,
@@ -33,8 +34,9 @@ const KEY = {
   */
   browse: (params: api.BrowseParams) =>
     `browse:${params.type ?? 'all'}:${params.genre ?? 'all'}:${params.sort ?? 'trending'}:min${params.minVotes ?? 0}:${params.page ?? 1}:${params.limit ?? 24}`,
-genres: () => 'genres',
+  genres: () => 'genres',
   health: () => 'health',
+  notifications: () => 'notifications',
   title: (type: TitleType, slug: string) => `title:${type}:${slug}`,
   related: (type: TitleType, slug: string) => `related:${type}:${slug}`,
   seasons: (type: TitleType, slug: string) => `seasons:${type}:${slug}`,
@@ -68,6 +70,17 @@ export function useGenres() {
  */
 export function useHealth() {
   return useQuery<api.HealthPayload>(KEY.health(), api.getHealth, { ttlMs: 5_000 });
+}
+
+/**
+ * The system notifications behind the header bell.
+ *
+ * No accounts, so there is no per-user inbox - the server derives a short list from real
+ * catalogue and pipeline state. Cached for the default window; the client reads/unreads on
+ * top with its own per-browser store, so the badge is honest even when the list is cached.
+ */
+export function useNotifications() {
+  return useQuery<AppNotification[]>(KEY.notifications(), (signal) => api.getNotifications(signal));
 }
 
 /* --------------------------------------------------------------- browsing */

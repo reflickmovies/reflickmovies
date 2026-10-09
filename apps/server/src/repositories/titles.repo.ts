@@ -118,6 +118,18 @@ export async function countAll(): Promise<number> {
   return TitleModel.estimatedDocumentCount();
 }
 
+/**
+ * Titles with a release date on or after `since`.
+ *
+ * Powers the "new this week" notification. Deliberately keyed on `releasedAt`, not on when
+ * the row was written: there is no `createdAt` on the schema, and `syncedAt` moves every time a
+ * title is re-synced, so it says "we touched this" rather than "this is new to the catalogue".
+ * A release date is the honest, stable signal for a viewer.
+ */
+export async function countReleasedSince(since: Date): Promise<number> {
+  return TitleModel.countDocuments({ releasedAt: { $gte: since } });
+}
+
 /* -------------------------------------------------------------- browsing */
 
 export interface QueryOptions {

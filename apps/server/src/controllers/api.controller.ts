@@ -7,6 +7,7 @@ import { cache, cacheKey } from '../services/cache.service.js';
 import * as catalog from '../services/catalog.service.js';
 import { listGenres, listProviders, providerCount } from '../repositories/providers.repo.js';
 import { countAll } from '../repositories/titles.repo.js';
+import { listNotifications } from '../services/notification.service.js';
 import { databaseState } from '../db/connection.js';
 
 /** `/api/providers`: what a visitor is allowed to know about playback. */
@@ -166,10 +167,15 @@ export const getProviders = asyncHandler(async (_req: Request, res: Response) =>
   sendData(res, payload);
 });
 
+/* --------------------------------------------------------- notifications */
+
+export const getNotifications = asyncHandler(async (_req: Request, res: Response) => {
+  sendData(res, await listNotifications());
+});
+
 /* ----------------------------------------------------------------- meta */
 
-export const getHealth = asyncHandler(async (_req: Request, res: Response) => {
-  const dbState = databaseState();
+export const getHealth = asyncHandler(async (_req: Request, res: Response) => {  const dbState = databaseState();
 
   sendData(res, {
     status: dbState === 'connected' ? 'ok' : 'degraded',

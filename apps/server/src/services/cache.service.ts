@@ -211,4 +211,5 @@ export const cacheKey = {
   seasons: (slug: string) => `seasons:${slug}`,
   episodes: (slug: string, season: number) => `episodes:${slug}:${season}`,
   servers: (slug: string) => `servers:${slug}`,
+  notifications: () => 'notifications',
 };

@@ -1,6 +1,7 @@
 import type {
   ApiEnvelope,
   ApiErrorEnvelope,
+  AppNotification,
   BrowseResult,
   Episode,
   GenreRow,
@@ -232,6 +233,12 @@ export function getGenres(signal?: AbortSignal): Promise<GenreRow[]> {
 
 export function getProviders(signal?: AbortSignal): Promise<ProvidersPayload> {
   return requestData<ProvidersPayload>('/providers', { signal });
+}
+
+/* --------------------------------------------------------- notifications */
+
+export function getNotifications(signal?: AbortSignal): Promise<AppNotification[]> {
+  return requestData<AppNotification[]>('/notifications', { signal });
 }
 
 /* ----------------------------------------------------------------- detail */

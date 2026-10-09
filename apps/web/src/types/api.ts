@@ -189,6 +189,19 @@ export interface ServerReport {
   demoted: boolean;
 }
 
+/** notification.service NotificationKind */
+export type NotificationKind = 'catalogue' | 'releases' | 'protection' | 'system';
+
+/** notification.service NotificationDto. */
+export interface AppNotification {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  href?: string;
+  at: string;
+}
+
 /** Envelope every successful response uses. */
 export interface ApiEnvelope<T> {
   data: T;

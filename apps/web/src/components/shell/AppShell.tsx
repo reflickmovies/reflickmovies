@@ -2,7 +2,6 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Bell,
   Compass,
   DotsThree,
   FilmSlate,
@@ -25,6 +24,7 @@ import { useSpringIndicator } from '../../hooks/useSpringIndicator';
 import { useThemeMode } from './ThemeMode';
 import { SearchOverlay, SearchOverlayButton, useSearchOverlay } from './SearchOverlayTrigger';
 import { ContinueWatching } from './ContinueWatching';
+import { Notifications } from './Notifications';
 import styles from './AppShell.module.css';
 import topNavStyles from './TopNav.module.css';
 
@@ -250,6 +250,31 @@ export function AppShell() {
                   <NavItem to={ROUTES.settings} icon={Gear} label="Settings" />
                 </nav>
 
+                {/*
+                  Desktop's theme switch.
+
+                  The dots menu carries the theme toggle on mobile, and the header hides the menu
+                  on desktop, so without this row a desktop visitor would have no way to change the
+                  theme. The rail itself is desktop-only, so this row needs no extra breakpoint of
+                  its own: it simply does not exist where the menu does.
+                */}
+                <button
+                  type="button"
+                  className={`${styles.navItem ?? ''} ${styles.railAction ?? ''}`.trim()}
+                  onClick={() => cycle()}
+                  aria-label={`Toggle theme: ${theme}, currently ${mode}`}
+                >
+                  {theme === 'dark' ? (
+                    <Moon size={18} weight="fill" aria-hidden />
+                  ) : (
+                    <Sun size={18} weight="bold" aria-hidden />
+                  )}
+                  <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
+                  <span className={styles.railActionHint ?? ''}>
+                    {mode === 'auto' ? 'Auto' : 'Manual'}
+                  </span>
+                </button>
+
                 {/* ------------------------------------- Continue watching */}
                 <ContinueWatching />
               </div>
@@ -327,28 +352,25 @@ export function AppShell() {
                 </button>
 
                 {/*
-                  Icon-only, and inert.
-
-                  There is no auth in this app, so an avatar with a name would be invented
-                  data. A plain control marks where the feature will live without pretending
-                  someone is signed in. The bell is the same: no notifications exist to show.
-                  Both are hidden on mobile, where the row moves to the bottom tab bar instead
-                  of competing with a search field and a menu control.
+                  The notification bell carries the API's system feed - real catalogue news, not a
+                  stand-in - so it is live on every viewport. The avatar beside it is still inert:
+                  there is no auth in this app, so an avatar with a name would be invented data,
+                  and the control only marks where the feature will live.
                 */}
-                <button
-                  type="button"
-                  className={`${topNavStyles.circleButton ?? ''} ${topNavStyles.hideOnMobile ?? ''}`.trim()}
-                  aria-label="Notifications"
-                >
-                  <Bell size={18} />
-                </button>
+                <Notifications />
 
-                {/* Secondary destinations and the theme switch; the tab bar cannot carry them. */}
+                {/*
+                  Secondary destinations and the theme switch.
+
+                  Mobile only. On desktop these live in the rail, which keeps the header to a
+                  single row of real controls instead of a dots button that opens a second menu
+                  beside the ones already on screen.
+                */}
                 <button
                   type="button"
                   data-menu-toggle
                   ref={menuAnchorRef}
-                  className={topNavStyles.circleButton ?? ''}
+                  className={`${topNavStyles.circleButton ?? ''} ${topNavStyles.hideOnDesktop ?? ''}`.trim()}
                   onClick={() => setMenuOpen((open) => !open)}
                   aria-label="More options"
                   aria-expanded={menuOpen}
@@ -406,13 +428,12 @@ export function AppShell() {
       </div>
 
       {/*
-        Overflow menu: the destinations the tab bar cannot carry, plus the theme switch.
+        Overflow menu: the secondary destinations and the theme switch, for the mobile header.
 
-        The theme switch lived in the header as a third icon. Moving it in here is what let the
-        header keep exactly two things on the right - the menu and the profile - so the row reads
-        as "logo, where you are, you" instead of "logo, where you are, search, brightness,
-        notifications, more, you". It is the least-used control in the app, so it is the right
-        one to spend a layer of indirection on.
+        It carries what the bottom tab bar cannot: Popular and For you, Settings, and the theme
+        toggle. The theme switch has a rail row of its own on desktop, so this menu is only ever
+        opened from the dots button - which is itself mobile-only now that the rail holds those
+        destinations on wider screens.
       */}
       {menu.show ? (
         <div

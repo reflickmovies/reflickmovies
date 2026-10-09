@@ -32,6 +32,10 @@ router.get('/genres', generalLimiter, cacheControl(86_400), api.getGenres);
 
 router.get('/providers', generalLimiter, cacheControl(86_400), api.getProviders);
 
+/* --------------------------------------------------------- notifications */
+
+router.get('/notifications', generalLimiter, cacheControl(120), api.getNotifications);
+
 /* ---------------------------------------------------------------- search */
 
 router.get('/search', searchLimiter, cacheControl(300), find.searchTitles);

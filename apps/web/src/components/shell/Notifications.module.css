@@ -1,0 +1,205 @@
+/*
+ * The notification bell and its panel.
+ *
+ * The panel is a sibling of the header rather than a child of the trigger: it is positioned in
+ * the viewport by `useAnchoredPanel` from the button's rect, and it must not be clipped by the
+ * header card, which has `overflow: hidden`. The look mirrors the overflow menu on purpose -
+ * both are the same kind of object (a small surface opened from a header control), so they
+ * should not read as two different systems.
+ */
+
+/* Scoped copy of the shared entrances, so `premiumPop` resolves inside this module. */
+@import '../../styles/keyframes.css';
+
+.trigger {
+  position: relative;
+}
+
+/*
+ * Unread count, on the button's top-right.
+ *
+ * A ring in the button's own surface colour separates the dot from the icon behind it, so it
+ * reads as a badge rather than a second glyph. `pointer-events: none` keeps the whole 42px
+ * button as one hit target.
+ */
+.badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--lp-surface-elevated);
+  pointer-events: none;
+}
+
+.panel {
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(360px, calc(100vw - 16px));
+  padding: 6px;
+  border: 1px solid var(--lp-line);
+  border-radius: 16px;
+  background-color: var(--lp-surface);
+  box-shadow: var(--lp-card-shadow);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  transform-origin: top right;
+  animation: premiumPop var(--motion-spring-soft-duration) var(--motion-spring-soft);
+}
+
+/* The reverse of the entrance; kept mounted for the exit duration by `useExitFade`. */
+.panelExit {
+  animation: notificationsOut var(--motion-base) var(--motion-ease) forwards;
+}
+
+@keyframes notificationsOut {
+  to {
+    opacity: 0;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 8px 12px 6px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--lp-text);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.markAll {
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  border-radius: 8px;
+  color: var(--lp-text-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+
+.markAll:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.item:hover {
+  background-color: var(--lp-pill-inactive);
+}
+
+.itemUnread {
+  background-color: var(--lp-pill-inactive);
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+  color: var(--lp-accent-red);
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemTitle {
+  color: var(--lp-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.itemBody {
+  color: var(--lp-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.itemTime {
+  color: var(--lp-text-faint);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+/*
+ * Unread marker, on the trailing edge.
+ *
+ * A tinted row alone is a weak signal; the dot is the second, non-colour cue. It is rendered
+ * only while the row is unread, matching the rail's active dot rather than a dot drawn on every
+ * item.
+ */
+.unreadDot {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--lp-accent-red);
+}
+
+.note {
+  margin: 0;
+  padding: 12px 12px 16px;
+  color: var(--lp-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}

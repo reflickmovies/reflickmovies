@@ -41,12 +41,13 @@ function redact(value: string): string {
 
 /** Proves the first TMDB token from the environment can still reach the API. */
 async function verifyTmdbKey(): Promise<void> {
-  if (tmdbKeys.length === 0) {
+  const key = tmdbKeys[0];
+  if (key === undefined) {
     throw new Error('no TMDB key in the environment; refusing to clear a database that cannot refill');
   }
 
   const response = await fetch(`${env.TMDB_BASE_URL}/trending/movie/week`, {
-    headers: { Authorization: `Bearer ${tmdbKeys[0]}` },
+    headers: { Authorization: `Bearer ${key}` },
     signal: AbortSignal.timeout(env.TMDB_TIMEOUT_MS),
   });
 
@@ -54,7 +55,7 @@ async function verifyTmdbKey(): Promise<void> {
     throw new Error(`TMDB rejected the key (HTTP ${response.status}); refusing to clear`);
   }
 
-  console.log(`TMDB key ${tmdbKeys[0].slice(0, 4)}…${tmdbKeys[0].slice(-4)} reaches the API.`);
+  console.log(`TMDB key ${key.slice(0, 4)}…${key.slice(-4)} reaches the API.`);
 }
 
 async function main(): Promise<void> {
