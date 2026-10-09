@@ -12,6 +12,7 @@
         "sync": "tsx src/jobs/syncCatalog.cli.ts",
         "providers:import": "tsx src/jobs/importProviders.cli.ts",
         "verify": "tsx scripts/verifyMongo.ts",
+        "db:clear": "tsx scripts/clearDb.ts",
         "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
         "test": "tsx --test scripts/tests/*.test.ts",
         "inspect:embeds": "tsx ../scripts/inspect-embeds.mjs"
