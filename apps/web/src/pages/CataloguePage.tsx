@@ -74,7 +74,7 @@ const EMPTY_MIN_MS = 2400;
 export function CataloguePage({ kind }: CataloguePageProps) {
   const copy = COPY[kind];
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: genres } = useGenres();
+  const { data: genres } = useGenres(copy.type);
 
   const sortParam = searchParams.get('sort');
   const sort: Sort = isSort(sortParam) ? sortParam : 'trending';

@@ -35,7 +35,7 @@ const KEY = {
   */
   browse: (params: api.BrowseParams) =>
     `browse:${params.type ?? 'all'}:${params.genre ?? 'all'}:${params.sort ?? 'trending'}:min${params.minVotes ?? 0}:${params.page ?? 1}:${params.limit ?? 24}`,
-  genres: () => 'genres',
+  genres: (type?: TitleType) => `genres:${type ?? 'all'}`,
   health: () => 'health',
   notifications: () => 'notifications',
   account: () => 'account',
@@ -59,8 +59,8 @@ export function useShelf(key: string) {
   return useQuery<Shelf>(KEY.shelf(key), (signal) => api.getShelf(key, signal));
 }
 
-export function useGenres() {
-  return useQuery<GenreRow[]>(KEY.genres(), api.getGenres, { ttlMs: 60 * 60_000 });
+export function useGenres(type?: TitleType) {
+  return useQuery<GenreRow[]>(KEY.genres(type), (signal) => api.getGenres(type, signal), { ttlMs: 60 * 60_000 });
 }
 
 /**

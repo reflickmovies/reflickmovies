@@ -140,9 +140,10 @@ export const getEpisodes = asyncHandler(async (req: Request, res: Response) => {
 
 /* ------------------------------------------------------------- taxonomy */
 
-export const getGenres = asyncHandler(async (_req: Request, res: Response) => {
-  const cached = cache.get(cacheKey.genres());
-  sendData(res, cached?.value ?? (await listGenres()), { stale: cached?.stale ?? false });
+export const getGenres = asyncHandler(async (req: Request, res: Response) => {
+  const type = req.query.type === undefined ? undefined : typeParam(req.query.type);
+  const cached = cache.get(cacheKey.genres(type));
+  sendData(res, cached?.value ?? (await listGenres(type)), { stale: cached?.stale ?? false });
 });
 
 export const getProviders = asyncHandler(async (_req: Request, res: Response) => {

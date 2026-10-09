@@ -281,8 +281,8 @@ export function browse(params: BrowseParams, signal?: AbortSignal): Promise<Brow
   });
 }
 
-export function getGenres(signal?: AbortSignal): Promise<GenreRow[]> {
-  return requestData<GenreRow[]>('/genres', { signal });
+export function getGenres(type: TitleType | undefined, signal?: AbortSignal): Promise<GenreRow[]> {
+  return requestData<GenreRow[]>('/genres', { signal, query: { type } });
 }
 
 export function getProviders(signal?: AbortSignal): Promise<ProvidersPayload> {

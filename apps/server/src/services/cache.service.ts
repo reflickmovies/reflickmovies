@@ -206,7 +206,7 @@ export const cacheKey = {
   suggest: (q: string) => `suggest:${q.toLowerCase()}`,
   catalog: (type: string, page: number, genre: string | null, sort: string) =>
     `catalog:${type}:${page}:${genre ?? 'all'}:${sort}`,
-  genres: () => 'taxonomy:genres',
+  genres: (type?: 'movie' | 'tv') => `taxonomy:genres:${type ?? 'all'}`,
   providers: () => 'taxonomy:providers',
   seasons: (slug: string) => `seasons:${slug}`,
   episodes: (slug: string, season: number) => `episodes:${slug}:${season}`,

@@ -1,5 +1,6 @@
+import type { PipelineStage } from 'mongoose';
 import { GenreModel, ProviderModel, TitleModel, type ProviderDocument } from '../db/models/index.js';
-import type { IdSpace } from '../domain/types.js';
+import type { IdSpace, TitleType } from '../domain/types.js';
 
 export interface GenreRow {
   tmdbId: number;
@@ -14,6 +15,13 @@ export interface GenreRow {
 /**
  * Every genre, with a live count of the titles that carry it.
  *
+ * Pass a `type` to scope the counts to one catalogue. The movie and TV taxonomies share an id
+ * space but not a vocabulary - TMDB's `Action` (28) is a movie genre and `Action & Adventure`
+ * (10759) the series one - so an unscoped count lets a page offer a genre the other type owns.
+ * On Movies that is a dead end: the option carries a real count, the reader picks it, and the
+ * grid empties because no movie has that id. The listing pages therefore ask per type; `popular`
+ * is the one untyped listing and asks for everything.
+ *
  * The count is a single aggregation over `genres.id` rather than 37 separate `countDocuments`
  * calls, and it is what lets the genre filter show only genres the catalogue can actually
  * return. Offering a genre with zero titles is a dead end in the UI: the visitor picks it, the
@@ -23,11 +31,12 @@ export interface GenreRow {
  * alphabetically, so the dropdown opens with the genres worth choosing and still exposes the
  * complete taxonomy rather than a truncated list.
  */
-export async function listGenres(): Promise<GenreRow[]> {
-  const counts = await TitleModel.aggregate<{ _id: number; count: number }>([
-    { $unwind: '$genres' },
-    { $group: { _id: '$genres.id', count: { $sum: 1 } } },
-  ]);
+export async function listGenres(type?: TitleType): Promise<GenreRow[]> {
+  const pipeline: PipelineStage[] = [];
+  if (type) pipeline.push({ $match: { type } });
+  pipeline.push({ $unwind: '$genres' }, { $group: { _id: '$genres.id', count: { $sum: 1 } } });
+
+  const counts = await TitleModel.aggregate<{ _id: number; count: number }>(pipeline);
 
   const byId = new Map(counts.map((row) => [row._id, row.count]));
 
