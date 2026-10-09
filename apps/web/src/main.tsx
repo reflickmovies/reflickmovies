@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { warmApi } from './lib/warmup';
 import { applyTheme } from './theme';
 import './styles/globals.css';
 
@@ -12,6 +13,13 @@ import './styles/globals.css';
  * through a context instead would mean a frame of unstyled content.
  */
 applyTheme();
+
+/*
+ * Wake the API before React mounts. This is the first network request the page makes, so on a
+ * free-tier cold start the container boots while the bundle is still evaluating and the first
+ * frame is being painted - see `lib/warmup`.
+ */
+warmApi();
 
 /*
  * A mirrored embed still runs third-party code, and the browser lets a cross-origin frame call

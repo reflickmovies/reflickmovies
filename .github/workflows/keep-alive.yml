@@ -16,9 +16,9 @@ on:
   schedule:
     # Every 10 min, 05:00-22:55 NPT (UTC+5:45) - the waking hours.
     # Quiet 23:00-05:00 NPT so the free instance saves ~6h of the 750 monthly hours.
-    - '15,25,35,45,55 23 * * *'
-    - '*/10 0-16 * * *'
-    - '0,10 17 * * *'
+    - cron: '15,25,35,45,55 23 * * *'
+    - cron: '*/10 0-16 * * *'
+    - cron: '0,10 17 * * *'
   workflow_dispatch:
 
 # A cold start can outlast the 10-minute tick, so never run two warm-ups at once.
@@ -28,14 +28,14 @@ concurrency:
 
 env:
   API_URL: https://reflickmovies-api.onrender.com
-  WEB_URL: https://reflickmovies-web.onrender.com
+  WEB_URL: https://reflick-web.onrender.com
   SITE_URL: https://www.reflickmovies.linkpc.net
 
 jobs:
   api:
     name: Wake and warm the API
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       # A cold Render container holds the connection open until it is ready, so the first
       # attempt often blocks for 30-60s and then succeeds. Retrying matters for the rest:
