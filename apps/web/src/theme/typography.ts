@@ -13,11 +13,18 @@ function fluid(minRem: number, maxRem: number): string {
 
 export const FONT_FAMILY = {
   /** UI and body copy. */
-  SANS: "'Inter', 'Inter var', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-  /** Wordmark and editorial headings. The only serif in the system. */
-  SERIF: "'Playfair Display', 'Iowan Old Style', 'Times New Roman', Georgia, serif",
-  /** Numerals inside pills and metadata. */
-  MONO: "'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace",
+  SANS: "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  /**
+   * Wordmark and editorial headings. The only display face in the system, and until now the only
+   * serif - Fraunces, whose soft optical cut gives the wordmark the friendlier voice the site wants.
+   */
+  SERIF: "'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif",
+  /**
+   * Numerals inside pills and metadata. No longer a font of its own: the project runs on two
+   * families, so the numeric labels borrow the body face and lean on `font-variant-numeric` where
+   * columns of digits have to line up.
+   */
+  MONO: "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
 } as const;
 
 export const FONT_SIZE = {

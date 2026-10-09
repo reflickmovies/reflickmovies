@@ -6,8 +6,8 @@
  * it, built from the same `--lp-*` and type tokens the rest of the shell reads, so the popup
  * belongs to the site instead of looking like a bolted-on login screen.
  *
- * The two deliberate brand moves: the red Bodoni wordmark at the top, and a serif heading - the
- * same editorial face the app uses for page titles and section headings.
+ * The two deliberate brand moves: the serif heading, the same display face the app uses for page
+ * titles and section headings.
  */
 
 /*
@@ -36,10 +36,12 @@
   padding-block: var(--space-xs) var(--space-sm);
 }
 
-.logo {
-  height: 19px;
-  width: auto;
-  margin-block-end: var(--space-xs);
+/*
+ * A stand-in for the registration-only display-name field while signing in. It keeps the two tabs
+ * the same height without drawing anything: the field still occupies its row, it just is not seen.
+ */
+.reserved {
+  visibility: hidden;
 }
 
 .heading {

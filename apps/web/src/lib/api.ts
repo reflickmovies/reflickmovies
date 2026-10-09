@@ -410,8 +410,8 @@ export function register(email: string, password: string, displayName: string): 
   });
 }
 
-export function login(email: string, password: string): Promise<AuthPayload> {
-  return requestData<AuthPayload>('/auth/login', { method: 'POST', body: { email, password } });
+export function login(identifier: string, password: string): Promise<AuthPayload> {
+  return requestData<AuthPayload>('/auth/login', { method: 'POST', body: { identifier, password } });
 }
 
 export function getMe(signal?: AbortSignal): Promise<{ user: AccountUser }> {

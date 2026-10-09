@@ -21,12 +21,14 @@ function parse<S extends z.ZodTypeAny>(schema: S, value: unknown): z.infer<S> {
   return result.data;
 }
 
-const credentialsSchema = z.object({
-  email: z.string().min(3).max(200),
+const loginSchema = z.object({
+  identifier: z.string().min(3).max(200),
   password: z.string().min(1).max(200),
 });
 
-const registerSchema = credentialsSchema.extend({
+const registerSchema = z.object({
+  email: z.string().min(3).max(200),
+  password: z.string().min(1).max(200),
   displayName: z.string().min(2).max(40),
 });
 
@@ -63,8 +65,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const body = parse(credentialsSchema, req.body);
-  sendData(res, await auth.login(body.email, body.password));
+  const body = parse(loginSchema, req.body);
+  sendData(res, await auth.login(body.identifier, body.password));
 });
 
 export const me = asyncHandler(async (_req: Request, res: Response) => {

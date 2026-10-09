@@ -60,6 +60,13 @@ body {
   font-family: var(--font-family-sans);
   font-size: 0.9375rem;
   line-height: 1.5;
+  /*
+   * The display face (Fraunces) is variable, and its `SOFT` axis is what makes the wordmark and
+   * headings read rounded rather than cut. It is set here because `font-variation-settings` is
+   * inherited: the body face has no `SOFT` axis, so it ignores the setting, and only the serif
+   * type picks it up.
+   */
+  font-variation-settings: 'SOFT' 50, 'WONK' 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

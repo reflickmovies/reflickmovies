@@ -7,7 +7,8 @@ import styles from './AuthModal.module.css';
 export type AuthMode = 'signin' | 'register';
 
 export interface AuthValues {
-  email: string;
+  /** Sign-in: a username or an email. Register: the email. */
+  identifier: string;
   password: string;
   displayName: string;
 }
@@ -42,12 +43,12 @@ const COPY: Record<AuthMode, { heading: string; subheading: string; cta: string 
  *
  * It is a modal because the account is a small detour, not a destination: someone opening it is
  * mid-browse, and sending them to a route and back would throw away where they were. It wears the
- * site's own clothes - the red Bodoni wordmark, the serif heading the rest of the app uses for
- * editorial type, the same fields and buttons as every form - so it reads as part of Reflick
- * rather than a bolted-on login screen.
+ * site's own clothes - the serif heading the rest of the app uses for editorial type, the same
+ * fields and buttons as every form - so it reads as part of Reflick rather than a bolted-on login
+ * screen.
  */
 export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthModalProps) {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
   // Reset on close so reopening never shows the previous attempt - or a stale error.
   useEffect(() => {
     if (open) return;
-    setEmail('');
+    setIdentifier('');
     setPassword('');
     setDisplayName('');
     setError(null);
@@ -67,13 +68,17 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
     event.preventDefault();
     if (busy) return;
 
-    const trimmedEmail = email.trim();
+    const trimmedIdentifier = identifier.trim();
     const trimmedName = displayName.trim();
 
     // The server validates all of this too; checking here keeps the round-trip off the common
     // mistakes and gives the same message either way.
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    if (mode === 'register' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedIdentifier)) {
       setError('Enter a valid email address.');
+      return;
+    }
+    if (mode === 'signin' && trimmedIdentifier.length < 3) {
+      setError('Enter your username or email.');
       return;
     }
     if (password.length < 8) {
@@ -88,7 +93,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
     setError(null);
     setBusy(true);
     try {
-      await onSubmit(mode, { email: trimmedEmail, password, displayName: trimmedName });
+      await onSubmit(mode, { identifier: trimmedIdentifier, password, displayName: trimmedName });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Something went wrong. Please try again.');
       setBusy(false);
@@ -104,7 +109,6 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
 
   const header = (
     <div className={styles.intro ?? ''}>
-      <img src="/reflick-logo.svg" alt="Reflick" className={styles.logo ?? ''} />
       <h2 className={styles.heading ?? ''}>{copy.heading}</h2>
       <p className={styles.subheading ?? ''}>{copy.subheading}</p>
     </div>
@@ -147,12 +151,13 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
           ) : null}
 
           <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            inputMode="email"
+            label={mode === 'signin' ? 'Username or email' : 'Email'}
+            type={mode === 'signin' ? 'text' : 'email'}
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
+            autoComplete={mode === 'signin' ? 'username' : 'email'}
+            inputMode={mode === 'signin' ? 'text' : 'email'}
+            maxLength={200}
             icon={<EnvelopeSimple size={18} aria-hidden />}
           />
 
@@ -164,6 +169,17 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
             autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
             icon={<LockKey size={18} aria-hidden />}
           />
+
+          {/*
+            Sign-in shows one fewer field than registration. Reserving a field's height here - a
+            real `Input`, hidden from view and assistive tech - keeps the button and footnote in the
+            same place across both tabs, so switching never makes the popup jump.
+          */}
+          {mode === 'signin' ? (
+            <div className={styles.reserved ?? ''} aria-hidden>
+              <Input label="Display name" value="" onChange={() => undefined} readOnly disabled />
+            </div>
+          ) : null}
 
           {error !== null ? (
             <p className={styles.error ?? ''} role="alert">

@@ -237,17 +237,16 @@ min-width: 0;
 }
 
 /*
- * The wordmark is a red text SVG rather than live text, so the logo reads identically
- * wherever it is placed and the tab icon can be the same file. The SVG carries its own
- * colour and tracking, so none of the old type properties apply to it - only the box.
+ * The wordmark is inline SVG text in the display face, so it picks up the document's loaded font
+ * and brand red wherever it is placed. Only its box is set here.
  */
-.brandWordmark img {
+.brandWordmark svg {
   display: block;
   height: 22px;
   width: auto;
 }
 
-.brandWordmark:hover img {
+.brandWordmark:hover svg {
   opacity: 0.85;
 }
 

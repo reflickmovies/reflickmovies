@@ -72,14 +72,14 @@
   text-decoration: none;
 }
 
-/* The same red text SVG the rail and the tab icon use, sized for the compact header. */
-.brand img {
+/* The inline wordmark, sized for the compact header. */
+.brand svg {
   display: block;
   height: 17px;
   width: auto;
 }
 
-.brand:hover img {
+.brand:hover svg {
   opacity: 0.85;
 }
 

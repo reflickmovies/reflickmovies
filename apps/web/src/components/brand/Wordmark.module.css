@@ -1,0 +1,11 @@
+/*
+ * The inline wordmark. The geometry lives in the component's `viewBox`; this only paints the
+ * lettering, so the element scales to whatever height its owner gives it.
+ */
+.wordmark text {
+  font-family: var(--font-family-serif);
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: 5px;
+  fill: var(--lp-accent-red);
+}

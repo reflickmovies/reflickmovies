@@ -20,6 +20,11 @@ const SCRYPT_KEYLEN = 64;
 const MAX_HISTORY = 12;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Escapes a user-supplied string so it can be used as a literal inside a `RegExp`. */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export interface PublicUser {
   id: string;
   email: string;
@@ -128,14 +133,22 @@ export async function register(emailRaw: string, password: string, displayNameRa
   return { user: toPublicUser(user), token: signToken(String(user._id)) };
 }
 
-export async function login(emailRaw: string, password: string): Promise<AuthResult> {
-  const email = emailRaw.trim().toLowerCase();
-  const user = await UserModel.findOne({ email });
+export async function login(identifierRaw: string, password: string): Promise<AuthResult> {
+  const identifier = identifierRaw.trim();
+
+  /*
+    One field, two keys: people remember their username or their email, not always which one they
+    signed up with. An `@` is the discriminator - usernames cannot contain one - so the lookup
+    picks email or display name without a second round-trip to ask "which did you mean?".
+  */
+  const user = identifier.includes('@')
+    ? await UserModel.findOne({ email: identifier.toLowerCase() })
+    : await UserModel.findOne({ displayName: new RegExp(`^${escapeRegExp(identifier)}$`, 'i') });
 
   // One message for both "no such account" and "wrong password": distinguishing them lets an
-  // attacker enumerate which emails are registered.
+  // attacker enumerate which accounts are registered.
   if (!user || !verifyPassword(password, user.passwordHash)) {
-    throw ApiError.unauthorized('Email or password is incorrect.');
+    throw ApiError.unauthorized('Username/email or password is incorrect.');
   }
 
   return { user: toPublicUser(user), token: signToken(String(user._id)) };

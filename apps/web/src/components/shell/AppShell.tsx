@@ -27,6 +27,7 @@ import { useThemeMode } from './ThemeMode';
 import { SearchOverlay, SearchOverlayButton, useSearchOverlay } from './SearchOverlayTrigger';
 import { ContinueWatching } from './ContinueWatching';
 import { Notifications } from './Notifications';
+import { Wordmark } from '../brand/Wordmark';
 import styles from './AppShell.module.css';
 import topNavStyles from './TopNav.module.css';
 
@@ -49,6 +50,26 @@ const TOP_NAV: Array<{ id: string; label: string; to: string; icon: Icon }> = [
   { id: 'movies', label: 'Movies', to: ROUTES.films, icon: FilmSlate },
   { id: 'series', label: 'Series', to: ROUTES.series, icon: Television },
 ];
+
+/**
+ * Which primary destination a route belongs to.
+ *
+ * A title page and its watch page are not `/films` or `/series`, but they are still *in* that
+ * section - arriving from a Movies pill should keep Movies lit rather than drop every cue the
+ * moment the reader is deepest in the catalogue. That is why the pills compute their own active
+ * state instead of leaning on `NavLink`'s own path match.
+ */
+function activeSectionId(pathname: string): string | null {
+  if (pathname === ROUTES.home) return 'home';
+  if (pathname === ROUTES.explore || pathname.startsWith(`${ROUTES.explore}/`)) return 'explore';
+  if (pathname === ROUTES.films || pathname.startsWith('/film/') || pathname.startsWith('/watch/film/')) {
+    return 'movies';
+  }
+  if (pathname === ROUTES.series || pathname.startsWith(`${ROUTES.series}/`) || pathname.startsWith('/watch/series/')) {
+    return 'series';
+  }
+  return null;
+}
 
 /**
  * How far a horizontal drag across the bottom capsule must travel before it counts as a swipe.
@@ -80,6 +101,7 @@ export function AppShell() {
   const { resolved: theme, mode, cycle } = useThemeMode();
   const { user, openAuth } = useAuth();
   const location = useLocation();
+  const activeSection = activeSectionId(location.pathname);
   const { open: searchOpen, setOpen: setSearchOpen } = useSearchOverlay();
   const [menuOpen, setMenuOpen] = useState(false);
   // Keep the menu in the tree long enough to fade back out, matching its fade-in.
@@ -180,9 +202,10 @@ export function AppShell() {
     if (Math.abs(dx) < TAB_SWIPE_MIN_DX || Math.abs(dx) < Math.abs(dy) * TAB_SWIPE_VERTICAL_SLACK) return;
 
     /*
-      The current tab is read from `aria-current` rather than tracked as state: it is what
-      React Router already writes on the matching link, it cannot drift from the route, and
-      it keeps the gesture working without another source of truth for "where am I".
+      The current tab is read from `aria-current` rather than tracked as state: it is the same
+      source the spring fill reads, it cannot drift from the route, and it keeps the gesture
+      working without a second source of truth for "where am I". The active tab sets it from
+      `activeSectionId`, so a title or watch page still reports its owning section.
     */
     const container = tabIndicator.containerRef.current;
     const tabs = container ? Array.from(container.querySelectorAll('a')) : [];
@@ -223,7 +246,7 @@ export function AppShell() {
                     className={styles.brandWordmark ?? ''}
                     aria-label="Reflick home"
                   >
-                    <img src="/reflick-logo.svg" alt="" />
+                    <Wordmark />
                   </Link>
                 </div>
 
@@ -291,7 +314,7 @@ export function AppShell() {
                 className={topNavStyles.brand ?? ''}
                 aria-label="Reflick home"
               >
-                <img src="/reflick-logo.svg" alt="" />
+                <Wordmark />
               </Link>
 
               <nav
@@ -305,28 +328,22 @@ export function AppShell() {
                   style={topIndicator.indicatorStyle}
                   aria-hidden
                 />
-                {TOP_NAV.map((item) => (
-                  <NavLink
-                    key={item.id}
-                    to={item.to}
-                    end={item.to === ROUTES.home}
-                    className={({ isActive }) =>
-                      [
-                        topNavStyles.categoryPill ?? '',
-                        isActive ? (topNavStyles.categoryPillActive ?? '') : '',
-                      ]
+                {TOP_NAV.map((item) => {
+                  const isActive = item.id === activeSection;
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.to}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={[topNavStyles.categoryPill ?? '', isActive ? (topNavStyles.categoryPillActive ?? '') : '']
                         .filter(Boolean)
-                        .join(' ')
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <item.icon size={16} weight={isActive ? 'fill' : 'bold'} aria-hidden />
-                        <span>{item.label}</span>
-                      </>
-                    )}
-                  </NavLink>
-                ))}
+                        .join(' ')}
+                    >
+                      <item.icon size={16} weight={isActive ? 'fill' : 'bold'} aria-hidden />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
               </nav>
 
               <div className={topNavStyles.actions ?? ''}>
@@ -528,23 +545,20 @@ export function AppShell() {
           style={tabIndicator.indicatorStyle}
           aria-hidden
         />
-        {TOP_NAV.map((item) => (
-          <NavLink
-            key={item.id}
-            to={item.to}
-            end={item.to === ROUTES.home}
-            className={({ isActive }) =>
-              `${styles.mobileTab ?? ''} ${isActive ? (styles.mobileTabActive ?? '') : ''}`.trim()
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <item.icon size={18} weight={isActive ? 'fill' : 'bold'} aria-hidden />
-                <span>{item.label}</span>
-              </>
-            )}
-          </NavLink>
-        ))}
+        {TOP_NAV.map((item) => {
+          const isActive = item.id === activeSection;
+          return (
+            <Link
+              key={item.id}
+              to={item.to}
+              aria-current={isActive ? 'page' : undefined}
+              className={`${styles.mobileTab ?? ''} ${isActive ? (styles.mobileTabActive ?? '') : ''}`.trim()}
+            >
+              <item.icon size={18} weight={isActive ? 'fill' : 'bold'} aria-hidden />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </nav>
 
       {/* One overlay, regardless of which button opened it. */}
