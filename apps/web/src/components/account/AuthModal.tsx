@@ -8,9 +8,9 @@ import styles from './AuthModal.module.css';
 export type AuthMode = 'signin' | 'register';
 
 export interface AuthValues {
-  /** Sign-in only. Blank when the person signed in with their email instead. */
+  /** Sign-in only, optional. Left blank by most people, who sign in with their email. */
   username: string;
-  /** Sign-in: optional. Register: required. */
+  /** Required in both modes. */
   email: string;
   password: string;
   /** Register only; sign-in leaves it blank. */
@@ -53,8 +53,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * fields and buttons as every form - so it reads as part of Reflick rather than a bolted-on login
  * screen.
  *
- * Sign-in shows username and email as two fields with an "or" between them, rather than one box
- * that has to guess. The service prefers the email when both are filled, so no precedence is lost.
+ * Sign-in is keyed on the email, with an optional username underneath for the rare account that
+ * never set one. The service accepts either, and prefers the email when both are filled.
  */
 export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthModalProps) {
   const [username, setUsername] = useState('');
@@ -94,8 +94,8 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
         setError('Choose a display name of at least 2 characters.');
         return;
       }
-    } else if (trimmedUsername === '' && trimmedEmail === '') {
-      setError('Enter your username or email.');
+    } else if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setError('Enter a valid email address.');
       return;
     }
 
@@ -181,7 +181,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
             />
           ) : (
             <Input
-              label="Username"
+              label="Username (optional)"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               autoComplete="username"
@@ -189,12 +189,6 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
               icon={<User size={18} aria-hidden />}
             />
           )}
-
-          {mode === 'signin' ? (
-            <div className={styles.orDivider ?? ''} aria-hidden>
-              <span>or</span>
-            </div>
-          ) : null}
 
           <Input
             label="Email"

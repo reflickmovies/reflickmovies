@@ -46,10 +46,16 @@ async function verifyTmdbKey(): Promise<void> {
     throw new Error('no TMDB key in the environment; refusing to clear a database that cannot refill');
   }
 
-  const response = await fetch(`${env.TMDB_BASE_URL}/trending/movie/week`, {
-    headers: { Authorization: `Bearer ${key}` },
-    signal: AbortSignal.timeout(env.TMDB_TIMEOUT_MS),
-  });
+  /*
+    Authenticated exactly like the runtime client: the key travels as an `api_key` query
+    parameter. An earlier version sent it as an `Authorization: Bearer` token, which only the v4
+    read-access shape accepts - a v3 key, which the client itself uses, came back 401 and the
+    clear was refused even though the key was perfectly valid.
+  */
+  const url = new URL(`${env.TMDB_BASE_URL}/trending/movie/week`);
+  url.searchParams.set('api_key', key);
+
+  const response = await fetch(url, { signal: AbortSignal.timeout(env.TMDB_TIMEOUT_MS) });
 
   if (!response.ok) {
     throw new Error(`TMDB rejected the key (HTTP ${response.status}); refusing to clear`);
