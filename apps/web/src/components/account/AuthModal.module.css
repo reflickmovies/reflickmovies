@@ -1,31 +1,83 @@
 /*
- * The auth popup's fields.
+ * The auth popup's contents.
  *
- * The surface, radius, shadow and phone/desktop shape all come from the shared `Modal`
- * (`.sheet` in globals.css). Everything here is the form inside it, styled from the same
- * `--lp-*` tokens the rest of the shell reads, so the popup belongs to the site rather than
- * looking like a bolted-on login screen.
+ * The surface, radius, shadow and the phone-sheet / desktop-panel shape all come from the shared
+ * `Modal` (`.sheet` in globals.css). Everything here is the identity block and the form inside
+ * it, built from the same `--lp-*` and type tokens the rest of the shell reads, so the popup
+ * belongs to the site instead of looking like a bolted-on login screen.
+ *
+ * The two deliberate brand moves: the red Bodoni wordmark at the top, and a serif heading - the
+ * same editorial face the app uses for page titles and section headings.
  */
+
+/*
+ * The form column, narrower than the sheet.
+ *
+ * The desktop panel is 560px wide, which is too wide for a three-field form - the fields and the
+ * button stretch and the whole thing reads as a settings pane. Capping the body at a comfortable
+ * measure and centring it makes the popup read as a focused auth card. On a phone the sheet is the
+ * viewport, so the cap is inert and the form is full width.
+ */
+.panel {
+  width: 100%;
+  max-width: 380px;
+  margin-inline: auto;
+}
+
+/* ------------------------------------------------------------- Identity block */
+
+.intro {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+  padding-block: var(--space-xs) var(--space-sm);
+}
+
+.logo {
+  height: 19px;
+  width: auto;
+  margin-block-end: var(--space-xs);
+}
+
+.heading {
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-heading-lg);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-tight);
+  color: var(--lp-text);
+}
+
+.subheading {
+  max-width: 34ch;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--lp-text-muted);
+}
+
+/* ------------------------------------------------------------------- Tabs */
 
 .tabs {
   display: flex;
   gap: 4px;
   padding: 4px;
-  margin-block-end: var(--space-lg);
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background-color: var(--lp-surface-elevated);
   border: 1px solid var(--lp-line);
 }
 
 .tab {
   flex: 1;
-  padding: 9px 12px;
+  padding: 10px 12px;
   border: none;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--lp-text-muted);
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: var(--font-size-body-sm);
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -43,26 +95,29 @@
   color: #ffffff;
 }
 
+/* ------------------------------------------------------------------- Form */
+
 .form {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  margin-block-start: var(--space-lg);
 }
 
 .error {
   margin: 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background-color: color-mix(in srgb, var(--lp-accent-red) 14%, transparent);
   color: var(--lp-accent-red);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-body-sm);
   font-weight: 600;
 }
 
 .footnote {
   margin: var(--space-lg) 0 0;
   color: var(--lp-text-muted);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-body-sm);
   text-align: center;
 }
 

@@ -256,29 +256,11 @@ export function AppShell() {
                 </nav>
 
                 {/*
-                  Desktop's theme switch.
-
-                  The dots menu carries the theme toggle on mobile, and the header hides the menu
-                  on desktop, so without this row a desktop visitor would have no way to change the
-                  theme. The rail itself is desktop-only, so this row needs no extra breakpoint of
-                  its own: it simply does not exist where the menu does.
+                  The theme switch used to live here as a rail row. It is gone: the rail is for
+                  destinations, and a preference that lives in Settings (or the mobile dots menu)
+                  does not need a permanent row in the primary navigation. Keeping it here made
+                  "where can I go" and "how do I want it to look" share one column.
                 */}
-                <button
-                  type="button"
-                  className={`${styles.navItem ?? ''} ${styles.railAction ?? ''}`.trim()}
-                  onClick={() => cycle()}
-                  aria-label={`Toggle theme: ${theme}, currently ${mode}`}
-                >
-                  {theme === 'dark' ? (
-                    <Moon size={18} weight="fill" aria-hidden />
-                  ) : (
-                    <Sun size={18} weight="bold" aria-hidden />
-                  )}
-                  <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
-                  <span className={styles.railActionHint ?? ''}>
-                    {mode === 'auto' ? 'Auto' : 'Manual'}
-                  </span>
-                </button>
 
                 {/* ------------------------------------- Continue watching */}
                 <ContinueWatching />
@@ -438,10 +420,9 @@ export function AppShell() {
       {/*
         Overflow menu: the secondary destinations and the theme switch, for the mobile header.
 
-        It carries what the bottom tab bar cannot: Popular and For you, Settings, and the theme
-        toggle. The theme switch has a rail row of its own on desktop, so this menu is only ever
-        opened from the dots button - which is itself mobile-only now that the rail holds those
-        destinations on wider screens.
+        It carries what the bottom tab bar cannot: Popular and For you, Settings, the account, and
+        the theme toggle. It is only ever opened from the dots button, which is itself mobile-only:
+        the rail holds those destinations on wider screens, where the theme lives in Settings.
       */}
       {menu.show ? (
         <div

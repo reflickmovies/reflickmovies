@@ -351,35 +351,10 @@ min-width: 0;
 }
 
 /*
- * A rail row that acts rather than navigates - the desktop theme switch.
- *
- * Shares `.navItem`'s geometry so it lines up with the destinations, and resets the button
- * chrome the anchor does not carry. It is hidden below 1024px and shown above: the switch lives
- * in the dots menu on mobile, and the menu is gone on desktop, so this is the only place the
- * desktop visitor can reach it. `display: flex` in the wide media query must win over the base
- * `display: none`, and it does - both are a single class, so source order decides.
+ * The rail action row the theme switch used to occupy is gone (see `AppShell`). Its geometry was
+ * tied to `.navItem`, which no non-navigation row uses any more, so the two rules that drew it
+ * are removed rather than left dangling.
  */
-.railAction {
-  display: none;
-  width: 100%;
-  border: none;
-  background: none;
-  font-family: inherit;
-  text-align: left;
-}
-
-@media (min-width: 1024px) {
-  .railAction {
-    display: flex;
-  }
-}
-
-.railActionHint {
-  margin-left: auto;
-  color: var(--lp-text-faint);
-  font-size: 0.72rem;
-  font-weight: 500;
-}
 
 /* ---------------------------------------------------------------- Content stack */
 

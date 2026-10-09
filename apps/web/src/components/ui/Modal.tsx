@@ -19,6 +19,15 @@ export interface ModalProps {
   /** Set false for dialogs that must be dismissed deliberately, e.g. before watching. */
   dismissible?: boolean;
   labelledBy?: string;
+  /**
+   * Replaces the default title/description block with arbitrary content.
+   *
+   * `title` still labels the dialog for assistive technology; this only changes what sighted
+   * users see. It exists so a dialog with its own identity - the account popup's brand lockup -
+   * does not have to fight the generic header or abandon the sheet, focus trap and dismissal the
+   * `Modal` provides.
+   */
+  header?: ReactNode;
 }
 
 /**
@@ -34,6 +43,7 @@ export function Modal({
   children,
   footer,
   dismissible = true,
+  header,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
@@ -113,10 +123,12 @@ export function Modal({
         tabIndex={-1}
       >
         <div className={styles.modalHeader ?? ''}>
-          <div>
-            <h2 className={styles.modalTitle ?? ''}>{title}</h2>
-            {description ? <p className={styles.modalDescription ?? ''}>{description}</p> : null}
-          </div>
+          {header ?? (
+            <div>
+              <h2 className={styles.modalTitle ?? ''}>{title}</h2>
+              {description ? <p className={styles.modalDescription ?? ''}>{description}</p> : null}
+            </div>
+          )}
           {dismissible ? (
             <IconButton label="Close" icon={<X size={18} />} onClick={onClose} size="sm" />
           ) : null}
