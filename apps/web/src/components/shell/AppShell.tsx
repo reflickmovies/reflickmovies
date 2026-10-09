@@ -66,14 +66,17 @@ const TAB_SWIPE_CLICK_GUARD = 500;
  *
  * The wordmark types itself letter by letter over the app surface, then the whole typed word
  * glides down to where the logo actually rests - the header's brand on the compact layout, the
- * rail's wordmark from laptop widths up - and the surface lifts to reveal it. Timing constants
- * get their own names because the choreography touches three separate phases.
+ * rail's wordmark from laptop widths up - and the surface lifts to reveal it. The text mirrors
+ * `public/reflick-logo.svg` exactly - same Playfair stack, same weight, same wide tracking, same
+ * caps, same red - so the glide lands on the logo's own pixels; the letter-spacing is the logo's
+ * `5` units at its `44`px face, i.e. about `0.11em`. Timing constants get their own names
+ * because the choreography touches three separate phases.
  */
-const BRAND_NAME = 'Reflick';
-const BRAND_LETTER_MS = 110;
-const BRAND_LAND_DELAY_MS = 260;
-const BRAND_GLIDE_MS = 640;
-const BRAND_FADE_MS = 260;
+const BRAND_NAME = 'REFLICK';
+const BRAND_LETTER_MS = 130;
+const BRAND_LAND_DELAY_MS = 300;
+const BRAND_GLIDE_MS = 720;
+const BRAND_FADE_MS = 300;
 
 /**
  * The permanent frame: rail on the left, header plus one scrollport on the right.
@@ -620,6 +623,9 @@ export function AppShell() {
         `aria-hidden` and `pointer-events: none` - so the app behind is fully usable the moment
         it stops covering the screen, and the whole box is removed from the tree once the fade
         completes. `will-change` lives in the CSS; here only the measured glide transform changes.
+        On the run the typed text hands over to the actual `reflick-logo.svg`, scaled to the same
+        landing box, so the last thing on screen before the surface lifts is the logo's own
+        pixels, not a lookalike.
       */}
       {brandPhase !== 'done' ? (
         <div
@@ -628,10 +634,15 @@ export function AppShell() {
         >
           <span ref={brandWordRef} className={styles.brandIntroWord ?? ''} style={brandTransform}>
             {Array.from(BRAND_NAME.slice(0, brandLetters)).map((character, index) => (
-              <span key={index}>{character}</span>
+              <span key={index} className={brandPhase === 'fading' ? (styles.brandIntroLetterSettled ?? '') : ''}>
+                {character}
+              </span>
             ))}
             {brandLetters < BRAND_NAME.length ? (
               <span className={styles.brandIntroCaret ?? ''} aria-hidden />
+            ) : null}
+            {brandPhase === 'fading' ? (
+              <img src="/reflick-logo.svg" alt="" className={styles.brandIntroLogo ?? ''} />
             ) : null}
           </span>
         </div>

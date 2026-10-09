@@ -476,25 +476,6 @@ export function WatchPage({ type }: WatchPageProps) {
           resolving to playing to failed never changes the size of anything below.
         */}
         <div className={styles.stage ?? ''}>
-          {/*
-            The border sweep: loops while sources resolve, runs one completing revolution the
-            moment a source lands, then hides itself. `activeServer` is the "source landed"
-            signal; before that the frame shows the loading fallback, and without either the ring
-            stays invisible.
-          */}
-          <span
-            className={[
-              styles.stageSweep ?? '',
-              serversLoading
-                ? (styles.stageSweepLoading ?? '')
-                : activeServer
-                  ? (styles.stageSweepFinish ?? '')
-                  : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            aria-hidden
-          />
           {serversLoading ? (
             <div className={styles.fallback ?? ''}>
               {/*

@@ -665,7 +665,7 @@ min-width: 0;
   place-items: center;
   background-color: var(--lp-bg);
   pointer-events: none;
-  transition: opacity var(--motion-base) var(--motion-ease);
+  transition: opacity var(--motion-slow) var(--motion-ease);
 }
 
 .brandIntroFade {
@@ -679,24 +679,56 @@ min-width: 0;
  * `transform` measured against the resting logo, so the word ends at the same spot and size
  * the real logo covers rather than at some rehearsed position - which is also why the two can
  * never drift apart if the brand moves.
+ *
+ * The face mirrors `public/reflick-logo.svg` - same Playfair stack, same weight, and the
+ * logo's own wide tracking (`5` units at its `44`px face, about `0.11em`) - so the typed word
+ * already *is* the logo's type before it travels. The glide itself is a pure ease-out with no
+ * overshoot: the word decelerates onto the logo and stops once, which is the premium reading
+ * of a settle as opposed to the spring's bounce.
  */
 .brandIntroWord {
+  position: relative;
   display: inline-flex;
   align-items: baseline;
-  gap: 0.02em;
   font-family: var(--font-family-serif);
   font-size: clamp(3rem, 12vw, 5.25rem);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.11em;
   color: var(--lp-accent-red);
   transform-origin: center;
-  transition: transform var(--motion-spring-duration) var(--motion-spring);
+  transition: transform var(--motion-slow) var(--motion-ease-out);
   will-change: transform;
 }
 
-/* Each letter arrives with the same short rise, on the beat the typewriter reaches it. */
-.brandIntroWord > span {
-  animation: premiumRise 340ms var(--motion-spring-soft) backwards;
+/* Each letter arrives with a gentle rise, on the beat the typewriter reaches it. */
+@media (prefers-reduced-motion: no-preference) {
+  .brandIntroWord > span {
+    animation: brandLetterIn 460ms var(--motion-ease-out) backwards;
+  }
+}
+
+/* Once the word has landed the letters step aside for the logo's own pixels. */
+.brandIntroLetterSettled {
+  visibility: hidden;
+}
+
+.brandIntroLogo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+@keyframes brandLetterIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.06em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /*
