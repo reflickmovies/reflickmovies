@@ -1,0 +1,82 @@
+/*
+ * The auth popup's fields.
+ *
+ * The surface, radius, shadow and phone/desktop shape all come from the shared `Modal`
+ * (`.sheet` in globals.css). Everything here is the form inside it, styled from the same
+ * `--lp-*` tokens the rest of the shell reads, so the popup belongs to the site rather than
+ * looking like a bolted-on login screen.
+ */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-block-end: var(--space-lg);
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+}
+
+.tab {
+  flex: 1;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 9999px;
+  background: none;
+  color: var(--lp-text-muted);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.tab:hover {
+  color: var(--lp-text);
+}
+
+.tabActive,
+.tabActive:hover {
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--lp-accent-red) 14%, transparent);
+  color: var(--lp-accent-red);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.footnote {
+  margin: var(--space-lg) 0 0;
+  color: var(--lp-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--lp-accent-red);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}

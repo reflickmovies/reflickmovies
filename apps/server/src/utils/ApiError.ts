@@ -24,6 +24,14 @@ export class ApiError extends Error {
     return new ApiError(404, 'NOT_FOUND', message);
   }
 
+  static unauthorized(message = 'You need to be signed in to do that.'): ApiError {
+    return new ApiError(401, 'UNAUTHORIZED', message);
+  }
+
+  static conflict(message = 'That already exists.', details?: unknown): ApiError {
+    return new ApiError(409, 'CONFLICT', message, details);
+  }
+
   static titleNotFound(slug: string): ApiError {
     return new ApiError(404, 'TITLE_NOT_FOUND', `No title matches "${slug}".`);
   }

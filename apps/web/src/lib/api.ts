@@ -1,7 +1,10 @@
 import type {
+  AccountPayload,
+  AccountUser,
   ApiEnvelope,
   ApiErrorEnvelope,
   AppNotification,
+  AuthPayload,
   BrowseResult,
   Episode,
   GenreRow,
@@ -17,6 +20,7 @@ import type {
   TitleDetail,
   TitleSummary,
   TitleType,
+  WatchEntry,
 } from '../types/api';
 
 /**
@@ -122,10 +126,54 @@ export class AbortedError extends Error {
   }
 }
 
+/* ------------------------------------------------------------------ auth */
+
+/**
+ * The session token.
+ *
+ * Held in `localStorage` rather than a cookie because the web app and the API are routinely on
+ * different origins (a Render static site and a Render service, or the custom domain and the
+ * service), where a `SameSite` cookie is either blocked or needs `credentials: 'include'` plus a
+ * matching `SameSite=None; Secure` - and cross-site cookies are only getting harder to rely on.
+ * A bearer token works on every origin the API already allows.
+ *
+ * The cost is XSS exposure, which is why the app ships a strict CSP and never injects HTML. The
+ * value is cached in a module variable so a request does not read `localStorage` on every call.
+ */
+const AUTH_TOKEN_KEY = 'reflick:auth-token';
+
+function readStoredToken(): string | null {
+  try {
+    return window.localStorage.getItem(AUTH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+let authToken: string | null = readStoredToken();
+
+export function getAuthToken(): string | null {
+  return authToken;
+}
+
+export function setAuthToken(token: string | null): void {
+  authToken = token;
+  try {
+    if (token === null) window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    else window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } catch {
+    // Private mode: the token lives only for this session, which is an acceptable fallback.
+  }
+}
+
 interface RequestOptions {
   signal?: AbortSignal;
   /** Query string values; undefined and null entries are dropped. */
   query?: Record<string, string | number | boolean | undefined | null>;
+  /** Defaults to GET. */
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  /** JSON-serialised when present; sets the content-type. */
+  body?: unknown;
 }
 
 function buildUrl(path: string, query?: RequestOptions['query']): string {
@@ -143,14 +191,20 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<ApiEnvelope<T>> {
-  const { signal, query } = options;
+  const { signal, query, method = 'GET', body } = options;
+
+  const headers: Record<string, string> = { accept: 'application/json' };
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  if (authToken !== null) headers.authorization = `Bearer ${authToken}`;
 
   let response: Response;
   try {
     response = await fetch(buildUrl(path, query), {
       signal,
-      headers: { accept: 'application/json' },
+      method,
+      headers,
       credentials: 'same-origin',
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch (error) {
     if (signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
@@ -345,4 +399,55 @@ export interface HealthPayload {
 
 export function getHealth(signal?: AbortSignal): Promise<HealthPayload> {
   return requestData<HealthPayload>('/health', { signal });
+}
+
+/* ---------------------------------------------------------------- account */
+
+export function register(email: string, password: string, displayName: string): Promise<AuthPayload> {
+  return requestData<AuthPayload>('/auth/register', {
+    method: 'POST',
+    body: { email, password, displayName },
+  });
+}
+
+export function login(email: string, password: string): Promise<AuthPayload> {
+  return requestData<AuthPayload>('/auth/login', { method: 'POST', body: { email, password } });
+}
+
+export function getMe(signal?: AbortSignal): Promise<{ user: AccountUser }> {
+  return requestData<{ user: AccountUser }>('/auth/me', { signal });
+}
+
+export function signOut(): Promise<{ ok: boolean }> {
+  return requestData<{ ok: boolean }>('/auth/logout', { method: 'POST' });
+}
+
+export function getAccount(signal?: AbortSignal): Promise<AccountPayload> {
+  return requestData<AccountPayload>('/account', { signal });
+}
+
+export function updateAccount(displayName: string): Promise<{ user: AccountUser }> {
+  return requestData<{ user: AccountUser }>('/account', { method: 'PATCH', body: { displayName } });
+}
+
+export function getAccountHistory(signal?: AbortSignal): Promise<WatchEntry[]> {
+  return requestData<WatchEntry[]>('/account/history', { signal });
+}
+
+export function recordAccountHistory(entry: Omit<WatchEntry, 'watchedAt'>): Promise<WatchEntry[]> {
+  return requestData<WatchEntry[]>('/account/history', { method: 'POST', body: entry });
+}
+
+export function mergeAccountHistory(entries: WatchEntry[]): Promise<WatchEntry[]> {
+  return requestData<WatchEntry[]>('/account/history/merge', { method: 'POST', body: { entries } });
+}
+
+export function clearAccountHistory(): Promise<WatchEntry[]> {
+  return requestData<WatchEntry[]>('/account/history/clear', { method: 'POST' });
+}
+
+export function removeAccountHistory(type: TitleType, slug: string): Promise<WatchEntry[]> {
+  return requestData<WatchEntry[]>(`/account/history/${type}/${encodeURIComponent(slug)}`, {
+    method: 'DELETE',
+  });
 }

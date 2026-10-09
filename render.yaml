@@ -21,6 +21,10 @@ services:
         value: en-US
       - key: SYNC_ENABLED
         value: false
+      # Generated once by Render and kept stable: rotating it invalidates every session, which is
+      # the intended blast radius. Without this the API would fall back to the public dev default.
+      - key: AUTH_SECRET
+        generateValue: true
   - type: web
     name: reflick-web
     env: static

@@ -190,7 +190,7 @@ export interface ServerReport {
 }
 
 /** notification.service NotificationKind */
-export type NotificationKind = 'catalogue' | 'releases' | 'protection' | 'system';
+export type NotificationKind = 'releases' | 'account';
 
 /** notification.service NotificationDto. */
 export interface AppNotification {
@@ -200,6 +200,54 @@ export interface AppNotification {
   body: string;
   href?: string;
   at: string;
+}
+
+/** auth.service PublicUser */
+export interface AccountUser {
+  id: string;
+  email: string;
+  displayName: string;
+  createdAt: string;
+}
+
+/** auth.controller register/login */
+export interface AuthPayload {
+  user: AccountUser;
+  token: string;
+}
+
+/** auth.controller getAccount stats */
+export interface AccountStats {
+  watched: number;
+  movies: number;
+  series: number;
+}
+
+/**
+ * One entry in the watch history - the same shape the local store uses.
+ *
+ * Defined here rather than in `lib/watchHistory` so the API contract owns it; the local store
+ * re-exports it. It is a "this was opened" marker, not a playback position: the embed iframe is
+ * cross-origin and cannot report one.
+ */
+export interface WatchEntry {
+  type: TitleType;
+  slug: string;
+  title: string;
+  poster: string | null;
+  backdrop: string | null;
+  /** For series: which season and episode were last opened. Absent for films. */
+  season?: number | null;
+  episode?: number | null;
+  /** Epoch ms. Drives ordering, so the list is newest-first by construction. */
+  watchedAt: number;
+}
+
+/** auth.controller getAccount */
+export interface AccountPayload {
+  user: AccountUser;
+  stats: AccountStats;
+  history: WatchEntry[];
 }
 
 /** Envelope every successful response uses. */

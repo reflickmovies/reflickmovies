@@ -1,5 +1,6 @@
 import { lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './components/account/AuthProvider';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AppShell } from './components/shell/AppShell';
 import { ThemeModeProvider } from './components/shell/ThemeMode';
@@ -25,6 +26,7 @@ const SearchPage = lazy(() => import('./pages/SearchPage').then((m) => ({ defaul
 const RecommendedPage = lazy(() => import('./pages/RecommendedPage').then((m) => ({ default: m.RecommendedPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const WatchPage = lazy(() => import('./pages/WatchPage').then((m) => ({ default: m.WatchPage })));
+const AccountPage = lazy(() => import('./pages/AccountPage').then((m) => ({ default: m.AccountPage })));
 
 /**
  * Routes.
@@ -56,35 +58,40 @@ export function App() {
       <ThemeModeProvider>
         <ErrorBoundary fallback={(error) => <RouteErrorPage error={error} />}>
           <BrowserRouter>
-            <Routes>
-              <Route element={<AppShell />}>
-                <Route index element={<HomePage />} />
+            <AuthProvider>
+              <Routes>
+                <Route element={<AppShell />}>
+                  <Route index element={<HomePage />} />
 
-                {/* Discovery */}
-                <Route path="explore" element={<ExplorePage />} />
-                <Route path="popular" element={<CataloguePage kind="popular" />} />
+                  {/* Discovery */}
+                  <Route path="explore" element={<ExplorePage />} />
+                  <Route path="popular" element={<CataloguePage kind="popular" />} />
 
-                {/* Catalogue */}
-                <Route path="films" element={<CataloguePage kind="films" />} />
-                <Route path="series" element={<CataloguePage kind="series" />} />
+                  {/* Catalogue */}
+                  <Route path="films" element={<CataloguePage kind="films" />} />
+                  <Route path="series" element={<CataloguePage kind="series" />} />
 
-                {/* Detail and search */}
-                <Route path="film/:slug" element={<TitlePage type="movie" />} />
-                <Route path="series/:slug" element={<TitlePage type="tv" />} />
-                <Route path="search" element={<SearchPage />} />
+                  {/* Detail and search */}
+                  <Route path="film/:slug" element={<TitlePage type="movie" />} />
+                  <Route path="series/:slug" element={<TitlePage type="tv" />} />
+                  <Route path="search" element={<SearchPage />} />
 
-                {/* Local preferences */}
-                <Route path="recommended" element={<RecommendedPage />} />
-                <Route path="settings" element={<SettingsPage />} />
+                  {/* The account portal: profile, stats and watch history. */}
+                  <Route path="account" element={<AccountPage />} />
 
-                {/* Playback */}
-                <Route path="watch/film/:slug" element={<WatchPage type="movie" />} />
-                <Route path="watch/series/:slug" element={<WatchPage type="tv" />} />
+                  {/* Local preferences */}
+                  <Route path="recommended" element={<RecommendedPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
 
-                {/* Unknown addresses still get the shell, so a wrong URL is not a dead end. */}
-                <Route path="*" element={<NotFoundPage />} />
-              </Route>
-            </Routes>
+                  {/* Playback */}
+                  <Route path="watch/film/:slug" element={<WatchPage type="movie" />} />
+                  <Route path="watch/series/:slug" element={<WatchPage type="tv" />} />
+
+                  {/* Unknown addresses still get the shell, so a wrong URL is not a dead end. */}
+                  <Route path="*" element={<NotFoundPage />} />
+                </Route>
+              </Routes>
+            </AuthProvider>
           </BrowserRouter>
         </ErrorBoundary>
       </ThemeModeProvider>

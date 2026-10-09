@@ -170,7 +170,9 @@ export const getProviders = asyncHandler(async (_req: Request, res: Response) =>
 /* --------------------------------------------------------- notifications */
 
 export const getNotifications = asyncHandler(async (_req: Request, res: Response) => {
-  sendData(res, await listNotifications());
+  // `optionalAuth` has already resolved the token, if any, into `res.locals.userId`.
+  const userId: unknown = res.locals.userId;
+  sendData(res, await listNotifications(typeof userId === 'string' ? userId : undefined));
 });
 
 /* ----------------------------------------------------------------- meta */

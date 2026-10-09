@@ -21,6 +21,7 @@ import { LoadingState } from '../ui';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
 import { useExitFade } from '../../hooks/useExitFade';
 import { useSpringIndicator } from '../../hooks/useSpringIndicator';
+import { useAuth } from '../account/AuthProvider';
 import { useThemeMode } from './ThemeMode';
 import { SearchOverlay, SearchOverlayButton, useSearchOverlay } from './SearchOverlayTrigger';
 import { ContinueWatching } from './ContinueWatching';
@@ -76,13 +77,17 @@ const TAB_SWIPE_CLICK_GUARD = 500;
  */
 export function AppShell() {
   const { resolved: theme, mode, cycle } = useThemeMode();
+  const { user, openAuth } = useAuth();
   const location = useLocation();
   const { open: searchOpen, setOpen: setSearchOpen } = useSearchOverlay();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { rootRef: menuAnchorRef, panelRef: menuPanelRef, panelStyle: menuStyle } =
-    useAnchoredPanel<HTMLButtonElement>(menuOpen, 'fixed');
   // Keep the menu in the tree long enough to fade back out, matching its fade-in.
   const menu = useExitFade(menuOpen);
+  // Anchored on `menu.show`, not `menuOpen`: the panel only exists once `useExitFade` has mounted
+  // it, and measuring before that reads a zero-height panel and pins `max-height: 0px`, which
+  // collapses the menu. Keying on `show` runs the layout effect after the panel is in the DOM.
+  const { rootRef: menuAnchorRef, panelRef: menuPanelRef, panelStyle: menuStyle } =
+    useAnchoredPanel<HTMLButtonElement>(menu.show, 'fixed');
 
   /*
     Every navigation resets the scrollport.
@@ -352,10 +357,12 @@ export function AppShell() {
                 </button>
 
                 {/*
-                  The notification bell carries the API's system feed - real catalogue news, not a
-                  stand-in - so it is live on every viewport. The avatar beside it is still inert:
-                  there is no auth in this app, so an avatar with a name would be invented data,
-                  and the control only marks where the feature will live.
+                  The notification bell carries the API's feed: new releases for everyone, plus the
+                  account notices when signed in.
+
+                  The avatar is the entry point to the account. Signed in it opens the portal at
+                  `/account`; signed out it opens the sign-in popup. Mobile reaches the same two
+                  paths through the dots menu, since this button is hidden below the breakpoint.
                 */}
                 <Notifications />
 
@@ -383,7 +390,8 @@ export function AppShell() {
                 <button
                   type="button"
                   className={`${topNavStyles.profileButton ?? ''} ${topNavStyles.hideOnMobile ?? ''}`.trim()}
-                  aria-label="Profile"
+                  onClick={() => (user !== null ? navigate(ROUTES.account) : openAuth('signin'))}
+                  aria-label={user !== null ? `Account: ${user.displayName}` : 'Sign in'}
                 >
                   <UserCircle size={30} weight="fill" aria-hidden />
                 </button>
@@ -479,6 +487,30 @@ export function AppShell() {
             <Gear size={16} aria-hidden />
             <span>Settings</span>
           </NavLink>
+
+          {/*
+            The account entry the header's avatar provides on desktop. Mobile has no avatar in
+            the bar, so the same "open the portal or sign in" decision lives here.
+          */}
+          {user !== null ? (
+            <NavLink to={ROUTES.account} className={styles.overflowMenuItem ?? ''} role="menuitem">
+              <UserCircle size={16} aria-hidden />
+              <span>Account</span>
+            </NavLink>
+          ) : (
+            <button
+              type="button"
+              className={styles.overflowMenuItem ?? ''}
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                openAuth('signin');
+              }}
+            >
+              <UserCircle size={16} aria-hidden />
+              <span>Sign in</span>
+            </button>
+          )}
         </div>
       ) : null}
 

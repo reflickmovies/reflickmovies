@@ -25,6 +25,7 @@ export const ROUTES = {
   films: '/films',
   series: '/series',
   search: '/search',
+  account: '/account',
 } as const;
 
 /** `movie` -> `/film/:slug`, `tv` -> `/series/:slug`. Matches `catalog.service`. */

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, FilmSlate, ShieldCheck, ShieldWarning, Sparkle } from '@phosphor-icons/react';
+import { Bell, Sparkle, UserCircle } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
 import { useExitFade } from '../../hooks/useExitFade';
 import { useNotifications } from '../../hooks/useReflick';
+import { useAuth } from '../account/AuthProvider';
 import type { AppNotification, NotificationKind } from '../../types/api';
 import topNavStyles from './TopNav.module.css';
 import styles from './Notifications.module.css';
@@ -12,11 +13,13 @@ import styles from './Notifications.module.css';
 /**
  * The header bell.
  *
- * Reflick has no sign-in, so there is no server-side per-user inbox. The list itself is
- * derived by the API from real catalogue and pipeline state (see `notification.service`), and
- * "read" is tracked per browser - the same trust model as the recommendations, which read this
- * browser's watch history rather than an account. The badge counts what this browser has not
- * seen; marking a row read, or "mark all read", persists under `reflick:notifications:read`.
+ * Two sources, and only two: new releases from the catalogue, and things about your account
+ * when you are signed in. Earlier versions also surfaced pipeline/protection notices, which
+ * were operator-facing and read as noise to a visitor, so the server no longer emits them.
+ *
+ * "Read" is tracked per browser (`reflick:notifications:read`) rather than per account. It is
+ * the same trust model the recommendations already use, and it means the badge behaves the
+ * same signed in or out; the list itself changes with the account, the read marks do not.
  *
  * The panel is positioned by `useAnchoredPanel` and kept mounted for its exit fade by
  * `useExitFade`, exactly like the overflow menu, so it opens and closes with the same feel.
@@ -24,10 +27,8 @@ import styles from './Notifications.module.css';
 const READ_KEY = 'reflick:notifications:read';
 
 const KIND_ICON: Record<NotificationKind, Icon> = {
-  catalogue: FilmSlate,
   releases: Sparkle,
-  protection: ShieldCheck,
-  system: Bell,
+  account: UserCircle,
 };
 
 function loadRead(): string[] {
@@ -55,10 +56,27 @@ function timeAgo(iso: string): string {
 
 export function Notifications() {
   const [open, setOpen] = useState(false);
-  const { rootRef, panelRef, panelStyle } = useAnchoredPanel<HTMLButtonElement>(open, 'fixed');
   const panel = useExitFade(open);
-  const { data, error, isLoading } = useNotifications();
+  // Anchored on the panel's `show`, not `open`: the layout effect must run after `useExitFade`
+  // mounts the panel, or it measures a zero-height box and pins `max-height: 0px`.
+  const { rootRef, panelRef, panelStyle } = useAnchoredPanel<HTMLButtonElement>(panel.show, 'fixed');
+  const { user } = useAuth();
+  const { data, error, isLoading, refetch } = useNotifications();
   const [read, setRead] = useState<string[]>(loadRead);
+
+  /*
+    The feed is per-account (the welcome and history notices come from the user), so it has to be
+    re-asked when the account changes. The provider drops the cached copy at the same moment, so
+    this refetch actually reaches the network instead of replaying the previous list. The ref
+    skips the mount run - the query already fetched on its own.
+  */
+  const authId = user?.id ?? null;
+  const lastAuthId = useRef(authId);
+  useEffect(() => {
+    if (lastAuthId.current === authId) return;
+    lastAuthId.current = authId;
+    refetch();
+  }, [authId, refetch]);
 
   const items = data ?? [];
   const unread = items.filter((notification) => !read.includes(notification.id)).length;
@@ -144,7 +162,7 @@ export function Notifications() {
           ) : error !== null && items.length === 0 ? (
             <p className={styles.note ?? ''}>{error.message}</p>
           ) : items.length === 0 ? (
-            <p className={styles.note ?? ''}>Nothing new right now. This is where catalogue news lands.</p>
+            <p className={styles.note ?? ''}>Nothing new right now. Releases and account updates land here.</p>
           ) : (
             <ul className={styles.list ?? ''}>
               {items.map((notification) => (
@@ -175,7 +193,7 @@ function NotificationRow({
   onActivate: (id: string) => void;
   onNavigate: () => void;
 }) {
-  const Glyph = notification.kind === 'protection' ? (unread ? ShieldWarning : ShieldCheck) : KIND_ICON[notification.kind];
+  const Glyph = KIND_ICON[notification.kind];
 
   const body = (
     <>

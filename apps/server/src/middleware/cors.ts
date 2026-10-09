@@ -57,8 +57,8 @@ const corsHandler = cors({
     );
   },
   credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['content-type', 'x-request-id'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['content-type', 'authorization', 'x-request-id'],
   exposedHeaders: ['x-request-id', 'x-cache', 'x-reflick-stale'],
   maxAge: 86_400,
 });

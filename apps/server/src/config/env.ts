@@ -108,11 +108,25 @@ const EnvSchema = z.object({
         'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts',
     ),
 
+  /* ---- Accounts ---- */
+  /**
+   * HMAC key for the bearer tokens the account API issues.
+   *
+   * The default exists so a fresh clone runs without ceremony; it is deliberately obvious so a
+   * production deploy that forgot to set a real one is not silently using a public secret. Rotating
+   * it logs everyone out, which is the intended blast radius of leaking it.
+   */
+  AUTH_SECRET: z.string().min(16).default('dev-insecure-auth-secret-change-me'),
+  /** How long an issued token stays valid. 30 days: long enough to feel like "stay signed in". */
+  AUTH_TOKEN_TTL_HOURS: z.coerce.number().int().positive().max(8760).default(720),
+
   /* ---- Rate limits (per window) ---- */
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
   RATE_LIMIT_SEARCH_MAX: z.coerce.number().int().positive().default(30),
   RATE_LIMIT_STREAM_MAX: z.coerce.number().int().positive().default(60),
+  /** Login and register share this tighter bucket; brute-forcing a password is the target. */
+  RATE_LIMIT_AUTH_MAX: z.coerce.number().int().positive().default(20),
 
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });

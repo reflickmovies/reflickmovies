@@ -1,25 +1,18 @@
-import { cache, cacheKey } from './cache.service.js';
-import { getBlocklistStats } from './blocklist.service.js';
-import { countAll, countReleasedSince } from '../repositories/titles.repo.js';
-import { listGenres, providerCount } from '../repositories/providers.repo.js';
+import { countReleasedSince } from '../repositories/titles.repo.js';
+import { getUserById } from './auth.service.js';
 
 /**
- * Notifications, without accounts.
+ * The notification feed.
  *
- * Reflick has no sign-in, so there is no per-user inbox to fill. What it does have is a
- * catalogue that genuinely changes and a pipeline that genuinely runs: titles arrive, the
- * embed denylist refreshes, providers come and go. Those are the facts worth surfacing, and
- * they are derived here from the same repositories the rest of the API reads - nothing here
- * is invented to fill a panel.
- *
- * The list is cached for five minutes: the underlying counts move slowly, and a stable `at`
- * inside the cache window is what lets the client show a steady "2m ago" instead of a figure
- * that changes on every render.
+ * Two things only, by design: what is genuinely new to the catalogue, and what concerns the
+ * signed-in account. An earlier version also announced catalogue size and blocklist status, but
+ * those are facts about the server rather than about the reader - the sort of thing that trains
+ * people to ignore a bell. Everything here is true for the person looking at it.
  */
-export type NotificationKind = 'catalogue' | 'releases' | 'protection' | 'system';
+export type NotificationKind = 'releases' | 'account';
 
 export interface NotificationDto {
-  /** Stable id: the client keys read/unread off this, so it must not churn. */
+  /** Stable id, so the client's read/unread store survives a re-fetch. */
   id: string;
   kind: NotificationKind;
   title: string;
@@ -30,69 +23,52 @@ export interface NotificationDto {
 }
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const TTL_MS = 5 * 60_000;
 
-export async function listNotifications(): Promise<NotificationDto[]> {
-  const result = await cache.remember(
-    cacheKey.notifications(),
-    async () => {
-      const [titles, providers, newThisWeek, genres] = await Promise.all([
-        countAll(),
-        providerCount(),
-        countReleasedSince(new Date(Date.now() - WEEK_MS)),
-        listGenres(),
-      ]);
+export async function listNotifications(userId?: string): Promise<NotificationDto[]> {
+  const now = new Date();
+  const notes: NotificationDto[] = [];
 
-      const blocklist = getBlocklistStats();
-      const now = new Date().toISOString();
-      const blocklistAt = blocklist.updatedAt === null ? now : blocklist.updatedAt.toISOString();
+  if (userId !== undefined) {
+    const user = await getUserById(userId);
 
-      const notes: NotificationDto[] = [
-        {
-          id: 'catalogue-size',
-          kind: 'catalogue',
-          title: `The catalogue holds ${titles} title${titles === 1 ? '' : 's'}`,
-          body: `${providers} streaming source${providers === 1 ? '' : 's'} across ${genres.length} genres, ready to play.`,
-          href: '/explore',
-          at: now,
-        },
-      ];
+    if (user !== null) {
+      // The greeting is the one row a signed-in reader always has, and it doubles as the entry
+      // point to the account portal from the bell.
+      notes.push({
+        id: 'account-welcome',
+        kind: 'account',
+        title: `Signed in as ${user.displayName}`,
+        body: 'Your watch history and recommendations are saved to this account.',
+        href: '/account',
+        at: user.updatedAt.toISOString(),
+      });
 
-      if (newThisWeek > 0) {
+      const history = user.watchHistory;
+      if (history.length > 0) {
+        const newest = history.reduce((latest, entry) => (entry.watchedAt > latest ? entry.watchedAt : latest), 0);
         notes.push({
-          id: 'new-this-week',
-          kind: 'releases',
-          title: `${newThisWeek} new release${newThisWeek === 1 ? '' : 's'} this week`,
-          body: 'Fresh from the studios, now in the catalogue.',
-          href: '/popular',
-          at: now,
+          id: 'account-history',
+          kind: 'account',
+          title: `${history.length} title${history.length === 1 ? '' : 's'} in your history`,
+          body: 'Pick up where you left off on any device.',
+          href: '/account',
+          at: new Date(newest || now.getTime()).toISOString(),
         });
       }
+    }
+  }
 
-      if (blocklist.degraded) {
-        notes.push({
-          id: 'protection-degraded',
-          kind: 'protection',
-          title: 'Embed protection is running degraded',
-          body: 'Some blocklist sources were unreachable, so the last good list is still in force.',
-          href: '/settings',
-          at: blocklistAt,
-        });
-      } else if (blocklist.domains > 0) {
-        notes.push({
-          id: 'protection-active',
-          kind: 'protection',
-          title: 'Ad and tracker blocking is active',
-          body: `${blocklist.domains} domains are blocked while you watch.`,
-          href: '/settings',
-          at: blocklistAt,
-        });
-      }
+  const newThisWeek = await countReleasedSince(new Date(Date.now() - WEEK_MS));
+  if (newThisWeek > 0) {
+    notes.push({
+      id: 'new-this-week',
+      kind: 'releases',
+      title: `${newThisWeek} new release${newThisWeek === 1 ? '' : 's'} this week`,
+      body: 'Fresh from the studios, now in the catalogue.',
+      href: '/popular',
+      at: now.toISOString(),
+    });
+  }
 
-      return notes;
-    },
-    TTL_MS,
-  );
-
-  return result.value;
+  return notes;
 }

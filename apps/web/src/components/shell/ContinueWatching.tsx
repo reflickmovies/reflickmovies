@@ -31,7 +31,7 @@ export function ContinueWatching() {
             to={watchPath(
               entry.type,
               entry.slug,
-              entry.season !== undefined ? { season: entry.season, episode: entry.episode } : undefined,
+              entry.season != null ? { season: entry.season, episode: entry.episode ?? undefined } : undefined,
             )}
             className={styles.item ?? ''}
           >
@@ -50,8 +50,8 @@ export function ContinueWatching() {
             <div className={styles.info ?? ''}>
               <div className={styles.title ?? ''}>{entry.title}</div>
               <div className={styles.episode ?? ''}>
-                {entry.type === 'tv' && entry.season !== undefined
-                  ? `S${entry.season}${entry.episode !== undefined ? ` . EP ${entry.episode}` : ''}`
+                {entry.type === 'tv' && entry.season != null
+                  ? `S${entry.season}${entry.episode != null ? ` . EP ${entry.episode}` : ''}`
                   : 'Film'}
               </div>
             </div>

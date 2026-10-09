@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import * as api from '../controllers/api.controller.js';
 import * as find from '../controllers/search.controller.js';
+import * as auth from '../controllers/auth.controller.js';
 import { cacheControl } from '../middleware/cacheControl.js';
-import { generalLimiter, searchLimiter, streamLimiter } from '../middleware/rateLimit.js';
+import { optionalAuth, requireAuth } from '../middleware/auth.js';
+import { noStore } from '../middleware/cors.js';
+import { authLimiter, generalLimiter, searchLimiter, streamLimiter } from '../middleware/rateLimit.js';
 
 /**
  * The complete public surface.
@@ -34,7 +37,33 @@ router.get('/providers', generalLimiter, cacheControl(86_400), api.getProviders)
 
 /* --------------------------------------------------------- notifications */
 
-router.get('/notifications', generalLimiter, cacheControl(120), api.getNotifications);
+router.get('/notifications', optionalAuth, generalLimiter, cacheControl(120), api.getNotifications);
+
+/* ------------------------------------------------------------------ auth */
+
+router.post('/auth/register', authLimiter, noStore, auth.register);
+
+router.post('/auth/login', authLimiter, noStore, auth.login);
+
+router.get('/auth/me', generalLimiter, noStore, requireAuth, auth.me);
+
+router.post('/auth/logout', generalLimiter, noStore, auth.logout);
+
+/* --------------------------------------------------------------- account */
+
+router.get('/account', generalLimiter, noStore, requireAuth, auth.getAccount);
+
+router.patch('/account', generalLimiter, noStore, requireAuth, auth.updateAccount);
+
+router.get('/account/history', generalLimiter, noStore, requireAuth, auth.getHistory);
+
+router.post('/account/history', generalLimiter, noStore, requireAuth, auth.recordHistory);
+
+router.post('/account/history/merge', generalLimiter, noStore, requireAuth, auth.mergeHistory);
+
+router.post('/account/history/clear', generalLimiter, noStore, requireAuth, auth.clearHistory);
+
+router.delete('/account/history/:type/:slug', generalLimiter, noStore, requireAuth, auth.removeHistory);
 
 /* ---------------------------------------------------------------- search */
 

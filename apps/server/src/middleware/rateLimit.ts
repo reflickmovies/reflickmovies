@@ -67,3 +67,11 @@ export const streamLimiter = rateLimit({
   limit: env.RATE_LIMIT_STREAM_MAX,
   handler: handler('stream'),
 });
+
+/** Login and register. Tightest bucket: the thing being defended is a password. */
+export const authLimiter = rateLimit({
+  ...shared,
+  windowMs: env.RATE_LIMIT_WINDOW_MS,
+  limit: env.RATE_LIMIT_AUTH_MAX,
+  handler: handler('auth'),
+});

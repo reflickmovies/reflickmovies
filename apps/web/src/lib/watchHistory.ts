@@ -1,4 +1,6 @@
-import type { TitleType } from '../types/api';
+import type { TitleType, WatchEntry } from '../types/api';
+
+export type { WatchEntry };
 
 /**
  * Local watch history.
@@ -39,17 +41,26 @@ export const WATCH_HISTORY_KEY = 'reflick:watch-history';
  */
 const MAX_ENTRIES = 12;
 
-export interface WatchEntry {
-  type: TitleType;
-  slug: string;
-  title: string;
-  poster: string | null;
-  backdrop: string | null;
-  /** For series: which season and episode were last opened. Absent for films. */
-  season?: number;
-  episode?: number;
-  /** Epoch ms. Drives ordering, so the list is newest-first by construction. */
-  watchedAt: number;
+/**
+ * Same-tab change notification.
+ *
+ * The `storage` event only fires in *other* tabs, so a write here does not wake this tab's own
+ * subscribers - which is fine while every reader re-reads on mount, and wrong once an account
+ * syncs the list from the server in the background. This holds the in-tab listeners; the `storage`
+ * listener in `useWatchHistory` keeps handling the cross-tab case.
+ */
+type WatchHistoryListener = () => void;
+const listeners = new Set<WatchHistoryListener>();
+
+export function subscribeWatchHistory(listener: WatchHistoryListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function emit(): void {
+  for (const listener of listeners) listener();
 }
 
 /** Stable key per title, so watching anything again moves that title rather than duplicating it. */
@@ -105,6 +116,20 @@ function write(entries: WatchEntry[]): void {
     // Quota exceeded or storage disabled. Continue watching is a convenience, so failing
     // to persist it must never surface as an error to the visitor.
   }
+
+  // Notify this tab regardless of whether persistence succeeded: the in-memory readers should
+  // still reflect the intent, and a failed write is not a reason to leave them stale.
+  emit();
+}
+
+/**
+ * Replaces the whole store, used when an account's server-side history becomes authoritative.
+ *
+ * Distinct from `recordWatch`, which merges one title: this is a wholesale replace on sign-in,
+ * where the server list is the source of truth and the local copy is a cache of it.
+ */
+export function replaceWatchHistory(entries: WatchEntry[]): void {
+  write(entries.slice(0, MAX_ENTRIES));
 }
 
 /**
@@ -155,4 +180,10 @@ export function clearWatchHistory(): void {
   } catch {
     // Nothing to do; the list is already unreadable.
   }
+  emit();
+}
+
+/** Every stored entry, newest first. Used to upload this device's history on first sign-in. */
+export function allWatches(): WatchEntry[] {
+  return read().sort((a, b) => b.watchedAt - a.watchedAt);
 }

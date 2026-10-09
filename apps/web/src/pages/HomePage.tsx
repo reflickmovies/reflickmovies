@@ -318,7 +318,7 @@ export function HomePage() {
                 to={watchPath(
                   entry.type,
                   entry.slug,
-                  entry.season !== undefined ? { season: entry.season, episode: entry.episode } : undefined,
+                  entry.season != null ? { season: entry.season, episode: entry.episode ?? undefined } : undefined,
                 )}
                 className={styles.shelfCard ?? ''}
                 style={{ '--card-i': index } as CSSProperties}
@@ -335,8 +335,8 @@ export function HomePage() {
                   <div className={styles.cardGlassInfo ?? ''}>
                     <div className={styles.cardGlassTitle ?? ''}>{entry.title}</div>
                     <div className={styles.cardGlassMeta ?? ''}>
-                      {entry.type === 'tv' && entry.season !== undefined
-                        ? `Season ${entry.season}${entry.episode !== undefined ? ` . Episode ${entry.episode}` : ''}`
+                      {entry.type === 'tv' && entry.season != null
+                        ? `Season ${entry.season}${entry.episode != null ? ` . Episode ${entry.episode}` : ''}`
                         : 'Film'}
                     </div>
                   </div>

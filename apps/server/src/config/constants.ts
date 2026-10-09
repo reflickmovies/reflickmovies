@@ -118,6 +118,8 @@ export const OWN_API_SEGMENTS = new Set([
   'providers',
   'search',
   'notifications',
+  'auth',
+  'account',
 ]);
 
 export const QUALITY_TIERS = ['4k', '2160p', '1440p', '1080p', '720p', '480p', 'cam'] as const;

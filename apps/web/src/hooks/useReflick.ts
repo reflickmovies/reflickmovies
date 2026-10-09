@@ -3,6 +3,7 @@ import * as api from '../lib/api';
 import { invalidateQuery, useQuery } from './useQuery';
 import { useDebouncedValue } from './useDebouncedValue';
 import type {
+  AccountPayload,
   AppNotification,
   BrowseResult,
   Episode,
@@ -37,6 +38,7 @@ const KEY = {
   genres: () => 'genres',
   health: () => 'health',
   notifications: () => 'notifications',
+  account: () => 'account',
   title: (type: TitleType, slug: string) => `title:${type}:${slug}`,
   related: (type: TitleType, slug: string) => `related:${type}:${slug}`,
   seasons: (type: TitleType, slug: string) => `seasons:${type}:${slug}`,
@@ -81,6 +83,17 @@ export function useHealth() {
  */
 export function useNotifications() {
   return useQuery<AppNotification[]>(KEY.notifications(), (signal) => api.getNotifications(signal));
+}
+
+/**
+ * The signed-in account, with its stats and watch history - one request, because the portal shows
+ * all three on the same screen and they always change together.
+ *
+ * Disabled when signed out: `key: null` keeps the request off the wire, so the portal's signed-out
+ * state is a render decision rather than a 401 it has to catch.
+ */
+export function useAccount(enabled: boolean) {
+  return useQuery<AccountPayload>(enabled ? KEY.account() : null, (signal) => api.getAccount(signal));
 }
 
 /* --------------------------------------------------------------- browsing */

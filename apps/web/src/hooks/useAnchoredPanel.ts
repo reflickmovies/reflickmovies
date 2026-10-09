@@ -89,18 +89,30 @@ export function useAnchoredPanel<TRoot extends HTMLElement = HTMLElement>(
         even when the trigger is flush against an edge, where choosing a side is not enough.
         `getBoundingClientRect` already reports viewport coordinates, which is what `position:
         fixed` resolves against, so no conversion is needed.
+
+        The cap is the space that side actually has, not the panel's own height. Pinning
+        `max-height` to the measured height (which was the earlier behaviour) meant the panel could
+        never be taller than it happened to measure, and a taller panel - or one that mounted after
+        this ran - was clipped to whatever height was read here. Deriving it from the room below or
+        above lets the panel take its natural size up to the viewport edge and scroll past that.
       */
       const panel = panelRef.current;
       const width = panel?.offsetWidth ?? 0;
       const height = panel?.offsetHeight ?? 0;
 
+      const room = (openAbove ? roomAbove : roomBelow) - GAP - VIEWPORT_MARGIN;
+      const maxHeight = Math.max(MIN_HEIGHT, room);
+      // Place against the height the panel will actually occupy, which is its own size capped to
+      // the room available - otherwise an over-tall panel would be pushed fully off its side.
+      const boxHeight = Math.min(height, maxHeight);
+
       const preferredLeft = alignToStart ? rect.left : rect.right - width;
-      const preferredTop = openAbove ? rect.top - height - GAP : rect.bottom + GAP;
+      const preferredTop = openAbove ? rect.top - boxHeight - GAP : rect.bottom + GAP;
 
       const left = Math.min(Math.max(VIEWPORT_MARGIN, preferredLeft), Math.max(VIEWPORT_MARGIN, viewportWidth - width - VIEWPORT_MARGIN));
-      const top = Math.min(Math.max(VIEWPORT_MARGIN, preferredTop), Math.max(VIEWPORT_MARGIN, viewportHeight - height - VIEWPORT_MARGIN));
+      const top = Math.min(Math.max(VIEWPORT_MARGIN, preferredTop), Math.max(VIEWPORT_MARGIN, viewportHeight - boxHeight - VIEWPORT_MARGIN));
 
-      setPanelStyle({ position: 'fixed', top, left, maxHeight: `${height}px` });
+      setPanelStyle({ position: 'fixed', top, left, maxHeight: `${maxHeight}px` });
       return;
     }
 
