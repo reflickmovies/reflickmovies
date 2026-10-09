@@ -1,27 +1,31 @@
-name: Keep API Alive
+name: Keep Reflick awake
 
-# Keeps the Render free-tier services warm through the hours people actually watch.
+# Render's free plan spins a web service down after ~15 idle minutes; the next request then waits
+# for a cold boot (30-60s) before it answers. This workflow keeps the API and the web app answering
+# through the hours people actually use them - 05:00 to 23:00 Nepal time (UTC+5:45) - and lets them
+# rest from 23:00 to 05:00, which also keeps the free instance-hours well inside the 750/month cap.
 #
-# The previous version was a single `curl ... || true`, which could never do its job: a free web
-# service is spun down after ~15 idle minutes, and the first request to a sleeping instance is
-# held until the container boots (or answered with a 502/504 while it does). One short attempt,
-# its failure swallowed by `|| true`, therefore reported success while the API stayed cold - so
-# the "keep-alive" run never confirmed anything.
+# Why every 10 minutes: the cooldown is ~15 minutes, so any tick below that keeps the container up.
+# Ten gives one minute of slack on either side without dragging the private-repo Actions budget
+# (2000 min/month) past its limit; a 5-minute tick would roughly double the minutes for no gain in
+# wakefulness. The `Asia/Kathmandu` guard below is the real enforcement of the sleep window - it
+# makes a mistimed run a no-op rather than a 3am wake-up, so "cooldown only 23:00-05:00" holds even
+# if the cron is ever edited wrong.
 #
-# This version retries through the cold start, prints the HTTP code of every attempt, and only
-# passes once the API actually answers. It then warms `/api/home` so the catalogue cache is hot
-# before the peak window rather than being built by the first real visitor.
-
+# UTC translations of the Nepal-time window:
+#   05:00 NPT = 23:15 UTC (previous day)
+#   23:00 NPT = 17:15 UTC
 on:
   schedule:
-    # Every 10 min, 05:00-22:55 NPT (UTC+5:45) - the waking hours.
-    # Quiet 23:00-05:00 NPT so the free instance saves ~6h of the 750 monthly hours.
+    # 05:00-05:55 NPT
     - cron: '15,25,35,45,55 23 * * *'
+    # 05:45-22:35 NPT (the following UTC day)
     - cron: '*/10 0-16 * * *'
+    # 22:45-22:55 NPT
     - cron: '0,10 17 * * *'
   workflow_dispatch:
 
-# A cold start can outlast the 10-minute tick, so never run two warm-ups at once.
+# A cold start can outlast a tick, so never run two warm-ups at once.
 concurrency:
   group: keep-alive
   cancel-in-progress: false
@@ -32,15 +36,34 @@ env:
   SITE_URL: https://www.reflickmovies.linkpc.net
 
 jobs:
-  api:
-    name: Wake and warm the API
+  # One job, not two: a single runner can keep both services awake, which halves the Actions minutes
+  # the schedule costs and makes "both are warm" a property of one run instead of two that can drift.
+  keep-warm:
+    name: Keep the API and the web awake
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      # A cold Render container holds the connection open until it is ready, so the first
-      # attempt often blocks for 30-60s and then succeeds. Retrying matters for the rest:
-      # a 502/504 during boot, or a network hiccup mid-cold-start.
-      - name: Wake /api/health, retrying through the cold start
+      # The sleep window is enforced here, in the runner's own clock, so the schedule above is a
+      # hint and this is the rule: outside 05:00-23:00 Nepal time the run stops without touching
+      # either service. `workflow_dispatch` is deliberately subject to the same rule.
+      - name: Respect the 23:00-05:00 rest window
+        id: window
+        run: |
+          set -eu
+          hour=$(TZ="Asia/Kathmandu" date +%-H)
+          echo "Nepal time now: $(TZ='Asia/Kathmandu' date '+%F %H:%M')"
+          if [ "$hour" -ge 23 ] || [ "$hour" -lt 5 ]; then
+            echo "asleep=true" >> "$GITHUB_OUTPUT"
+            echo "Outside waking hours; letting both services rest."
+          else
+            echo "asleep=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The API is the one that actually sleeps. A cold Render container holds the connection open
+      # until it is ready, so the first attempt often blocks for 30-60s and then succeeds; the retry
+      # loop covers a 502/504 during boot or a network hiccup mid-cold-start.
+      - name: Wake and confirm the API
+        if: steps.window.outputs.asleep == 'false'
         run: |
           set -u
           url="$API_URL/api/health"
@@ -57,23 +80,21 @@ jobs:
           echo "API still cold after 12 attempts; failing so the outage is visible."
           exit 1
 
-      # The health route proves the process is up; this proves the database is reachable and
-      # builds the home payload (and its cache entries) before a viewer asks for it.
+      # The health route proves the process is up; this proves the database is reachable and builds
+      # the home payload (and its cache entries) before a viewer asks for it.
       - name: Warm the catalogue
+        if: steps.window.outputs.asleep == 'false'
         run: |
           set -u
           code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 "$API_URL/api/home" || echo 000)
           echo "/api/home -> HTTP $code"
           test "$code" = "200"
 
-  web:
-    name: Confirm the web app answers
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      # Static sites do not sleep, so these are a genuine availability check rather than a
-      # wake-up: if either stops answering, the deployment is broken.
-      - name: Ping the app and the custom domain
+      # A static site does not sleep, so this is a genuine availability check rather than a wake-up:
+      # it covers the Render hostname and the custom domain, and fails loudly if either stops
+      # answering.
+      - name: Confirm the web app answers
+        if: steps.window.outputs.asleep == 'false'
         run: |
           set -u
           for url in "$WEB_URL" "$SITE_URL"; do
