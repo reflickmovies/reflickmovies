@@ -119,17 +119,15 @@
  *
  * Toggling a class would be simpler, but CSS animations run once per mount, so returning to a
  * slide would leave a static frame. The pair reads as one motion: artwork settles while
- * fading, copy rises into place behind it, staggered by 90ms so the eye follows the content
+ * fading, copy fades into place behind it, staggered by 90ms so the eye follows the content
  * rather than two things at once.
  */
 @keyframes heroShuffleUp {
   from {
     opacity: 0;
-    transform: translate3d(0, 28px, 0);
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -561,11 +559,9 @@
 @keyframes shelfCardIn {
   from {
     opacity: 0;
-    transform: translateY(18px) scale(0.97);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -659,7 +655,7 @@
   gap: var(--space-xl);
 }
 
-/* Same rise as the page-level notices, so "the catalogue could not be loaded" is one family. */
+/* Same fade as the page-level notices, so "the catalogue could not be loaded" is one family. */
 @media (prefers-reduced-motion: no-preference) {
   .emptyCard {
     animation: premiumRise var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;

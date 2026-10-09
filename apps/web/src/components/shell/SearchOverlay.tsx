@@ -32,6 +32,13 @@ import styles from './SearchOverlay.module.css';
 /** How many suggestions to show. The endpoint caps at 8; beyond seven the list becomes a scroll. */
 const MAX_SUGGESTIONS = 7;
 
+/*
+ * How long the reversed entrance is allowed to play before the dialog is removed from the top
+ * layer. Must be at least the longest of the panel/backdrop exit transitions in the stylesheet,
+ * or the fade-out is cut off when `close()` clears the dialog.
+ */
+const SEARCH_EXIT_MS = 320;
+
 export interface SearchOverlayProps {
   /** Controlled open state, owned by the caller so a shortcut can open it from anywhere. */
   open: boolean;
@@ -106,7 +113,20 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
   const [highlight, setHighlight] = useState(-1);
 
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  /*
+    The open/close of the popup, on an explicit phase.
+
+    `launched` drives the entrance and its reverse: the panel and the scrim rest in their
+    "closed" styles (faded and scaled down) and transition to "open" the moment `launched`
+    flips true, so closing is simply the same transition backwards - no separate exit
+    animation is needed. True is applied *after* `showModal()`, because the transform origin
+    below has to be measured against the dialog's laid-out geometry first.
+  */
+  const [launched, setLaunched] = useState(false);
+  const [popOrigin, setPopOrigin] = useState<CSSProperties>({});
 
   const { data: suggestions, isLoading } = useSuggest(query);
 
@@ -131,23 +151,51 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
     cannot disagree about whether the dialog is showing. `showModal()` is what gives the
     element its backdrop, focus trap and inert background; a plain `open` attribute gives none
     of those and lets Tab walk into the page behind.
+
+    The popup grows out of whichever search trigger was pressed. The origin is measured against
+    the panel once it is in the top layer, so the scale fans from the trigger rather than from
+    the panel's own centre - a Spotlight-style pop instead of a box inflating over itself.
   */
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    if (open && !dialog.open) {
-      // Focus after the dialog is in the top layer, or the caret lands nowhere.
-      dialog.showModal();
+    if (open) {
+      if (!dialog.open) {
+        dialog.showModal();
+
+        // The panel is laid out now, so the trigger can be measured against it. Two triggers
+        // exist (rail, mobile header); the hidden one reports a zero rect, which is what lets
+        // the filter pick whichever is actually on screen.
+        const panel = panelRef.current;
+        const trigger = Array.from(document.querySelectorAll('[data-search-trigger]'))
+          .map((element) => element.getBoundingClientRect())
+          .find((rect) => rect.width > 0 && rect.height > 0);
+        const frame = panel?.getBoundingClientRect();
+        if (trigger && frame) {
+          setPopOrigin({
+            '--su-origin-x': `${trigger.left + trigger.width / 2 - frame.left}px`,
+            '--su-origin-y': `${trigger.top + trigger.height / 2 - frame.top}px`,
+          } as CSSProperties);
+        }
+      }
+
+      setLaunched(true);
       inputRef.current?.focus();
       return;
     }
 
-    if (!open && dialog.open) {
-      dialog.close();
+    if (dialog.open) {
       // Start the next visit clean rather than reopening on the last query.
       setQuery('');
       setHighlight(-1);
+      setLaunched(false);
+      // Let the exit transition finish before the top layer is lifted (`close()`), or the
+      // fade-out is cut short by the dialog vanishing mid-frame.
+      const exit = window.setTimeout(() => {
+        if (dialog.open) dialog.close();
+      }, SEARCH_EXIT_MS);
+      return () => window.clearTimeout(exit);
     }
   }, [open]);
 
@@ -209,12 +257,12 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
   return (
     <dialog
       ref={dialogRef}
-      className={styles.dialog ?? ''}
+      className={`${styles.dialog ?? ''} ${launched ? (styles.dialogOpen ?? '') : ''}`.trim()}
       onCancel={handleCancel}
       onClose={() => onOpenChange(false)}
       aria-label="Search the catalogue"
     >
-      <div className={styles.panel ?? ''}>
+      <div className={styles.panel ?? ''} ref={panelRef} style={popOrigin}>
         {/*
           The field, at a size worth typing in.
 

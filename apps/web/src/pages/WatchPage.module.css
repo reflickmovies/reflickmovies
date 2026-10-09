@@ -210,11 +210,11 @@
 /*
  * The frame's own reveal, a beat behind the shell's `watchOpen`.
  *
- * The wrapper scales the whole page; the stage then opens from slightly inside itself, 80ms
- * later, so the eye arrives on the player rather than on the page around it. Local keyframes
- * rather than the shared set, because this is the one entrance that is a scale and not a rise.
- * Wrapped in `no-preference` because the transform is the point here - under `reduce` the frame
- * should simply be there.
+ * The wrapper fades the whole page; the stage then opens from slightly inside itself, 80ms
+ * later, so the eye arrives on the player rather than on the page around it. A fade matching
+ * the page's own entrance - `premiumFade` with a delay would do, but keeping the name local
+ * gives the player its own timing knob. Wrapped in `no-preference` because without an
+ * entrance the frame should simply be there.
  */
 @media (prefers-reduced-motion: no-preference) {
   .stage {
@@ -225,11 +225,9 @@
 @keyframes stageOpen {
   from {
     opacity: 0;
-    transform: scale(0.96);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 

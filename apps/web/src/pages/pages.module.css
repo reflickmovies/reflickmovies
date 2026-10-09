@@ -25,7 +25,7 @@
 }
 
 /*
- * The card rises like every other state card in the app, so a wrong address and an empty
+ * The card fades in like every other state card in the app, so a wrong address and an empty
  * catalogue read as the same family of screen rather than as two products.
  */
 @media (prefers-reduced-motion: no-preference) {

@@ -220,24 +220,34 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   /*
-   * Same entrance as the shell's other pop-ups: unfolds from the trigger on the soft spring.
-   * The panel mounts and unmounts with the trigger's open state, so this is every open with
-   * no state to track. Origin is top-left because the panel hangs off the trigger's left
-   * edge; when `useAnchoredPanel` flips it to the right side the few pixels of horizontal
-   * drift in the scale are invisible at this size.
+   * Same entrance as the shell's other pop-ups, a pure fade, and it is kept mounted for the
+   * equal fade back out via `useExitFade` - see `.seasonPanelExit` below. The panel mounts and
+   * unmounts with the trigger's open state, so this is every open with no state to track.
    */
-  transform-origin: top left;
   animation: seasonPanelIn var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 @keyframes seasonPanelIn {
   from {
     opacity: 0;
-    transform: translateY(-6px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: none;
+  }
+}
+
+/*
+ * The reverse of the entrance: the panel stays in the tree for the exit duration (owned by
+ * `useExitFade`) with this class applied, so the dropdown fades out rather than vanishing
+ * frame-to-frame. `forwards` holds the hidden end-state until the unmount actually lands.
+ */
+.seasonPanelExit {
+  animation: seasonPanelOut var(--motion-base) var(--motion-ease) forwards;
+}
+
+@keyframes seasonPanelOut {
+  to {
+    opacity: 0;
   }
 }
 

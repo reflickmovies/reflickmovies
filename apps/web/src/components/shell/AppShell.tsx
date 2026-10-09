@@ -20,6 +20,7 @@ import type { Icon } from '@phosphor-icons/react';
 import { ROUTES } from '../../lib/routes';
 import { LoadingState } from '../ui';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
+import { useExitFade } from '../../hooks/useExitFade';
 import { useSpringIndicator } from '../../hooks/useSpringIndicator';
 import { useThemeMode } from './ThemeMode';
 import { SearchOverlay, SearchOverlayButton, useSearchOverlay } from './SearchOverlayTrigger';
@@ -67,16 +68,16 @@ const TAB_SWIPE_CLICK_GUARD = 500;
  * The wordmark types itself letter by letter over the app surface, then the whole typed word
  * glides down to where the logo actually rests - the header's brand on the compact layout, the
  * rail's wordmark from laptop widths up - and the surface lifts to reveal it. The text mirrors
- * `public/reflick-logo.svg` exactly - same Playfair stack, same weight, same wide tracking, same
- * caps, same red - so the glide lands on the logo's own pixels; the letter-spacing is the logo's
- * `5` units at its `44`px face, i.e. about `0.11em`. Timing constants get their own names
+ * `public/reflick-logo.svg` exactly - same Bodoni Moda stack, same weight, same wide tracking,
+ * same caps, same red - so the glide lands on the logo's own pixels; the letter-spacing is the
+ * logo's `5` units at its `44`px face, i.e. about `0.11em`. Timing constants get their own names
  * because the choreography touches three separate phases.
  */
 const BRAND_NAME = 'REFLICK';
 const BRAND_LETTER_MS = 130;
 const BRAND_LAND_DELAY_MS = 300;
 const BRAND_GLIDE_MS = 720;
-const BRAND_FADE_MS = 300;
+const BRAND_FADE_MS = 640;
 
 /**
  * The permanent frame: rail on the left, header plus one scrollport on the right.
@@ -97,6 +98,8 @@ export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { rootRef: menuAnchorRef, panelRef: menuPanelRef, panelStyle: menuStyle } =
     useAnchoredPanel<HTMLButtonElement>(menuOpen, 'fixed');
+  // Keep the menu in the tree long enough to fade back out, matching its fade-in.
+  const menu = useExitFade(menuOpen);
 
   /*
     The one-time brand intro.
@@ -489,9 +492,9 @@ export function AppShell() {
                 The wrapper is keyed on the pathname, which does two jobs. It remounts the page
                 on navigation so the entrance replays on every route change, and it keeps the
                 query string out of it - picking an episode or a sort does not restart the page.
-                The entrance itself is picked here too: playback gets `watchOpen`, which scales
-                as well as rises so clicking Watch reads as the frame opening rather than as the
-                next screen sliding in.
+                The entrance itself is picked here too: playback gets `watchOpen`, which shares
+                the page's fade so clicking Watch reads as the next screen arriving rather than
+                sliding in.
               */}
               <Suspense fallback={<LoadingState />}>
                 <div
@@ -517,9 +520,11 @@ export function AppShell() {
         notifications, more, you". It is the least-used control in the app, so it is the right
         one to spend a layer of indirection on.
       */}
-      {menuOpen ? (
+      {menu.show ? (
         <div
-          className={styles.overflowMenu ?? ''}
+          className={[styles.overflowMenu ?? '', menu.leaving ? (styles.overflowMenuExit ?? '') : '']
+            .filter(Boolean)
+            .join(' ')}
           ref={menuPanelRef}
           style={menuStyle}
           role="menu"

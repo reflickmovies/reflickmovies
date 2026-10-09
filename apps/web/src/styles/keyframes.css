@@ -1,5 +1,11 @@
 /*
- * The three shared entrance shapes: pop, rise, fade.
+ * The three shared entrance shapes, all of them a fade now.
+ *
+ * An earlier pass had the content travel - a rise, a pop - because movement read as "the next
+ * screen". The premium direction turned out to be the opposite: bullets and rows that merely
+ * fade in, staggered, are what feel polished rather than animated. So all three shapes below
+ * are the same fade, kept as separate names so their timing and stagger can be tuned
+ * independently without every user of `premiumRise` sharing one tuning knob.
  *
  * Kept in their own file rather than in `globals.css` because a `.module.css` cannot reference
  * a keyframe defined outside itself - the module pipeline renames any animation it sees to a
@@ -12,22 +18,18 @@
 @keyframes premiumPop {
   from {
     opacity: 0;
-    transform: translateY(-8px) scale(0.94);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
 @keyframes premiumRise {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 

@@ -372,13 +372,10 @@ min-width: 0;
  * The route change, as one gesture.
  *
  * Keyed on the pathname by the shell, so every navigation remounts this wrapper and replays
- * the entrance: a soft rise rather than a fade, because content arriving upward reads as
- * "the next screen" while a bare crossfade reads as a glitch. `backwards` fill only, never
- * `both` - the final keyframe and the element's resting state are identical, so once the
- * animation is over it holds nothing and hover transforms inside the page work normally.
- *
- * A few pixels of Y is deliberate. A larger travel would clear the fixed header on its way
- * in and make the page appear to fall through it.
+ * the entrance: a clean fade, which is how a destination lands on a mac - the next screen
+ * simply arrives rather than sliding in. `backwards` fill only, never `both` - the final
+ * keyframe and the element's resting state are identical, so once the animation is over it
+ * holds nothing and hover transforms inside the page work normally.
  */
 .pageEnter {
   animation: pageIn var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
@@ -387,24 +384,20 @@ min-width: 0;
 @keyframes pageIn {
   from {
     opacity: 0;
-    transform: translateY(14px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
 /*
  * Playback opens instead of arriving.
  *
- * Same remount-driven contract as `pageEnter`, but the wrapper also scales from just inside
- * its final size, so the whole screen growing into place behind the player reads as a frame
- * opening rather than as the next page sliding in. One gesture, a hair longer than the
- * standard entrance, `backwards` for the same reason: the resting state and the final
- * keyframe are identical, so nothing is held after the animation and hovers inside the page
- * are untouched. The shell picks this class for `/watch` routes; every other route keeps
- * `pageEnter`.
+ * Same remount-driven contract as `pageEnter`, and the same fade - the player screen arrives
+ * rather than travelling, so attention goes to the new context, not to the motion. `backwards`
+ * for the same reason: the resting state and the final keyframe are identical, so nothing is
+ * held after the animation and hovers inside the page are untouched. The shell picks this
+ * class for `/watch` routes; every other route keeps `pageEnter`.
  */
 .watchEnter {
   animation: watchOpen 480ms var(--motion-spring-soft) backwards;
@@ -413,11 +406,9 @@ min-width: 0;
 @keyframes watchOpen {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.975);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -593,12 +584,26 @@ min-width: 0;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   /*
-   * Pops open from its top edge, where the dots button is, so the panel reads as unfolding
-   * from the control rather than materialising under it. The panel mounts and unmounts with
-   * `menuOpen`, so this plays on every open with no state to track.
+   * Fades open, and is kept mounted for the equal fade back out - see `useExitFade`. The panel
+   * mounts and unmounts with `menuOpen`, so this plays on every open with no state to track.
    */
   transform-origin: top center;
   animation: premiumPop var(--motion-spring-soft-duration) var(--motion-spring-soft);
+}
+
+/*
+ * The reverse of the entrance above: the menu stays in the tree for the exit duration (owned by
+ * `useExitFade`) with this class applied, so it fades out rather than vanishing frame-to-frame.
+ * `forwards` holds the hidden end-state until the unmount actually lands.
+ */
+.overflowMenuExit {
+  animation: overflowMenuOut var(--motion-base) var(--motion-ease) forwards;
+}
+
+@keyframes overflowMenuOut {
+  to {
+    opacity: 0;
+  }
 }
 
 .overflowMenuItem {
@@ -653,9 +658,10 @@ min-width: 0;
  * Opaque background so the typed letters have a clean ground and the arriving app is not
  * already competing with them; `pointer-events: none` because the whole thing is decorative.
  * Fixed rather than inheriting the shell's height lock, because this box covers the viewport by
- * definition. The fade class only drops `opacity`, and the plain `transition` on it means the
- * surface - and the letters on it, including the destination they just travelled to - lifts to
- * reveal the real logo waiting underneath.
+ * definition. It breathes in on mount (a slow crossfade, so the first frame never slams in)
+ * and the fade class only drops `opacity`; the plain `transition` on it means the surface -
+ * and the letters on it, including the destination they just travelled to - lifts away over a
+ * long ease-out to reveal the real logo waiting underneath.
  */
 .brandIntro {
   position: fixed;
@@ -665,11 +671,21 @@ min-width: 0;
   place-items: center;
   background-color: var(--lp-bg);
   pointer-events: none;
-  transition: opacity var(--motion-slow) var(--motion-ease);
+  animation: brandIntroFadeIn 450ms var(--motion-ease-out) backwards;
+  transition: opacity 640ms var(--motion-ease-out);
 }
 
 .brandIntroFade {
   opacity: 0;
+}
+
+@keyframes brandIntroFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /*
@@ -680,27 +696,28 @@ min-width: 0;
  * the real logo covers rather than at some rehearsed position - which is also why the two can
  * never drift apart if the brand moves.
  *
- * The face mirrors `public/reflick-logo.svg` - same Playfair stack, same weight, and the
+ * The face mirrors `public/reflick-logo.svg` - same Bodoni Moda stack, same weight, and the
  * logo's own wide tracking (`5` units at its `44`px face, about `0.11em`) - so the typed word
- * already *is* the logo's type before it travels. The glide itself is a pure ease-out with no
+ * already *is* the logo's type before it travels. The glide is a pure ease-out with no
  * overshoot: the word decelerates onto the logo and stops once, which is the premium reading
- * of a settle as opposed to the spring's bounce.
+ * of a settle as opposed to the spring's bounce. Its `720ms` matches `BRAND_GLIDE_MS` so the
+ * fade-out picks up the instant the word comes to rest instead of after a dead pause.
  */
 .brandIntroWord {
   position: relative;
   display: inline-flex;
   align-items: baseline;
-  font-family: var(--font-family-serif);
+  font-family: 'Bodoni Moda', 'Didot', 'Bodoni MT', var(--font-family-serif);
   font-size: clamp(3rem, 12vw, 5.25rem);
   font-weight: 700;
   letter-spacing: 0.11em;
   color: var(--lp-accent-red);
   transform-origin: center;
-  transition: transform var(--motion-slow) var(--motion-ease-out);
+  transition: transform 720ms var(--motion-ease-out);
   will-change: transform;
 }
 
-/* Each letter arrives with a gentle rise, on the beat the typewriter reaches it. */
+/* Each letter arrives as a fade, on the beat the typewriter reaches it. */
 @media (prefers-reduced-motion: no-preference) {
   .brandIntroWord > span {
     animation: brandLetterIn 460ms var(--motion-ease-out) backwards;
@@ -723,11 +740,9 @@ min-width: 0;
 @keyframes brandLetterIn {
   from {
     opacity: 0;
-    transform: translateY(0.06em);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 

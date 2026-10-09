@@ -18,6 +18,7 @@ export function SearchOverlayButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
+      data-search-trigger
       className={styles.trigger ?? ''}
       onClick={onClick}
       title="Search the catalogue (press /)"

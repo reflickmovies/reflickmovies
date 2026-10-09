@@ -481,7 +481,7 @@
 }
 
 /*
- * The state arrives, same spring as the notice and the page header.
+ * The state arrives, same fade as the notice and the page header.
  *
  * Under `no-preference` only: these boxes replace nothing, so there is no crossfade to hide -
  * a plain appearance under reduced motion is exactly the intent.

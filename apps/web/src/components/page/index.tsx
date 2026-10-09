@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ArrowsDownUp, CaretDown, Check, Funnel } from '@phosphor-icons/react';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
+import { useExitFade } from '../../hooks/useExitFade';
 import styles from './page.module.css';
 
 /**
@@ -63,6 +64,7 @@ export function SortTabs<T extends string = string>({
 }: SortTabsProps<T>) {
   const [open, setOpen] = useState(false);
   const { rootRef, panelRef, panelStyle } = useAnchoredPanel<HTMLDivElement>(open);
+  const panel = useExitFade(open);
   const listId = useId();
 
   const selectedLabel = options[value] ?? label;
@@ -110,8 +112,14 @@ export function SortTabs<T extends string = string>({
         <CaretDown size={13} weight="bold" aria-hidden className={styles.filterCaret ?? ''} />
       </button>
 
-      {open ? (
-        <div className={styles.filterPanel ?? ''} ref={panelRef} style={panelStyle}>
+      {panel.show ? (
+        <div
+          className={[styles.filterPanel ?? '', panel.leaving ? (styles.filterPanelExit ?? '') : '']
+            .filter(Boolean)
+            .join(' ')}
+          ref={panelRef}
+          style={panelStyle}
+        >
           <ul className={styles.filterList ?? ''} id={listId} role="listbox" aria-label={label}>
             {/*
               `Object.keys` rather than `Object.entries` on purpose: `entries` widens the key to
@@ -187,6 +195,7 @@ export function FilterChips<T extends string | number>({
 }: FilterChipsProps<T>) {
   const [open, setOpen] = useState(false);
   const { rootRef, panelRef, panelStyle } = useAnchoredPanel<HTMLDivElement>(open);
+  const panel = useExitFade(open);
   const listId = useId();
 
   const selected = options.find((option) => option.value === value) ?? null;
@@ -242,8 +251,14 @@ export function FilterChips<T extends string | number>({
         <CaretDown size={13} weight="bold" aria-hidden className={styles.filterCaret ?? ''} />
       </button>
 
-      {open ? (
-        <div className={styles.filterPanel ?? ''} ref={panelRef} style={panelStyle}>
+      {panel.show ? (
+        <div
+          className={[styles.filterPanel ?? '', panel.leaving ? (styles.filterPanelExit ?? '') : '']
+            .filter(Boolean)
+            .join(' ')}
+          ref={panelRef}
+          style={panelStyle}
+        >
           <ul className={styles.filterList ?? ''} id={listId} role="listbox" aria-label={label}>
             {options.map((option) => {
               const isActive = option.value === value;

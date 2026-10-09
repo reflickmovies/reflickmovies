@@ -3,6 +3,7 @@ import { CaretDown, Play } from '@phosphor-icons/react';
 import type { Episode, Season } from '../../types/api';
 import { formatAirDate, formatEpisodeLabel, formatRating, formatSeasonLabel, pluralise } from '../../lib/format';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
+import { useExitFade } from '../../hooks/useExitFade';
 import styles from './watch.module.css';
 
 /* -------------------------------------------------------- season picker */
@@ -41,6 +42,7 @@ export const SeasonPicker = memo(function SeasonPicker({
 }: SeasonPickerProps) {
   const [open, setOpen] = useState(false);
   const { rootRef, panelRef, panelStyle } = useAnchoredPanel<HTMLDivElement>(open);
+  const panel = useExitFade(open);
   const listId = useId();
 
   const selectedSeason = seasons.find((season) => season.season === selected) ?? null;
@@ -116,8 +118,14 @@ export const SeasonPicker = memo(function SeasonPicker({
         <CaretDown size={14} weight="bold" aria-hidden className={styles.seasonCaret ?? ''} />
       </button>
 
-      {open ? (
-        <div className={styles.seasonPanel ?? ''} ref={panelRef} style={panelStyle}>
+      {panel.show ? (
+        <div
+          className={[styles.seasonPanel ?? '', panel.leaving ? (styles.seasonPanelExit ?? '') : '']
+            .filter(Boolean)
+            .join(' ')}
+          ref={panelRef}
+          style={panelStyle}
+        >
           <ul className={styles.seasonList ?? ''} id={listId} role="listbox" aria-label="Seasons">
             {seasons.map((season) => {
               const active = season.season === selected;
@@ -177,6 +185,7 @@ export const SourcePicker = memo(function SourcePicker({
 }: SourcePickerProps) {
   const [open, setOpen] = useState(false);
   const { rootRef, panelRef, panelStyle } = useAnchoredPanel<HTMLDivElement>(open);
+  const panel = useExitFade(open);
   const listId = useId();
 
   const selectedSource = sources.find((source) => source.key === selected) ?? null;
@@ -231,8 +240,14 @@ export const SourcePicker = memo(function SourcePicker({
         <CaretDown size={14} weight="bold" aria-hidden className={styles.seasonCaret ?? ''} />
       </button>
 
-      {open ? (
-        <div className={styles.seasonPanel ?? ''} ref={panelRef} style={panelStyle}>
+      {panel.show ? (
+        <div
+          className={[styles.seasonPanel ?? '', panel.leaving ? (styles.seasonPanelExit ?? '') : '']
+            .filter(Boolean)
+            .join(' ')}
+          ref={panelRef}
+          style={panelStyle}
+        >
           <ul className={styles.seasonList ?? ''} id={listId} role="listbox" aria-label="Sources">
             {sources.map((source) => {
               const active = source.key === selected;

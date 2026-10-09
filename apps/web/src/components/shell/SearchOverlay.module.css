@@ -81,32 +81,41 @@
   backdrop-filter: blur(6px) saturate(0.8);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .dialog[open] {
-    animation: overlayIn var(--motion-spring-soft-duration) var(--motion-spring-soft);
-  }
-
-  /* The scrim arrives with the panel rather than being there before it. */
-  .dialog[open]::backdrop {
-    animation: premiumFade var(--motion-base) var(--motion-ease-out);
-  }
-}
-
 /*
- * Lift and fade, not scale.
+ * The pop, as a transition pair rather than an entrance-only animation.
  *
- * A scale transform grows the panel from its centre, so the field and the results beneath it
- * shift toward each other mid-animation; the row under the pointer moved a few pixels and the
- * click landed on its neighbour.
+ * The panel rests in the closed state - faded out and scaled to 0.9 - and flips to open with
+ * `launched`, so the same transition runs forward when the search is triggered and backwards
+ * when it closes. That is what makes the exit a true reverse of the entrance instead of a
+ * second, separately authored animation drifting away from it.
+ *
+ * The transform origin is the trigger: `--su-origin-*` are measured against the laid-out panel
+ * in the component (see SearchOverlay.tsx), so the box fans out of the search bar that was
+ * pressed, Spotlight-style, rather than inflating over its own centre - and under reduced
+ * motion everything rests in the visible, untransformed state.
  */
-@keyframes overlayIn {
-  from {
+@media (prefers-reduced-motion: no-preference) {
+  .dialog::backdrop {
     opacity: 0;
-    transform: translateY(10px);
+    transition: opacity 220ms var(--motion-ease-out);
   }
-  to {
+
+  .dialogOpen::backdrop {
     opacity: 1;
-    transform: translateY(0);
+  }
+
+  .panel {
+    opacity: 0;
+    transform: scale(0.9);
+    transform-origin: var(--su-origin-x, 50%) var(--su-origin-y, 50%);
+    transition:
+      opacity 220ms var(--motion-ease-out),
+      transform 280ms var(--motion-ease-out);
+  }
+
+  .dialogOpen .panel {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -299,12 +308,10 @@
   margin: 0;
   padding: var(--space-sm);
   list-style: none;
-  animation: overlayIn var(--motion-spring-soft-duration) var(--motion-spring-soft);
+  animation: premiumFade var(--motion-base) var(--motion-ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dialog[open],
-  .dialog[open]::backdrop,
   .dropdown {
     animation: none;
   }

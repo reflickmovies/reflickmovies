@@ -126,10 +126,10 @@
 }
 
 /*
- * The wall cascades in, same recipe as the grids: `--tile-i` from the map index in
+ * The wall fades in, same recipe as the grids: `--tile-i` from the map index in
  * `ExplorePage.tsx`, a clamped per-tile delay, backwards fill so the hover lift above still
- * works once the entrance is over. Skeleton tiles get no index and arrive instantly, which
- * is right for placeholder geometry that is about to be replaced.
+ * works once the entrance is over. Skeleton tiles get no index and arrive instantly,
+ * which is right for placeholder geometry that is about to be replaced.
  */
 @media (prefers-reduced-motion: no-preference) {
   .tile {
@@ -141,11 +141,9 @@
 @keyframes tileIn {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 

@@ -41,13 +41,13 @@
 }
 
 /*
- * The heading rises with the page.
+ * The heading fades in with the page.
  *
  * `PageHeader` tops every catalogue, search, recommended and settings screen, so giving the
  * rule to the component rather than to each caller is what keeps the four openings identical.
  * `backwards` so the pre-state holds through the delay and nothing is pinned after; the route
  * wrapper's own entrance plays underneath, and the two read as one motion because they share
- * the spring.
+ * the timing.
  */
 @media (prefers-reduced-motion: no-preference) {
   .header {
@@ -160,22 +160,34 @@
   border: 1px solid var(--lp-line);
   box-shadow: var(--lp-card-shadow);
   /*
-   * Unfolds from the top edge, where the trigger is, on the soft spring - a menu this size
-   * should settle rather than snap. The origin keeps the scale anchored to the trigger so the
-   * panel appears to grow out of it instead of inflating at its centre.
+   * Fades open, and is kept mounted for the equal fade back out via `useExitFade` - see the
+   * `.filterPanelExit` rule below. Unfold and scale used to live here; a plain fade is the
+   * premium read for a dropdown, and its reverse is the natural way out.
    */
-  transform-origin: top right;
   animation: filterIn var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 @keyframes filterIn {
   from {
     opacity: 0;
-    transform: translateY(-6px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: none;
+  }
+}
+
+/*
+ * The reverse of the entrance: the panel stays in the tree for the exit duration (owned by
+ * `useExitFade`) with this class applied, so the dropdown fades out rather than vanishing
+ * frame-to-frame. `forwards` holds the hidden end-state until the unmount actually lands.
+ */
+.filterPanelExit {
+  animation: filterOut var(--motion-base) var(--motion-ease) forwards;
+}
+
+@keyframes filterOut {
+  to {
+    opacity: 0;
   }
 }
 
@@ -271,8 +283,8 @@
  * Notices arrive rather than appear.
  *
  * A failure or an empty result lands on a page that was a moment ago just as empty, so a card
- * that is simply *there* reads as something that was always broken. The rise says "this is the
- * answer to what you just did" - same spring as the header above it, no stagger, because the
+ * that is simply *there* reads as something that was always broken. The fade says "this is the
+ * answer to what you just did" - same timing as the header above it, no stagger, because the
  * two are one response.
  */
 @media (prefers-reduced-motion: no-preference) {
