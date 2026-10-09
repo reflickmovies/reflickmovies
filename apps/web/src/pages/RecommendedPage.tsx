@@ -79,17 +79,6 @@ export function RecommendedPage() {
         </div>
       ) : (
         <>
-          {/*
-            A count, not a disclaimer.
-
-            "Based on your history" explains nothing on its own; the number says how much of
-            the page is evidence-backed, which is the honest thing to surface.
-          */}
-          <p className={styles.summary ?? ''}>
-            {total} title{total === 1 ? '' : 's'} across {shelves.length} shelf
-            {shelves.length === 1 ? '' : 'es'}, drawn from your {seedCount} most recent.
-          </p>
-
           {shelves.map((shelf) => (
             <TitleShelf
               key={`${shelf.seed.type}:${shelf.seed.slug}`}
