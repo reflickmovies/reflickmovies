@@ -1,3 +1,5 @@
+@import '../styles/keyframes.css';
+
 /*
  * The landing page.
  *
@@ -178,7 +180,9 @@
   }
 
   .watchButton:hover,
-  .glassActionButton:hover {
+  .watchButton:active,
+  .glassActionButton:hover,
+  .glassActionButton:active {
     transform: none;
   }
 }
@@ -347,10 +351,21 @@
   overflow: hidden;
 }
 
+/*
+ * One row of actions, always.
+ *
+ * Both pills used to be 50px tall with 28/24px of horizontal padding, so the pair measured
+ * roughly 290px before the gap - wider than the content box of a 320px phone once the card's
+ * own gutter comes off, which is why "Watch" and "More info" stacked into two rows. The
+ * controls are shrunk rather than the layout reflowed: 44px is still a full touch target, the
+ * labels keep their weight at 0.9375rem, and `nowrap` on each label plus the token gap keeps
+ * the pair on one line from the smallest phone to a desktop hero. `flex-wrap` stays as the
+ * floor for a font the browser cannot shrink.
+ */
 .heroActions {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   margin-top: var(--space-sm);
   flex-wrap: wrap;
 }
@@ -359,15 +374,16 @@
 .watchButton {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 50px;
-  padding-inline: 28px;
+  gap: 7px;
+  height: 44px;
+  padding-inline: 20px;
   border-radius: 9999px;
   background-color: #ffffff;
   color: #0b0b0c;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 700;
   text-decoration: none;
+  white-space: nowrap;
   border: none;
   cursor: pointer;
   transition: transform var(--motion-fast) var(--motion-ease),
@@ -384,9 +400,9 @@
 .glassActionButton {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 50px;
-  padding-inline: 24px;
+  gap: 7px;
+  height: 44px;
+  padding-inline: 16px;
   border-radius: 9999px;
   background-color: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -394,6 +410,7 @@
   font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
   transition: transform var(--motion-fast) var(--motion-ease),
     background-color var(--motion-fast) var(--motion-ease);
@@ -402,6 +419,12 @@
 .glassActionButton:hover {
   background-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
+}
+
+/* The press, as the handoff: dip on the way out of the page, the shell opens on the way in. */
+.watchButton:active,
+.glassActionButton:active {
+  transform: scale(0.965);
 }
 
 /* ---------------------------------------------------------------- Shelves */
@@ -636,6 +659,13 @@
   gap: var(--space-xl);
 }
 
+/* Same rise as the page-level notices, so "the catalogue could not be loaded" is one family. */
+@media (prefers-reduced-motion: no-preference) {
+  .emptyCard {
+    animation: premiumRise var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
+  }
+}
+
 .emptyIcon {
   color: var(--lp-accent-red);
   flex-shrink: 0;
@@ -685,12 +715,17 @@
   font-weight: 600;
   cursor: pointer;
   transition: background-color var(--motion-fast) var(--motion-ease),
-    color var(--motion-fast) var(--motion-ease);
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
 }
 
 .retryButton:hover {
   background-color: var(--lp-pill-inactive);
   color: var(--lp-accent-red);
+}
+
+.retryButton:active {
+  transform: scale(0.97);
 }
 
 /* ---------------------------------------------------------------- Skeleton */

@@ -1,3 +1,5 @@
+@import '../../styles/keyframes.css';
+
 /*
  * Shared page furniture: headers, the sort control, and page-level notices.
  *
@@ -36,6 +38,21 @@
   gap: var(--space-sm);
   flex-wrap: wrap;
   min-width: 0;
+}
+
+/*
+ * The heading rises with the page.
+ *
+ * `PageHeader` tops every catalogue, search, recommended and settings screen, so giving the
+ * rule to the component rather than to each caller is what keeps the four openings identical.
+ * `backwards` so the pre-state holds through the delay and nothing is pinned after; the route
+ * wrapper's own entrance plays underneath, and the two read as one motion because they share
+ * the spring.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .header {
+    animation: premiumRise var(--motion-spring-soft-duration) var(--motion-spring-soft) 60ms backwards;
+  }
 }
 
 /* ---------------------------------------------------------------- Genre filter */
@@ -250,6 +267,21 @@
   box-shadow: var(--lp-card-shadow);
 }
 
+/*
+ * Notices arrive rather than appear.
+ *
+ * A failure or an empty result lands on a page that was a moment ago just as empty, so a card
+ * that is simply *there* reads as something that was always broken. The rise says "this is the
+ * answer to what you just did" - same spring as the header above it, no stagger, because the
+ * two are one response.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .notice,
+  .noticeError {
+    animation: premiumRise var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
+  }
+}
+
 .noticeError {
   border-color: color-mix(in srgb, var(--lp-accent-red) 40%, var(--lp-line));
 }
@@ -309,13 +341,26 @@
   cursor: pointer;
   transition: background-color var(--motion-fast) var(--motion-ease),
     border-color var(--motion-fast) var(--motion-ease),
-    color var(--motion-fast) var(--motion-ease);
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
 }
 
 .noticeAction:hover {
   background-color: var(--lp-pill-inactive);
   border-color: var(--lp-line);
   color: var(--lp-accent-red);
+}
+
+/* The same press dip every other control in the app has. */
+.noticeAction:active {
+  transform: scale(0.97);
+}
+
+/* With movement off the dip buys nothing; colour and border already say "pressed". */
+@media (prefers-reduced-motion: reduce) {
+  .noticeAction:active {
+    transform: none;
+  }
 }
 
 .noticeAction:disabled {

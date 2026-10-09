@@ -1,3 +1,5 @@
+@import '../../styles/keyframes.css';
+
 /*
  * Shared styles for the small primitives in `components/ui`.
  *
@@ -461,10 +463,33 @@
   border: 1px solid var(--lp-line);
   border-radius: var(--radius-lg);
   box-shadow: var(--lp-card-shadow);
+  /*
+   * A page-sized box, not a strip of text at the top of the content column.
+   *
+   * The empty and error states are the whole content of the screen they land on, so they get
+   * the height that lets `justify-content: center` actually centre them on desktop and still
+   * sit comfortably on a phone. Capped with `min()` so a short viewport never forces the card
+   * past its own content into the next scroll. The compact variant - used where the state sits
+   * *inside* a page that has other content - opts back out.
+   */
+  min-height: min(60dvh, 460px);
 }
 
 .stateCompact {
   padding: var(--space-2xl) var(--space-lg);
+  min-height: 0;
+}
+
+/*
+ * The state arrives, same spring as the notice and the page header.
+ *
+ * Under `no-preference` only: these boxes replace nothing, so there is no crossfade to hide -
+ * a plain appearance under reduced motion is exactly the intent.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .state {
+    animation: premiumRise var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
+  }
 }
 
 .stateIcon {

@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { MagnifyingGlass, Warning } from '@phosphor-icons/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { FilmSlate, Flame, Television, Warning } from '@phosphor-icons/react';
 import { useGenres } from '../hooks/useReflick';
 import { useInfiniteBrowse } from '../hooks/useInfiniteBrowse';
 import { ROUTES } from '../lib/routes';
@@ -8,6 +8,7 @@ import { SORT_LABELS, isSort } from '../types/api';
 import type { Sort, TitleType } from '../types/api';
 import { TitleGrid, TitleGridSkeleton } from '../components/titles';
 import { FilterChips, Notice, PageHeader, SortTabs } from '../components/page';
+import { EmptyState, LinkButton } from '../components/ui';
 import styles from './CataloguePage.module.css';
 
 /**
@@ -20,11 +21,44 @@ export interface CataloguePageProps {
   kind: 'films' | 'series' | 'popular';
 }
 
-const COPY: Record<CataloguePageProps['kind'], { title: string; empty: string; type?: TitleType }> = {
-  films: { title: 'Movies', empty: 'No films yet.', type: 'movie' },
-  series: { title: 'Series', empty: 'No series yet.', type: 'tv' },
-  popular: { title: 'Popular', empty: 'Nothing is trending yet.' },
+const COPY: Record<CataloguePageProps['kind'], { title: string; empty: string; emptyBody: string; type?: TitleType }> = {
+  films: {
+    title: 'Movies',
+    empty: 'No films yet.',
+    emptyBody: 'New films appear here as soon as they are added to the catalogue.',
+    type: 'movie',
+  },
+  series: {
+    title: 'Series',
+    empty: 'No series yet.',
+    emptyBody: 'New series appear here as soon as they are added to the catalogue.',
+    type: 'tv',
+  },
+  popular: {
+    title: 'Popular',
+    empty: 'Nothing is trending yet.',
+    emptyBody: 'The trending list fills itself as the catalogue gets watched. Check back soon.',
+  },
 };
+
+/*
+ * One distinct icon per view on the empty card, so the three listing pages do not read as the
+ * same mistake three times while keeping the shared `EmptyState` design.
+ */
+const EMPTY_ICON: Record<CataloguePageProps['kind'], JSX.Element> = {
+  films: <FilmSlate size={28} aria-hidden />,
+  series: <Television size={28} aria-hidden />,
+  popular: <Flame size={28} aria-hidden />,
+};
+
+/**
+ * How long the skeleton holds the frame after a request settles on zero titles.
+ *
+ * 2.4s: long enough that a fast-but-empty response does not flash the empty card as the
+ * "default" impression of a listing page, short enough that a genuinely empty catalogue still
+ * gets to say so without keeping anyone waiting out of habit.
+ */
+const EMPTY_MIN_MS = 2400;
 
 /**
  * Listing grid: sort, genre filter, and an endless grid.
@@ -129,6 +163,39 @@ export function CataloguePage({ kind }: CataloguePageProps) {
       sort,
     });
 
+  /*
+    The empty card waits its turn.
+
+    A listing page that settles on zero titles used to swap the skeleton for the empty card the
+    moment the response landed - often under a second - so the first thing a visitor saw on
+    `/films` was "No films yet.", and a slow catalogue read as a broken one. The skeleton now
+    holds the frame for at least `EMPTY_MIN_MS` from the moment a query starts (a filter change
+    restarts the clock) before the empty card appears, so a fast-but-empty response reads as
+    "still loading" first and as an empty catalogue second. A page that takes longer than the
+    minimum shows the card immediately, because by then the wait has already happened.
+  */
+  const queryKey = `${copy.type ?? 'all'}:${sort}:${selectedGenre ?? 'all'}`;
+  const emptyClock = useRef(Date.now());
+  const [emptyReady, setEmptyReady] = useState(false);
+
+  useEffect(() => {
+    emptyClock.current = Date.now();
+    setEmptyReady(false);
+  }, [queryKey]);
+
+  useEffect(() => {
+    if (isLoading) {
+      emptyClock.current = Date.now();
+      setEmptyReady(false);
+      return;
+    }
+    if (error || items.length > 0) return;
+
+    const remaining = Math.max(0, EMPTY_MIN_MS - (Date.now() - emptyClock.current));
+    const timer = window.setTimeout(() => setEmptyReady(true), remaining);
+    return () => window.clearTimeout(timer);
+  }, [isLoading, error, items.length, queryKey]);
+
   return (
     <div className={styles.page ?? ''}>
       <PageHeader
@@ -155,7 +222,7 @@ export function CataloguePage({ kind }: CataloguePageProps) {
         >
           {error.message}
         </Notice>
-      ) : isLoading ? (
+) : isLoading || (items.length === 0 && !emptyReady) ? (
         <TitleGridSkeleton count={24} />
       ) : items.length === 0 ? (
         /*
@@ -165,14 +232,18 @@ export function CataloguePage({ kind }: CataloguePageProps) {
           which is documentation for a developer in a visitor's empty grid. The catalogue is
           either populated or it is not; when it is not, "Nothing here yet" is the whole
           honest message, and the sync command belongs in the README and the Settings page.
+          The card itself is the shared `EmptyState` now: centred text on a page-sized panel
+          that holds the gap until `emptyReady` lets it in, so reaching it always involves
+          the catalogued wait above rather than a flash.
         */
-        <Notice
-          icon={<MagnifyingGlass size={26} aria-hidden />}
+        <EmptyState
+          icon={EMPTY_ICON[kind]}
           title={copy.empty}
+          body={copy.emptyBody}
           action={
-            <Link to={ROUTES.home} className={styles.noticeAction ?? ''}>
+            <LinkButton to={ROUTES.home} variant="primary">
               Back to home
-            </Link>
+            </LinkButton>
           }
         />
       ) : (
