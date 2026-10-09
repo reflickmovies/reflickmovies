@@ -66,7 +66,7 @@ export function Notifications() {
   const panel = useExitFade(open);
   // Anchored on the panel's `show`, not `open`: the layout effect must run after `useExitFade`
   // mounts the panel, or it measures a zero-height box and pins `max-height: 0px`.
-  const { rootRef, panelRef, panelStyle } = useAnchoredPanel<HTMLButtonElement>(panel.show, 'fixed');
+  const { rootRef, panelRef, panelStyle } = useAnchoredPanel<HTMLButtonElement>(panel.show, 'fixed', 'end');
   const { user } = useAuth();
   const { data, error, isLoading, refetch } = useNotifications();
   const [read, setRead] = useState<string[]>(loadRead);
@@ -84,6 +84,15 @@ export function Notifications() {
     lastAuthId.current = authId;
     refetch();
   }, [authId, refetch]);
+
+  /*
+    Live feed: pulling a fresh copy the moment the panel opens means the list is current the instant
+    it is seen, and the interval set on the query keeps it current while it stays open. No reload.
+  */
+  useEffect(() => {
+    if (!open) return;
+    refetch();
+  }, [open, refetch]);
 
   const items = data ?? [];
   const unread = items.filter((notification) => !read.includes(notification.id)).length;
@@ -144,46 +153,62 @@ export function Notifications() {
       </button>
 
       {panel.show ? (
-        <div
-          ref={panelRef}
-          style={panelStyle}
-          role="dialog"
-          aria-label="Notifications"
-          className={[styles.panel ?? '', panel.leaving ? (styles.panelExit ?? '') : ''].filter(Boolean).join(' ')}
-        >
-          <div className={styles.header ?? ''}>
-            <h2 className={styles.heading ?? ''}>Notifications</h2>
-            {unread > 0 ? (
-              <button
-                type="button"
-                className={styles.markAll ?? ''}
-                onClick={() => setRead(items.map((notification) => notification.id))}
-              >
-                Mark all read
-              </button>
-            ) : null}
-          </div>
+        <>
+          {/*
+            A dimmer between the page and the feed, so the unread rows read against a calm surface
+            instead of whatever poster happens to sit behind the header. Blurred rather than black -
+            the page stays legible as context, it is just pushed back. A press anywhere on it closes
+            the panel through the same outside-press handler above.
+          */}
+          <div
+            className={[styles.backdrop ?? '', panel.leaving ? (styles.backdropExit ?? '') : ''].filter(Boolean).join(' ')}
+            aria-hidden
+          />
 
-          {isLoading && items.length === 0 ? (
-            <p className={styles.note ?? ''}>Checking for updates…</p>
-          ) : error !== null && items.length === 0 ? (
-            <p className={styles.note ?? ''}>{error.message}</p>
-          ) : items.length === 0 ? (
-            <p className={styles.note ?? ''}>Nothing new right now. Releases and account updates land here.</p>
-          ) : (
-            <ul className={styles.list ?? ''}>
-              {items.map((notification) => (
-                <NotificationRow
-                  key={notification.id}
-                  notification={notification}
-                  unread={!read.includes(notification.id)}
-                  onActivate={markOne}
-                  onNavigate={() => setOpen(false)}
-                />
-              ))}
-            </ul>
-          )}
-        </div>
+          <div
+            ref={panelRef}
+            style={panelStyle}
+            role="dialog"
+            aria-label="Notifications"
+            className={[styles.panel ?? '', panel.leaving ? (styles.panelExit ?? '') : ''].filter(Boolean).join(' ')}
+          >
+            <div className={styles.header ?? ''}>
+              <div className={styles.headerTitle ?? ''}>
+                <h2 className={styles.heading ?? ''}>Notifications</h2>
+                {unread > 0 ? <span className={styles.count ?? ''}>{unread > 9 ? '9+' : unread}</span> : null}
+              </div>
+              {unread > 0 ? (
+                <button
+                  type="button"
+                  className={styles.markAll ?? ''}
+                  onClick={() => setRead(items.map((notification) => notification.id))}
+                >
+                  Mark all read
+                </button>
+              ) : null}
+            </div>
+
+            {isLoading && items.length === 0 ? (
+              <p className={styles.note ?? ''}>Checking for updates…</p>
+            ) : error !== null && items.length === 0 ? (
+              <p className={styles.note ?? ''}>{error.message}</p>
+            ) : items.length === 0 ? (
+              <p className={styles.note ?? ''}>Nothing new right now. Releases and account updates land here.</p>
+            ) : (
+              <ul className={styles.list ?? ''}>
+                {items.map((notification) => (
+                  <NotificationRow
+                    key={notification.id}
+                    notification={notification}
+                    unread={!read.includes(notification.id)}
+                    onActivate={markOne}
+                    onNavigate={() => setOpen(false)}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
       ) : null}
     </>
   );
@@ -202,10 +227,17 @@ function NotificationRow({
 }) {
   const Glyph = KIND_ICON[notification.kind];
 
+  const iconClass = [
+    styles.iconWrap ?? '',
+    notification.kind === 'account' ? (styles.kindAccount ?? '') : (styles.kindReleases ?? ''),
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   const body = (
     <>
-      <span className={styles.iconWrap ?? ''}>
-        <Glyph size={16} weight="bold" aria-hidden />
+      <span className={iconClass}>
+        <Glyph size={17} weight="bold" aria-hidden />
       </span>
       <span className={styles.copy ?? ''}>
         <span className={styles.itemTitle ?? ''}>{notification.title}</span>
@@ -220,7 +252,7 @@ function NotificationRow({
 
   if (notification.href !== undefined) {
     return (
-      <li>
+      <li className={styles.row ?? ''}>
         <Link
           to={notification.href}
           className={className}
@@ -236,7 +268,7 @@ function NotificationRow({
   }
 
   return (
-    <li>
+    <li className={styles.row ?? ''}>
       <button
         type="button"
         className={className}

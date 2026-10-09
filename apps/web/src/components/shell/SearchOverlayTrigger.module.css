@@ -107,7 +107,7 @@
   border-radius: 6px;
   background-color: var(--lp-pill-inactive);
   border: 1px solid var(--lp-line);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--lp-text-faint);

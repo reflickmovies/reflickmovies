@@ -59,5 +59,15 @@ const userSchema = new mongoose.Schema<UserDocument>(
   { versionKey: false, timestamps: true },
 );
 
+/*
+  Usernames are unique, case-insensitively.
+
+  `strength: 2` compares base letters and ignores case, so "Dune" and "dune" are the same name -
+  the same rule sign-in resolves with its `i` regex. `unique: true` on the field above would get
+  this wrong (it is case-sensitive). Production runs with `autoIndex` off, so `register` and
+  `updateProfile` check first; this index is the guarantee under a race, not just belt-and-braces.
+*/
+userSchema.index({ displayName: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
+
 export const UserModel: Model<UserDocument> =
   (mongoose.models.User as Model<UserDocument>) ?? mongoose.model<UserDocument>('User', userSchema);

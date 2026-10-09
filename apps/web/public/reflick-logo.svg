@@ -1,14 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 272 38" role="img" aria-label="Reflick">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 38" role="img" aria-label="Reflick">
   <title>Reflick</title>
   <text
-    x="0"
-    y="34"
-    font-family="'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif"
-    font-size="44"
+    x="2"
+    y="31"
+    font-family="'Baloo 2', 'Nunito Sans', 'Trebuchet MS', system-ui, sans-serif"
+    font-size="40"
     font-weight="700"
-    letter-spacing="5"
-    textLength="264"
-    lengthAdjust="spacing"
+    letter-spacing="0.5"
     fill="#e5484d"
-  >REFLICK</text>
+  >Reflick</text>
 </svg>

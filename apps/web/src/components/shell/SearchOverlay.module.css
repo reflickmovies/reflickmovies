@@ -253,7 +253,7 @@
   padding: 2px 7px;
   border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.18);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1.4;
@@ -438,7 +438,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: 0.75rem;
   color: var(--lp-text-faint);
 }
@@ -545,7 +545,7 @@
  * genuinely exists and opens a real detail page.
  */
 .notFoundHeading {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: var(--font-size-meta);
   letter-spacing: 0.08em;
   text-transform: uppercase;

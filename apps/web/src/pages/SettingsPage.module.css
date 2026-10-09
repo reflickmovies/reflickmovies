@@ -75,7 +75,7 @@
   padding: 2px 6px;
   border-radius: 6px;
   background-color: var(--lp-pill-inactive);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: 0.8125rem;
   color: var(--lp-text);
   /* Long keys like `reflick:watch-history` must not overflow their line. */

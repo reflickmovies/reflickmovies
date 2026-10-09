@@ -8,6 +8,7 @@ import { invalidateQuery } from '../hooks/useQuery';
 import { useAccount } from '../hooks/useReflick';
 import { replaceWatchHistory } from '../lib/watchHistory';
 import { useAuth } from '../components/account/AuthProvider';
+import { ProfileAvatar } from '../components/account/ProfileAvatar';
 import { Button, Input, LoadingState, useToast } from '../components/ui';
 import type { WatchEntry } from '../types/api';
 import styles from './AccountPage.module.css';
@@ -167,9 +168,7 @@ export function AccountPage() {
   return (
     <div className={styles.page ?? ''}>
       <header className={styles.identity ?? ''}>
-        <span className={styles.avatar ?? ''} aria-hidden>
-          {user.displayName.slice(0, 1).toUpperCase()}
-        </span>
+        <ProfileAvatar user={user} size={64} />
         <div className={styles.identityCopy ?? ''}>
           <h1 className={styles.name ?? ''}>{user.displayName}</h1>
           <p className={styles.email ?? ''}>{user.email}</p>

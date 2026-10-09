@@ -85,7 +85,7 @@
 
 .barTitle {
   margin: 0;
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: var(--font-size-heading-sm);
   font-weight: 600;
   letter-spacing: var(--letter-spacing-tight);
@@ -103,7 +103,7 @@
  */
 .barContext {
   margin: 2px 0 0;
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: var(--font-size-meta);
   font-variant-numeric: tabular-nums;
   color: var(--lp-text-faint);
@@ -367,7 +367,7 @@
 
 .episodesHeading {
   margin: 0;
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: clamp(1.6rem, 3.2vw, 2.125rem);
   font-weight: 600;
   letter-spacing: var(--letter-spacing-tight);
@@ -396,7 +396,8 @@
 }
 
 /*
- * The episode grid.
+ * The episode grid. Two columns from the smallest phone up, matching the title page and the
+ * Explore wall; the row stacks below 700px so two still fit across a narrow screen.
  *
  * Byte-for-byte the same rule as the title page's `.episodeList`, deliberately. Both render the
  * same `EpisodeRow`, and two containers describing the same layout is how a card ends up 340px wide
@@ -404,7 +405,7 @@
  */
 .episodeList {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-md);
 }
 

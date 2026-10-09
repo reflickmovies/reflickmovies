@@ -78,11 +78,15 @@ export function useHealth() {
  * The system notifications behind the header bell.
  *
  * No accounts, so there is no per-user inbox - the server derives a short list from real
- * catalogue and pipeline state. Cached for the default window; the client reads/unreads on
- * top with its own per-browser store, so the badge is honest even when the list is cached.
+ * catalogue and pipeline state. Cached for the default window, but polled on a gentle cadence
+ * (and refetched whenever the panel opens) so new releases and account notices appear on their
+ * own, with no reload. The client reads/unreads on top with its own per-browser store, so the
+ * badge stays honest while the list refreshes underneath it.
  */
 export function useNotifications() {
-  return useQuery<AppNotification[]>(KEY.notifications(), (signal) => api.getNotifications(signal));
+  return useQuery<AppNotification[]>(KEY.notifications(), (signal) => api.getNotifications(signal), {
+    refetchIntervalMs: 30_000,
+  });
 }
 
 /**

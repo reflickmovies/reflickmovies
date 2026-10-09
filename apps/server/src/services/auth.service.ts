@@ -25,6 +25,21 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Is this display name already spoken for?
+ *
+ * Case-insensitive, matching how sign-in resolves a username, so "Dune" and "dune" are one name.
+ * `exceptId` lets a profile save keep its own name. The unique index on the model is the real
+ * guarantee; this check exists to hand back a friendly 409 instead of a duplicate-key crash.
+ */
+async function displayNameTaken(displayName: string, exceptId?: string): Promise<boolean> {
+  const filter: Record<string, unknown> = {
+    displayName: new RegExp(`^${escapeRegExp(displayName)}$`, 'i'),
+  };
+  if (exceptId !== undefined) filter._id = { $ne: exceptId };
+  return (await UserModel.exists(filter)) !== null;
+}
+
 export interface PublicUser {
   id: string;
   email: string;
@@ -128,27 +143,39 @@ export async function register(emailRaw: string, password: string, displayNameRa
   if (await UserModel.exists({ email })) {
     throw ApiError.conflict('An account with that email already exists.');
   }
+  if (await displayNameTaken(displayName)) {
+    throw ApiError.conflict('That username is already taken. Try another.');
+  }
 
   const user = await UserModel.create({ email, displayName, passwordHash: hashPassword(password) });
   return { user: toPublicUser(user), token: signToken(String(user._id)) };
 }
 
-export async function login(identifierRaw: string, password: string): Promise<AuthResult> {
-  const identifier = identifierRaw.trim();
+export async function login(usernameRaw: string | null, emailRaw: string | null, password: string): Promise<AuthResult> {
+  const username = usernameRaw?.trim() ?? '';
+  const email = emailRaw?.trim().toLowerCase() ?? '';
 
   /*
-    One field, two keys: people remember their username or their email, not always which one they
-    signed up with. An `@` is the discriminator - usernames cannot contain one - so the lookup
-    picks email or display name without a second round-trip to ask "which did you mean?".
-  */
-  const user = identifier.includes('@')
-    ? await UserModel.findOne({ email: identifier.toLowerCase() })
-    : await UserModel.findOne({ displayName: new RegExp(`^${escapeRegExp(identifier)}$`, 'i') });
+    Two fields, so there is no guessing: an email wins when both are filled, otherwise the username.
+    The controller has already rejected a request where both are empty.
 
-  // One message for both "no such account" and "wrong password": distinguishing them lets an
-  // attacker enumerate which accounts are registered.
-  if (!user || !verifyPassword(password, user.passwordHash)) {
-    throw ApiError.unauthorized('Username/email or password is incorrect.');
+    "No such account" and "wrong password" are answered differently on purpose here. The brief asked
+    for a finding-your-account flow, which trades away the enumeration protection the single-message
+    version had: we now say which half was wrong so the client can offer sign-up.
+  */
+  const user =
+    email !== ''
+      ? await UserModel.findOne({ email })
+      : await UserModel.findOne({ displayName: new RegExp(`^${escapeRegExp(username)}$`, 'i') });
+
+  if (!user) {
+    throw ApiError.accountNotFound(
+      email !== '' ? `We couldn't find an account for ${email}.` : `We couldn't find an account called "${username}".`,
+    );
+  }
+
+  if (!verifyPassword(password, user.passwordHash)) {
+    throw ApiError.unauthorized('That password is incorrect.');
   }
 
   return { user: toPublicUser(user), token: signToken(String(user._id)) };
@@ -158,6 +185,9 @@ export async function updateProfile(id: string, displayNameRaw: string): Promise
   const displayName = displayNameRaw.trim();
   if (displayName.length < 2 || displayName.length > 40) {
     throw ApiError.validation('Display names must be between 2 and 40 characters.');
+  }
+  if (await displayNameTaken(displayName, id)) {
+    throw ApiError.conflict('That username is already taken. Try another.');
   }
 
   const user = await getUserById(id);

@@ -85,7 +85,7 @@
   place-items: center;
   min-height: 64px;
   padding-block: var(--space-lg);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: var(--font-size-meta);
   color: var(--lp-text-faint);
   text-align: center;

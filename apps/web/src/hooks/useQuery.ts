@@ -79,6 +79,8 @@ export interface QueryOptions {
   /** Skip the request entirely, e.g. while the query string is empty. */
   enabled?: boolean;
   ttlMs?: number;
+  /** Repeat the request on this cadence while the query is mounted and enabled. */
+  refetchIntervalMs?: number;
 }
 
 export function useQuery<T>(
@@ -86,7 +88,7 @@ export function useQuery<T>(
   fetcher: (signal: AbortSignal) => Promise<T>,
   options: QueryOptions = {},
 ): QueryState<T> {
-  const { enabled = true, ttlMs = DEFAULT_TTL_MS } = options;
+  const { enabled = true, ttlMs = DEFAULT_TTL_MS, refetchIntervalMs } = options;
 
   const cached = key != null && enabled ? readCache<T>(key, ttlMs) : null;
 
@@ -98,7 +100,15 @@ export function useQuery<T>(
   fetcherRef.current = fetcher;
 
   const [nonce, setNonce] = useState(0);
-  const refetch = useCallback(() => setNonce((value) => value + 1), []);
+  /*
+    A refetch means "go and ask again", so it drops the cached copy first. Without the delete it
+    would only re-run the effect, which finds the entry still inside its TTL and returns the same
+    value without a request - correct for a stale-while-revalidate read, wrong for a live feed.
+  */
+  const refetch = useCallback(() => {
+    if (key != null) cache.delete(key);
+    setNonce((value) => value + 1);
+  }, [key]);
 
   const isFirstLoad = data === null && error === null;
 
@@ -153,6 +163,17 @@ export function useQuery<T>(
     // recreated on every render and would restart the request endlessly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, enabled, ttlMs, nonce]);
+
+  /*
+    Optional live mode. A separate effect, so the fetch effect above keeps its key/nonce contract
+    and a poll is nothing more than a refetch on a timer. Cleared on unmount or whenever the
+    cadence, key or enabled flag changes.
+  */
+  useEffect(() => {
+    if (!enabled || key == null || refetchIntervalMs == null) return;
+    const id = window.setInterval(refetch, refetchIntervalMs);
+    return () => window.clearInterval(id);
+  }, [enabled, key, refetchIntervalMs, refetch]);
 
   return {
     data,

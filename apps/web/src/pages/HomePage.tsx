@@ -305,7 +305,15 @@ export function HomePage() {
       ) : null}
 
       {/* ------------------------------------------ Continue watching (mobile) */}
-      {continueEntries.length > 0 ? (
+      {/*
+        Gated on the hero having resolved.
+
+        Watch history is local, so it is ready before the first byte of the home payload - which
+        meant the row painted at the top of the page and was then shoved down when the hero landed,
+        a layout shift on every cold load. Waiting for `useHome` to settle puts the row in its final
+        place the first time it appears.
+      */}
+      {!isLoading && continueEntries.length > 0 ? (
         <section className={`${styles.shelfSection ?? ''} ${styles.mobileShelf ?? ''}`} aria-label="Continue watching">
           <div className={styles.shelfHeader ?? ''}>
             <h2 className={styles.shelfTitle ?? ''}>Continue watching</h2>

@@ -21,10 +21,23 @@ function parse<S extends z.ZodTypeAny>(schema: S, value: unknown): z.infer<S> {
   return result.data;
 }
 
-const loginSchema = z.object({
-  identifier: z.string().min(3).max(200),
-  password: z.string().min(1).max(200),
-});
+/**
+ * Sign-in takes a username or an email, from two separate fields.
+ *
+ * Either side may be blank, so both are optional here and a `refine` rejects the case where both
+ * are empty. The service prefers the email when both are filled, so the order of that check and
+ * this one do not have to agree on precedence.
+ */
+const loginSchema = z
+  .object({
+    username: z.string().max(40).optional(),
+    email: z.string().max(200).optional(),
+    password: z.string().min(1).max(200),
+  })
+  .refine((body) => (body.username?.trim() ?? '') !== '' || (body.email?.trim() ?? '') !== '', {
+    message: 'Enter your username or email.',
+    path: ['username'],
+  });
 
 const registerSchema = z.object({
   email: z.string().min(3).max(200),
@@ -66,7 +79,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const body = parse(loginSchema, req.body);
-  sendData(res, await auth.login(body.identifier, body.password));
+  sendData(res, await auth.login(body.username ?? null, body.email ?? null, body.password));
 });
 
 export const me = asyncHandler(async (_req: Request, res: Response) => {

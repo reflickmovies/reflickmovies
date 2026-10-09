@@ -14,7 +14,6 @@ import {
   Sun,
   Target,
   Television,
-  UserCircle,
 } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import { ROUTES } from '../../lib/routes';
@@ -23,6 +22,7 @@ import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
 import { useExitFade } from '../../hooks/useExitFade';
 import { useSpringIndicator } from '../../hooks/useSpringIndicator';
 import { useAuth } from '../account/AuthProvider';
+import { ProfileAvatar } from '../account/ProfileAvatar';
 import { useThemeMode } from './ThemeMode';
 import { SearchOverlay, SearchOverlayButton, useSearchOverlay } from './SearchOverlayTrigger';
 import { ContinueWatching } from './ContinueWatching';
@@ -393,7 +393,7 @@ export function AppShell() {
                   onClick={() => (user !== null ? navigate(ROUTES.account) : openAuth('signin'))}
                   aria-label={user !== null ? `Account: ${user.displayName}` : 'Sign in'}
                 >
-                  <UserCircle size={30} weight="fill" aria-hidden />
+                  <ProfileAvatar user={user} size={28} />
                 </button>
               </div>
             </header>
@@ -493,7 +493,7 @@ export function AppShell() {
           */}
           {user !== null ? (
             <NavLink to={ROUTES.account} className={styles.overflowMenuItem ?? ''} role="menuitem">
-              <UserCircle size={16} aria-hidden />
+              <ProfileAvatar user={user} size={18} />
               <span>Account</span>
             </NavLink>
           ) : (

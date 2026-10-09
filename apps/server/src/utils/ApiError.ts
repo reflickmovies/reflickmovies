@@ -28,6 +28,17 @@ export class ApiError extends Error {
     return new ApiError(401, 'UNAUTHORIZED', message);
   }
 
+  /**
+   * A sign-in that names no account at all.
+   *
+   * Distinct from `unauthorized` on purpose: the client turns this one into "you don't have an
+   * account yet" and offers sign-up, while a wrong password stays a plain retry. It is a 404 so it
+   * never collides with the 401 the token middleware uses to sign a stale session out.
+   */
+  static accountNotFound(message = "We couldn't find an account with those details."): ApiError {
+    return new ApiError(404, 'ACCOUNT_NOT_FOUND', message);
+  }
+
   static conflict(message = 'That already exists.', details?: unknown): ApiError {
     return new ApiError(409, 'CONFLICT', message, details);
   }

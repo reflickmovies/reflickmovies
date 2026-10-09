@@ -37,15 +37,33 @@
 }
 
 /*
- * A stand-in for the registration-only display-name field while signing in. It keeps the two tabs
- * the same height without drawing anything: the field still occupies its row, it just is not seen.
+ * The "or" between the username and email fields on sign-in.
+ *
+ * A hairline rule either side of the word, a size down from the fields, and pulled up by half the
+ * form's row gap so it reads as joining the two fields rather than as a third one.
  */
-.reserved {
-  visibility: hidden;
+.orDivider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-block: calc(var(--space-sm) * -1);
+  color: var(--lp-text-faint);
+  font-size: var(--font-size-micro);
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.orDivider::before,
+.orDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--lp-line);
 }
 
 .heading {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: var(--font-size-heading-lg);
   font-weight: 600;
   letter-spacing: var(--letter-spacing-tight);

@@ -99,8 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (formMode: AuthMode, values: AuthValues): Promise<void> => {
       const payload =
         formMode === 'signin'
-          ? await api.login(values.identifier, values.password)
-          : await api.register(values.identifier, values.password, values.displayName);
+          ? await api.login({ username: values.username, email: values.email, password: values.password })
+          : await api.register(values.email, values.password, values.displayName);
       await adopt(payload);
       setOpen(false);
     },

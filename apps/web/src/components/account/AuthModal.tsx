@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { EnvelopeSimple, LockKey, User } from '@phosphor-icons/react';
+import { ApiError } from '../../lib/api';
 import { Button, Input, Modal } from '../ui';
 import styles from './AuthModal.module.css';
 
 export type AuthMode = 'signin' | 'register';
 
 export interface AuthValues {
-  /** Sign-in: a username or an email. Register: the email. */
-  identifier: string;
+  /** Sign-in only. Blank when the person signed in with their email instead. */
+  username: string;
+  /** Sign-in: optional. Register: required. */
+  email: string;
   password: string;
+  /** Register only; sign-in leaves it blank. */
   displayName: string;
 }
 
@@ -38,6 +42,8 @@ const COPY: Record<AuthMode, { heading: string; subheading: string; cta: string 
   },
 };
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /**
  * Sign in / create account, as a popup rather than a page.
  *
@@ -46,9 +52,13 @@ const COPY: Record<AuthMode, { heading: string; subheading: string; cta: string 
  * site's own clothes - the serif heading the rest of the app uses for editorial type, the same
  * fields and buttons as every form - so it reads as part of Reflick rather than a bolted-on login
  * screen.
+ *
+ * Sign-in shows username and email as two fields with an "or" between them, rather than one box
+ * that has to guess. The service prefers the email when both are filled, so no precedence is lost.
  */
 export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthModalProps) {
-  const [identifier, setIdentifier] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +67,8 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
   // Reset on close so reopening never shows the previous attempt - or a stale error.
   useEffect(() => {
     if (open) return;
-    setIdentifier('');
+    setUsername('');
+    setEmail('');
     setPassword('');
     setDisplayName('');
     setError(null);
@@ -68,33 +79,53 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
     event.preventDefault();
     if (busy) return;
 
-    const trimmedIdentifier = identifier.trim();
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim();
     const trimmedName = displayName.trim();
 
     // The server validates all of this too; checking here keeps the round-trip off the common
     // mistakes and gives the same message either way.
-    if (mode === 'register' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedIdentifier)) {
-      setError('Enter a valid email address.');
-      return;
-    }
-    if (mode === 'signin' && trimmedIdentifier.length < 3) {
+    if (mode === 'register') {
+      if (!EMAIL_PATTERN.test(trimmedEmail)) {
+        setError('Enter a valid email address.');
+        return;
+      }
+      if (trimmedName.length < 2) {
+        setError('Choose a display name of at least 2 characters.');
+        return;
+      }
+    } else if (trimmedUsername === '' && trimmedEmail === '') {
       setError('Enter your username or email.');
       return;
     }
+
     if (password.length < 8) {
       setError('Passwords must be at least 8 characters.');
-      return;
-    }
-    if (mode === 'register' && trimmedName.length < 2) {
-      setError('Choose a display name of at least 2 characters.');
       return;
     }
 
     setError(null);
     setBusy(true);
     try {
-      await onSubmit(mode, { identifier: trimmedIdentifier, password, displayName: trimmedName });
+      await onSubmit(mode, {
+        username: trimmedUsername,
+        email: trimmedEmail,
+        password,
+        displayName: trimmedName,
+      });
     } catch (caught) {
+      /*
+        No account found: rather than dead-end on "try again", keep what they typed, carry the
+        username across as the display name, say so on the create-account form, and switch tabs.
+        `onModeChange` is called directly - not `switchMode` - so this explanation survives.
+      */
+      if (caught instanceof ApiError && caught.code === 'ACCOUNT_NOT_FOUND') {
+        if (trimmedName === '' && trimmedUsername !== '') setDisplayName(trimmedUsername);
+        setError(caught.message);
+        onModeChange('register');
+        setBusy(false);
+        return;
+      }
       setError(caught instanceof Error ? caught.message : 'Something went wrong. Please try again.');
       setBusy(false);
     }
@@ -148,15 +179,30 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
               maxLength={40}
               icon={<User size={18} aria-hidden />}
             />
+          ) : (
+            <Input
+              label="Username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoComplete="username"
+              maxLength={40}
+              icon={<User size={18} aria-hidden />}
+            />
+          )}
+
+          {mode === 'signin' ? (
+            <div className={styles.orDivider ?? ''} aria-hidden>
+              <span>or</span>
+            </div>
           ) : null}
 
           <Input
-            label={mode === 'signin' ? 'Username or email' : 'Email'}
-            type={mode === 'signin' ? 'text' : 'email'}
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
-            autoComplete={mode === 'signin' ? 'username' : 'email'}
-            inputMode={mode === 'signin' ? 'text' : 'email'}
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            inputMode="email"
             maxLength={200}
             icon={<EnvelopeSimple size={18} aria-hidden />}
           />
@@ -169,17 +215,6 @@ export function AuthModal({ open, mode, onClose, onModeChange, onSubmit }: AuthM
             autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
             icon={<LockKey size={18} aria-hidden />}
           />
-
-          {/*
-            Sign-in shows one fewer field than registration. Reserving a field's height here - a
-            real `Input`, hidden from view and assistive tech - keeps the button and footnote in the
-            same place across both tabs, so switching never makes the popup jump.
-          */}
-          {mode === 'signin' ? (
-            <div className={styles.reserved ?? ''} aria-hidden>
-              <Input label="Display name" value="" onChange={() => undefined} readOnly disabled />
-            </div>
-          ) : null}
 
           {error !== null ? (
             <p className={styles.error ?? ''} role="alert">

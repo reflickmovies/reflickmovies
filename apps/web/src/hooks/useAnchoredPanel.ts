@@ -31,6 +31,15 @@ const MAX_HEIGHT = 420;
  */
 export type AnchorMode = 'absolute' | 'fixed';
 
+/**
+ * Which side of the trigger the panel is pinned to.
+ *
+ * `auto` picks whichever side has more room, which is right for a trigger that can sit
+ * anywhere. `end` pins the panel's trailing edge to the trigger's, so a header control keeps
+ * its popover directly under itself instead of drifting toward the middle of the viewport.
+ */
+export type AnchorAlign = 'auto' | 'start' | 'end';
+
 export interface AnchoredPanel<TRoot extends HTMLElement = HTMLElement> {
   /** Attach to the trigger. */
   rootRef: RefObject<TRoot>;
@@ -63,6 +72,7 @@ export interface AnchoredPanel<TRoot extends HTMLElement = HTMLElement> {
 export function useAnchoredPanel<TRoot extends HTMLElement = HTMLElement>(
   open: boolean,
   mode: AnchorMode = 'absolute',
+  align: AnchorAlign = 'auto',
 ): AnchoredPanel<TRoot> {
   const rootRef = useRef<TRoot>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -76,8 +86,10 @@ export function useAnchoredPanel<TRoot extends HTMLElement = HTMLElement>(
     const viewportWidth = document.documentElement.clientWidth;
     const viewportHeight = window.innerHeight;
 
-    // Whichever side of the trigger has more room wins, so the panel opens into the screen.
-    const alignToStart = viewportWidth - rect.left >= rect.left;
+    // Whichever side of the trigger has more room wins, so the panel opens into the screen,
+    // unless the caller has pinned a side.
+    const alignToStart =
+      align === 'start' ? true : align === 'end' ? false : viewportWidth - rect.left >= rect.left;
 
     // Same vertically: below is the expected placement, above is the fallback when the trigger is
     // already near the bottom.
@@ -133,7 +145,7 @@ export function useAnchoredPanel<TRoot extends HTMLElement = HTMLElement>(
       right: alignToStart ? 'auto' : 0,
       maxHeight: `${height}px`,
     });
-  }, [mode]);
+  }, [mode, align]);
 
   useLayoutEffect(() => {
     if (!open) return;

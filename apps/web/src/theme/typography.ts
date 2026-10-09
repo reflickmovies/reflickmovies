@@ -12,19 +12,23 @@ function fluid(minRem: number, maxRem: number): string {
 }
 
 export const FONT_FAMILY = {
-  /** UI and body copy. */
-  SANS: "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   /**
-   * Wordmark and editorial headings. The only display face in the system, and until now the only
-   * serif - Fraunces, whose soft optical cut gives the wordmark the friendlier voice the site wants.
+   * UI and body copy. The one typeface the app is set in: Nunito Sans, a soft, rounded-terminal
+   * humanist sans with no sharp corners, so every label, paragraph and control shares a voice.
    */
-  SERIF: "'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif",
+  SANS: "'Nunito Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   /**
-   * Numerals inside pills and metadata. No longer a font of its own: the project runs on two
-   * families, so the numeric labels borrow the body face and lean on `font-variant-numeric` where
-   * columns of digits have to line up.
+   * The display face: page and section titles, the wordmark, and the handful of "important"
+   * moments that carry the brand voice. Baloo 2 is a fully rounded sans - soft terminals, no
+   * serifs - so the big type is friendlier than a serif without introducing a second text face.
    */
-  MONO: "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  DISPLAY: "'Baloo 2', 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  /**
+   * Numerals inside pills and metadata. Deliberately the same family as the body: the project
+   * runs on exactly two faces, so columns of digits align through `font-variant-numeric`, not a
+   * third typeface.
+   */
+  NUMERIC: "'Nunito Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
 } as const;
 
 export const FONT_SIZE = {
@@ -78,8 +82,8 @@ export const TEXT_TRANSFORM = {
 /** Published as CSS custom properties for `styles/globals.css`. */
 export const typographyVariables = {
   '--font-family-sans': FONT_FAMILY.SANS,
-  '--font-family-serif': FONT_FAMILY.SERIF,
-  '--font-family-mono': FONT_FAMILY.MONO,
+  '--font-family-display': FONT_FAMILY.DISPLAY,
+  '--font-family-numeric': FONT_FAMILY.NUMERIC,
 
   '--font-size-display-lg': FONT_SIZE.DISPLAY_LG,
   '--font-size-display': FONT_SIZE.DISPLAY,

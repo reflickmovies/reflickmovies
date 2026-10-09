@@ -72,10 +72,17 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   /* `width: fit-content` keeps the control sized to its label instead of stretching the row. */
   width: fit-content;
-  max-width: 100%;
+  /*
+    Capped, not just `max-width: 100%`.
+    A long source or season name used to be free to grow the pill until the row ran out of room,
+    at which point the whole picker wrapped onto the line below the heading. A hard cap plus an
+    ellipsised name keeps the control the same width whatever the label, so the row never
+    restructures.
+  */
+  max-width: min(100%, 15rem);
   padding: var(--space-sm) var(--space-lg);
   border: 1px solid var(--ep-line);
   border-radius: 9999px;
@@ -156,9 +163,17 @@
   font-size: var(--font-size-body-sm);
   font-weight: 600;
   color: var(--ep-text);
-  /* A season name with no spaces in it must not widen the control past the page. */
+  /*
+    One line, ellipsised.
+
+    The name is the only part of the pill that varies in length, so it is the part that yields:
+    `min-width: 0` lets it shrink below its text inside the flex trigger, and the clipping plus
+    ellipsis keeps a long name from either widening the control or wrapping the row.
+  */
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .seasonTriggerCount {
@@ -440,8 +455,14 @@
   }
 }
 
-/* Below this the thumbnail is not worth its row and the text needs the width. */
-@media (max-width: 460px) {
+/*
+ * Stacked on phones and small tablets.
+ *
+ * The grid is two-up from the smallest screen, so below this the row turns into a still over its
+ * text - the same shape as an Explore tile - which is what lets two episodes share a 360px width.
+ * The thumbnail keeps the full column, so it is not squashed beside a column of type.
+ */
+@media (max-width: 699px) {
   .episodeRow {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-sm);
@@ -492,7 +513,7 @@
 
 .episodeNumber {
   flex-shrink: 0;
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: var(--font-size-meta);
   color: var(--ep-text-faint);
 }

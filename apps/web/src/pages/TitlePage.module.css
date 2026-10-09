@@ -178,6 +178,7 @@
 }
 
 .heroTitle {
+  font-family: var(--font-family-display);
   font-size: clamp(1.875rem, 4.6vw, 3.25rem);
   font-weight: 800;
   line-height: 1.06;
@@ -417,7 +418,7 @@
  * competing with the synopsis it sits above.
  */
 .sectionHeading {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: var(--letter-spacing-tight);
@@ -480,7 +481,7 @@
 }
 
 .factLabel {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: var(--font-size-micro);
   font-weight: 500;
   letter-spacing: var(--letter-spacing-wide);
@@ -537,7 +538,7 @@
  * picker will not fit one row at phone widths.
  */
 .episodesHeading {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: clamp(1.6rem, 3.2vw, 2.125rem);
   font-weight: 600;
   letter-spacing: var(--letter-spacing-tight);
@@ -554,7 +555,7 @@
 }
 
 /*
- * One episode per row, two once there is room for them.
+ * Two episodes per row at every width, and more once there is room for them.
  *
  * This was a single-column flex list, which meant the "responsive two-column" rule that already
  * existed in `components/watch/watch.module.css` never ran anywhere - it was written against a
@@ -562,14 +563,14 @@
  * ten episodes was therefore always a single tall column, and on a wide screen half the page was
  * empty beside it.
  *
- * `minmax(340px, 1fr)` with `auto-fit` rather than a fixed `repeat(2, 1fr)` so the count follows
- * the available width instead of being pinned at two and leaving a wide gap on a large display.
- * The `340px` floor is the point where the still plus the synopsis stop fitting on one line; below
- * it the card stacks, which the row itself handles at 768px.
+ * Two fixed columns from the start, matching the Explore wall's two-up on a phone: below 700px
+ * the row itself stacks so each card is a still over its text, which is what makes two fit across
+ * a narrow screen. Above 900px `auto-fit` lets the count follow the available width - three or more
+ * on a large display - rather than being pinned at two with a wide gap.
  */
 .episodeList {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-md);
 }
 

@@ -43,7 +43,7 @@
 }
 
 .notFoundCode {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: var(--font-size-micro);
   letter-spacing: var(--letter-spacing-wider);
   text-transform: uppercase;
@@ -55,7 +55,7 @@
 }
 
 .notFoundTitle {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: var(--font-size-display);
   font-weight: 600;
   letter-spacing: var(--letter-spacing-tight);

@@ -1,0 +1,16 @@
+/*
+ * The initial-letter avatar. One shape and one colour everywhere the account appears, so the
+ * header, the mobile menu and the account page all read as the same person.
+ */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-circle);
+  background-color: var(--lp-accent-red);
+  color: #ffffff;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}

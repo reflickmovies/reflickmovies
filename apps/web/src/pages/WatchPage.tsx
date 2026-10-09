@@ -407,10 +407,8 @@ export function WatchPage({ type }: WatchPageProps) {
       <p className={styles.streamNotice ?? ''}>
         <Info size={15} weight="fill" aria-hidden />
         <span>
-          <strong>Important notice:</strong> If the current server doesn't work, please try switching
-          to another server using the buttons above. Some servers may take a few seconds to load.
-          If you get rickrolled, please refresh the website and try again with a fresh search. If
-          something unexpected is displayed, please switch to another server.
+          <strong>Tip:</strong> If a server won't load, switch to another one above. Rickrolled or
+          something odd? Refresh and try a different server.
         </span>
       </p>
     ) : null;

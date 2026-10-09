@@ -2,10 +2,15 @@
  * The inline wordmark. The geometry lives in the component's `viewBox`; this only paints the
  * lettering, so the element scales to whatever height its owner gives it.
  */
+.wordmark {
+  /* A hair of overflow tolerance: the mixed-case word is measured, not stretched to a fixed width. */
+  overflow: visible;
+}
+
 .wordmark text {
-  font-family: var(--font-family-serif);
-  font-size: 44px;
+  font-family: var(--font-family-display);
+  font-size: 40px;
   font-weight: 700;
-  letter-spacing: 5px;
+  letter-spacing: 0.5px;
   fill: var(--lp-accent-red);
 }

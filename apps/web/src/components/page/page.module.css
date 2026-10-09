@@ -18,6 +18,7 @@
 }
 
 .title {
+  font-family: var(--font-family-display);
   font-size: clamp(1.5rem, 2.6vw, 2rem);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -255,7 +256,7 @@
  */
 .filterOptionCount {
   flex-shrink: 0;
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
   color: var(--lp-text-faint);
@@ -325,7 +326,7 @@
   padding: 2px 6px;
   border-radius: 6px;
   background-color: var(--lp-pill-inactive);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: 0.8125rem;
   color: var(--lp-accent-red);
 }

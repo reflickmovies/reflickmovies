@@ -410,8 +410,19 @@ export function register(email: string, password: string, displayName: string): 
   });
 }
 
-export function login(identifier: string, password: string): Promise<AuthPayload> {
-  return requestData<AuthPayload>('/auth/login', { method: 'POST', body: { identifier, password } });
+/** Sign-in credentials: a username or an email, plus the password. */
+export interface LoginCredentials {
+  username?: string;
+  email?: string;
+  password: string;
+}
+
+export function login(credentials: LoginCredentials): Promise<AuthPayload> {
+  const body: Record<string, string> = { password: credentials.password };
+  // Only send the field the person actually filled; an empty string would fail the server refine.
+  if (credentials.username) body.username = credentials.username;
+  if (credentials.email) body.email = credentials.email;
+  return requestData<AuthPayload>('/auth/login', { method: 'POST', body });
 }
 
 export function getMe(signal?: AbortSignal): Promise<{ user: AccountUser }> {

@@ -219,7 +219,7 @@
   border: 1px solid var(--lp-line);
   border-radius: var(--radius-sm);
   background-color: var(--lp-bg);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: var(--font-size-meta);
   font-weight: 500;
   line-height: 1;
@@ -238,7 +238,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: var(--font-size-meta);
   font-weight: 500;
   color: var(--lp-text-muted);
@@ -505,6 +505,7 @@
 }
 
 .stateTitle {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-heading);
   font-weight: 600;
   letter-spacing: var(--letter-spacing-tight);
@@ -580,6 +581,7 @@
 }
 
 .modalTitle {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-heading);
   font-weight: 500;
   color: var(--lp-text);
@@ -611,7 +613,7 @@
 }
 
 .pageStatus {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-numeric);
   font-size: var(--font-size-meta);
   color: var(--lp-text-muted);
 }
@@ -627,6 +629,7 @@
 }
 
 .sectionTitle {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-heading-lg);
   font-weight: 500;
   letter-spacing: var(--letter-spacing-tight);

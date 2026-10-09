@@ -71,14 +71,22 @@ export interface ProviderRow {
 }
 
 /**
- * The provider that must always be offered first.
+ * Providers that are always offered first, in this order.
  *
  * Ordering used to come from `priority` plus an alphabetical tie-break, which meant a stale
- * or tied priority let "Cineverse" sort ahead of Filmu on the name comparison alone. The
- * listing order is a product decision, not data, so it is pinned here: Filmu leads, and
- * everything else follows the configured priority.
+ * or tied priority could sort any provider ahead of another on the name comparison alone. The
+ * listing order is a product decision, not data, so the leading slots are pinned here: Filmu
+ * leads, Bingr is second, and everything else follows the configured priority.
+ *
+ * Both a movie and a TV row share a prefix, so the list is matched at the front of the key.
  */
-const PREFERRED_PROVIDER_PREFIX = 'filmu-';
+const PREFERRED_PROVIDER_PREFIXES = ['filmu-', 'bingr-'];
+
+/** Position in the pinned list, or one past the end for every unpinned provider. */
+function preferredRank(key: string): number {
+  const index = PREFERRED_PROVIDER_PREFIXES.findIndex((prefix) => key.startsWith(prefix));
+  return index === -1 ? PREFERRED_PROVIDER_PREFIXES.length : index;
+}
 
 /**
  * Providers are configuration. If the collection is empty the site simply reports
@@ -90,10 +98,8 @@ export async function listProviders(includeDisabled = false): Promise<ProviderRo
     .sort({ priority: 1, name: 1 })
     .lean<ProviderRow[]>();
 
-  const preferred = rows.filter((row) => row.key.startsWith(PREFERRED_PROVIDER_PREFIX));
-  if (preferred.length === 0) return rows;
-
-  return [...preferred, ...rows.filter((row) => !row.key.startsWith(PREFERRED_PROVIDER_PREFIX))];
+  // Stable, so unpinned providers keep the priority/name order the query returned them in.
+  return [...rows].sort((a, b) => preferredRank(a.key) - preferredRank(b.key));
 }
 
 export async function providerCount(): Promise<number> {
