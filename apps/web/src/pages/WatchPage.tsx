@@ -409,7 +409,8 @@ export function WatchPage({ type }: WatchPageProps) {
         <span>
           <strong>Important notice:</strong> If the current server doesn't work, please try switching
           to another server using the buttons above. Some servers may take a few seconds to load.
-          If you get rickrolled, please refresh the website and try again with a fresh search.
+          If you get rickrolled, please refresh the website and try again with a fresh search. If
+          something unexpected is displayed, please switch to another server.
         </span>
       </p>
     ) : null;
@@ -475,6 +476,25 @@ export function WatchPage({ type }: WatchPageProps) {
           resolving to playing to failed never changes the size of anything below.
         */}
         <div className={styles.stage ?? ''}>
+          {/*
+            The border sweep: loops while sources resolve, runs one completing revolution the
+            moment a source lands, then hides itself. `activeServer` is the "source landed"
+            signal; before that the frame shows the loading fallback, and without either the ring
+            stays invisible.
+          */}
+          <span
+            className={[
+              styles.stageSweep ?? '',
+              serversLoading
+                ? (styles.stageSweepLoading ?? '')
+                : activeServer
+                  ? (styles.stageSweepFinish ?? '')
+                  : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            aria-hidden
+          />
           {serversLoading ? (
             <div className={styles.fallback ?? ''}>
               {/*

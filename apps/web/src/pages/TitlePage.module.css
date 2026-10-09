@@ -277,7 +277,7 @@
 .heroActions {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   flex-wrap: wrap;
   margin-top: var(--space-sm);
 }
@@ -285,16 +285,17 @@
 /*
  * The one primary action.
  *
- * Red on white text, and 52px rather than 48: it is the largest control on the page and the only
- * reason most visitors arrive, so it should not be the same size as the secondary buttons beside
- * it.
+ * Red on white text, and the largest control on the page - the reason most visitors arrive. 44px
+ * and a compact label keep it sitting on one line with the secondary button beside it, which is
+ * what makes the pair read as a single "what can I do here" rather than two rows of options.
  */
 .playButton {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  height: 52px;
-  padding-inline: 30px;
+  white-space: nowrap;
+  gap: 8px;
+  height: 44px;
+  padding-inline: 22px;
   border-radius: 9999px;
   background-color: var(--lp-accent-red);
   color: #ffffff;
@@ -310,19 +311,33 @@
   transform: translateY(-1px);
 }
 
+/* Press feedback on the way out, mirroring the hero's play control. */
+.playButton:active,
+.heroSecondary:active {
+  transform: scale(0.97);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .playButton:hover {
+  .playButton:hover,
+  .playButton:active,
+  .heroSecondary:active {
     transform: none;
   }
 }
 
-/* Secondary action: translucent to match the hero rather than a solid panel control. */
+/*
+ * Secondary action: translucent to match the hero rather than a solid panel control.
+ *
+ * Same 44px line as the play button so "Watch" and "Episodes" share one row in the hero; on a
+ * phone the actions still wrap rather than fighting the copy for space.
+ */
 .heroSecondary {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
   gap: 8px;
-  height: 52px;
-  padding-inline: 24px;
+  height: 44px;
+  padding-inline: 18px;
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.26);
   background-color: rgba(255, 255, 255, 0.09);
@@ -332,11 +347,57 @@
   text-decoration: none;
   backdrop-filter: blur(6px);
   transition: background-color var(--motion-fast) var(--motion-ease),
-    border-color var(--motion-fast) var(--motion-ease);
+    border-color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
 }
 
 .heroSecondary:hover {
   background-color: rgba(255, 255, 255, 0.18);
+}
+
+/*
+ * Floating back control, top-left over the artwork.
+ *
+ * Translucent dark glass so it stays legible over a bright backdrop without the scrim's help,
+ * mirroring the player bar's own back button so the two players (detail page and watch page)
+ * answer navigation the same way. The hero is `isolation: isolate`, so the button can never
+ * escape the rounded frame.
+ */
+.heroBack {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 50%;
+  background-color: rgba(9, 9, 10, 0.35);
+  color: #ffffff;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
+}
+
+.heroBack:hover {
+  background-color: rgba(9, 9, 10, 0.55);
+  border-color: var(--lp-accent-red);
+}
+
+.heroBack:active {
+  transform: scale(0.93);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroBack:active {
+    transform: none;
+  }
 }
 
 /* ---------------------------------------------------------------- Section */

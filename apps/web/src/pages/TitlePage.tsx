@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
+  ArrowLeft,
   CalendarBlank,
   Clock,
   FileX,
@@ -107,6 +108,18 @@ export function TitlePage({ type }: TitlePageProps) {
     [navigate, title],
   );
 
+  /*
+    Back, with a fallback for direct links.
+
+    A reader arriving here from within the app has somewhere to return to, and a history length of
+    one means they came straight to the URL instead (the app's own first entry) - in which case
+    "go back" has nothing to answer, so it goes home.
+  */
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate(ROUTES.home);
+  }, [navigate]);
+
   if (error && !title) {
     return (
       <div className={styles.page ?? ''}>
@@ -173,6 +186,10 @@ export function TitlePage({ type }: TitlePageProps) {
           <div className={styles.heroBackdropFallback ?? ''} aria-hidden />
         )}
         <div className={styles.heroScrim ?? ''} aria-hidden />
+
+        <button type="button" className={styles.heroBack ?? ''} onClick={handleBack} aria-label="Go back">
+          <ArrowLeft size={17} aria-hidden />
+        </button>
 
         <div className={styles.heroBody ?? ''}>
           {title.poster ? (

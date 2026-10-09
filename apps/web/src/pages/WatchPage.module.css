@@ -208,6 +208,140 @@
 }
 
 /*
+ * The frame's own reveal, a beat behind the shell's `watchOpen`.
+ *
+ * The wrapper scales the whole page; the stage then opens from slightly inside itself, 80ms
+ * later, so the eye arrives on the player rather than on the page around it. Local keyframes
+ * rather than the shared set, because this is the one entrance that is a scale and not a rise.
+ * Wrapped in `no-preference` because the transform is the point here - under `reduce` the frame
+ * should simply be there.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .stage {
+    animation: stageOpen 560ms var(--motion-spring-soft) 80ms backwards;
+  }
+}
+
+@keyframes stageOpen {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * The sweep that travels around the frame's border while a source is on its way.
+ *
+ * A wedge of accent-coloured light masked down to the frame's 2px border ring, so it reads as a
+ * searchlight running around the player rather than as a glow filling it. While the sources are
+ * still resolving it loops; the moment a source lands it runs one final full revolution - which
+ * covers every point of the border exactly once - and then fades itself out, so "ready" is the
+ * border going quiet after one last full sweep. Reusing the `--motion` easings keeps it in the
+ * same family as the frame's own reveal.
+ *
+ * The base rule is inert (`opacity: 0`): the states live under `no-preference`, so a
+ * `reduce` visitor never sees the ring and, since there is no transition off it, nothing is left
+ * glowing when the animation is stripped.
+ */
+.stageSweep {
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  padding: 2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--lp-accent-red) 22deg,
+    var(--brand-red-wash) 36deg,
+    transparent 76deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stageSweepLoading {
+    animation: stageSweepLoop 1.4s linear infinite;
+    opacity: 1;
+  }
+
+  .stageSweepFinish {
+    animation: stageSweepFinish 1.1s var(--motion-ease) forwards;
+  }
+}
+
+/*
+ * Animate the gradient's `from` angle rather than an element rotation. The ring is circular, so
+ * rotating it does nothing visible; the angle is the only thing that can travel.
+ */
+@keyframes stageSweepLoop {
+  from {
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      var(--lp-accent-red) 22deg,
+      var(--brand-red-wash) 36deg,
+      transparent 76deg
+    );
+  }
+
+  to {
+    background: conic-gradient(
+      from 360deg,
+      transparent 0deg,
+      var(--lp-accent-red) 22deg,
+      var(--brand-red-wash) 36deg,
+      transparent 76deg
+    );
+  }
+}
+
+/* One full journey around the border, then the ring lets go of itself. */
+@keyframes stageSweepFinish {
+  0% {
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      var(--lp-accent-red) 22deg,
+      var(--brand-red-wash) 36deg,
+      transparent 76deg
+    );
+    opacity: 1;
+  }
+
+  75% {
+    background: conic-gradient(
+      from 270deg,
+      transparent 0deg,
+      var(--lp-accent-red) 22deg,
+      var(--brand-red-wash) 36deg,
+      transparent 76deg
+    );
+    opacity: 1;
+  }
+
+  100% {
+    background: conic-gradient(
+      from 360deg,
+      transparent 0deg,
+      var(--lp-accent-red) 22deg,
+      var(--brand-red-wash) 36deg,
+      transparent 76deg
+    );
+    opacity: 0;
+  }
+}
+
+/*
  * The "try another server" notice.
  *
  * Rendered twice - directly under the frame and again above the episode list - so the answer to

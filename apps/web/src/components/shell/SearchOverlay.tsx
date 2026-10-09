@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FilmSlate, MagnifyingGlass, Television, X } from '@phosphor-icons/react';
 import { useBrowse, useSuggest } from '../../hooks/useReflick';
@@ -60,8 +60,12 @@ function NothingFound({ term, onNavigate }: { term: string; onNavigate: () => vo
         <>
           <p className={styles.notFoundHeading ?? ''}>Highest rated instead</p>
           <ul className={styles.notFoundGrid ?? ''}>
-            {picks.map((title) => (
-              <li key={`${title.type}-${title.slug}`}>
+            {picks.map((title, index) => (
+              /*
+                `--ni` staggers the fallback posters in on top of the panel's own entrance, so the
+                recommendations read as a shelf filling rather than a block that arrived whole.
+              */
+              <li key={`${title.type}-${title.slug}`} style={{ '--ni': index } as CSSProperties}>
                 {/* The dialog has to close itself here, or the page change happens behind a
                     modal the reader can no longer see or dismiss. */}
                 <Link to={title.path} className={styles.notFoundCard ?? ''} onClick={onNavigate}>
@@ -299,7 +303,7 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
                 </li>
               ) : (
                 items.map((item, index) => (
-                  <li key={`${item.type}-${item.id}`} role="presentation">
+                  <li key={`${item.type}-${item.id}`} role="presentation" style={{ '--su-i': index } as CSSProperties}>
                     <button
                       type="button"
                       role="option"
@@ -353,7 +357,11 @@ export function SearchOverlay({ open, onOpenChange }: SearchOverlayProps) {
                 difference between typeahead and search would have to be guessed at.
               */}
               {items.length > 0 ? (
-                <li className={styles.dropdownFooter ?? ''} role="presentation">
+                <li
+                  className={styles.dropdownFooter ?? ''}
+                  role="presentation"
+                  style={{ '--su-i': items.length } as CSSProperties}
+                >
                   <button
                     type="button"
                     className={styles.footerButton ?? ''}

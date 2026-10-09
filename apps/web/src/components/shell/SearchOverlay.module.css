@@ -310,6 +310,25 @@
   }
 }
 
+/*
+ * The rows settle one by one.
+ *
+ * Without this the whole suggestion list arrives as one block on top of the dropdown's own
+ * entrance, which makes a full-size list appear and then sit there unchanged. The per-row
+ * stagger hands the eye one title at a time as a query lands, and reintroduces it when a fresh
+ * keystroke swaps the suggestions under the pointer. The delay clamps so a long list arrives
+ * with its tail rather than waiting its turn.
+ *
+ * Wrapped in `no-preference`: with movement off there is no stagger to have, and rows must not
+ * sit at opacity 0 during a delay that reduce has stripped.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .dropdown > li {
+    animation: premiumRise var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
+    animation-delay: min(calc(var(--su-i, 0) * 36ms), 400ms);
+  }
+}
+
 .dropdownEmpty {
   padding: var(--space-lg) var(--space-md);
   font-size: 0.9375rem;
@@ -487,6 +506,26 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
+}
+
+/*
+ * The no-result panel arrives as a whole, then the fallback posters fill in beneath it.
+ *
+ * The block rises so "nothing matched" lands as content rather than appearing mid-layout; the
+ * cards below it then stagger in so the recommendation shelf reads as being populated, not as a
+ * fully-formed grid that popped into existence. Only the posters stagger - the heading and the
+ * action links travel with the panel, because the moment they belong to is "the search settled",
+ * not "the shelf is full".
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .notFound {
+    animation: premiumRise var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
+  }
+
+  .notFoundGrid > li {
+    animation: premiumRise var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
+    animation-delay: min(calc(var(--ni, 0) * 70ms), 420ms);
+  }
 }
 
 /*

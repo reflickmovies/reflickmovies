@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { CaretDown, CaretUp, Database, Flame, Info, Play, Star } from '@phosphor-icons/react';
 import { useHome } from '../hooks/useReflick';
 import { useWatchHistory } from '../hooks/useWatchHistory';
-import { ROUTES, titlePath, watchPath } from '../lib/routes';
+import { titlePath, watchPath } from '../lib/routes';
 import { typeLabel } from '../lib/format';
 import type { TitleSummary } from '../types/api';
 import styles from './HomePage.module.css';
@@ -294,8 +294,8 @@ export function HomePage() {
           <div>
             <h2 className={styles.emptyTitle ?? ''}>The catalogue is empty</h2>
             <p className={styles.emptyText ?? ''}>
-              Reflick serves titles from its own database, not from TMDB at request time. Run{' '}
-              <code>npm run sync</code> with an API key in <code>apps/server/.env</code>, then reload.
+              Nothing has been indexed for this site yet. Films and series appear here once the
+              catalogue has been filled, so check back later.
             </p>
             <button type="button" onClick={() => setDismissed(true)} className={styles.retryButton ?? ''}>
               Dismiss
@@ -468,18 +468,6 @@ export function HomePage() {
           </div>
         </section>
       ))}
-
-      {/* Unsigned-in prompt, only when there is something to do without a profile. */}
-      {!showEmptyNotice && shelves.length > 0 ? (
-        <footer className={styles.homeFooter ?? ''}>
-          <span className={styles.footerText ?? ''}>
-            Reflick serves everything from its own database. Titles are synced from TMDB by the server.
-          </span>
-          <Link to={ROUTES.settings} className={styles.footerLink ?? ''}>
-            Settings
-          </Link>
-        </footer>
-      ) : null}
     </div>
   );
 }

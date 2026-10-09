@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react';
+import type { CSSProperties, MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -61,6 +61,20 @@ const TAB_SWIPE_VERTICAL_SLACK = 1.4;
 /** How long a swipe keeps swallowing the click the browser fires after `touchend`. */
 const TAB_SWIPE_CLICK_GUARD = 500;
 
+/*
+ * The one-time brand intro, spelled out on first paint.
+ *
+ * The wordmark types itself letter by letter over the app surface, then the whole typed word
+ * glides down to where the logo actually rests - the header's brand on the compact layout, the
+ * rail's wordmark from laptop widths up - and the surface lifts to reveal it. Timing constants
+ * get their own names because the choreography touches three separate phases.
+ */
+const BRAND_NAME = 'Reflick';
+const BRAND_LETTER_MS = 110;
+const BRAND_LAND_DELAY_MS = 260;
+const BRAND_GLIDE_MS = 640;
+const BRAND_FADE_MS = 260;
+
 /**
  * The permanent frame: rail on the left, header plus one scrollport on the right.
  *
@@ -80,6 +94,93 @@ export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { rootRef: menuAnchorRef, panelRef: menuPanelRef, panelStyle: menuStyle } =
     useAnchoredPanel<HTMLButtonElement>(menuOpen, 'fixed');
+
+  /*
+    The one-time brand intro.
+
+    Runs exactly once per full page load - AppShell mounts with the app and persists for the
+    whole session, so nothing here can replay on a route change. `matchMedia` is read in the
+    initialiser so `reduce` visitors never even see the overlay flash; the phase machine then
+    walks typing -> glide -> fading -> done on a set of timers.
+  */
+  const [brandPhase, setBrandPhase] = useState<'typing' | 'glide' | 'fading' | 'done'>(() =>
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      ? 'done'
+      : 'typing',
+  );
+  const [brandLetters, setBrandLetters] = useState(0);
+  const [brandTransform, setBrandTransform] = useState<CSSProperties>({});
+  const brandWordRef = useRef<HTMLSpanElement>(null);
+  const railBrandRef = useRef<HTMLAnchorElement>(null);
+  const topBrandRef = useRef<HTMLAnchorElement>(null);
+
+  /* Typewriter: one letter per beat, then the interval stops itself on the last one. */
+  useEffect(() => {
+    if (brandPhase !== 'typing') return;
+    const interval = window.setInterval(() => {
+      setBrandLetters((count) => {
+        if (count >= BRAND_NAME.length) {
+          window.clearInterval(interval);
+          return count;
+        }
+        return count + 1;
+      });
+    }, BRAND_LETTER_MS);
+    return () => window.clearInterval(interval);
+  }, [brandPhase]);
+
+  /*
+    The glide, once the word is complete.
+
+    The endpoint is measured, not assumed: whichever brand link is actually visible - the rail's
+    wordmark at laptop widths and up, the header's logo below that - is where the typed word is
+    going. The hidden link reports a zero-sized rect, which is what lets the filter pick the
+    real one. A short pause after the last letter is what gives the completed word a moment to
+    be read before it travels.
+  */
+  useEffect(() => {
+    if (brandPhase !== 'typing' || brandLetters < BRAND_NAME.length) return;
+
+    const settle = window.setTimeout(() => {
+      const word = brandWordRef.current;
+      if (!word) {
+        setBrandPhase('done');
+        return;
+      }
+      const start = word.getBoundingClientRect();
+      if (start.width === 0) {
+        setBrandPhase('done');
+        return;
+      }
+
+      const target = [railBrandRef.current, topBrandRef.current]
+        .filter((element): element is HTMLAnchorElement => element !== null)
+        .map((element) => element.getBoundingClientRect())
+        .find((rect) => rect.width > 0 && rect.height > 0);
+      if (!target) {
+        setBrandPhase('done');
+        return;
+      }
+
+      const dx = target.left + target.width / 2 - (start.left + start.width / 2);
+      const dy = target.top + target.height / 2 - (start.top + start.height / 2);
+      setBrandTransform({ transform: `translate(${dx}px, ${dy}px) scale(${target.width / start.width})` });
+      setBrandPhase('glide');
+    }, BRAND_LAND_DELAY_MS);
+
+    return () => window.clearTimeout(settle);
+  }, [brandPhase, brandLetters]);
+
+  /* Fade the surface after the glide lands, then drop the overlay from the tree entirely. */
+  useEffect(() => {
+    if (brandPhase !== 'glide') return;
+    const fade = window.setTimeout(() => setBrandPhase('fading'), BRAND_GLIDE_MS);
+    const done = window.setTimeout(() => setBrandPhase('done'), BRAND_GLIDE_MS + BRAND_FADE_MS);
+    return () => {
+      window.clearTimeout(fade);
+      window.clearTimeout(done);
+    };
+  }, [brandPhase]);
 
   /*
     Every navigation resets the scrollport.
@@ -209,7 +310,12 @@ export function AppShell() {
             <div className={styles.sidebarRail ?? ''}>
               <div className={styles.sidebarInner ?? ''}>
                 <div className={styles.brandHeader ?? ''}>
-                  <Link to={ROUTES.home} className={styles.brandWordmark ?? ''} aria-label="Reflick home">
+                  <Link
+                    to={ROUTES.home}
+                    ref={railBrandRef}
+                    className={styles.brandWordmark ?? ''}
+                    aria-label="Reflick home"
+                  >
                     <img src="/reflick-logo.svg" alt="" />
                   </Link>
                 </div>
@@ -266,7 +372,12 @@ export function AppShell() {
               and the rail copy was above a search box with no header of its own.
             */}
             <header className={topNavStyles.topNav ?? ''}>
-              <Link to={ROUTES.home} className={topNavStyles.brand ?? ''} aria-label="Reflick home">
+              <Link
+                to={ROUTES.home}
+                ref={topBrandRef}
+                className={topNavStyles.brand ?? ''}
+                aria-label="Reflick home"
+              >
                 <img src="/reflick-logo.svg" alt="" />
               </Link>
 
@@ -373,11 +484,19 @@ export function AppShell() {
                 and a first visit to a section downloads its chunk behind `LoadingState`.
 
                 The wrapper is keyed on the pathname, which does two jobs. It remounts the page
-                on navigation so `pageEnter` replays on every route change, and it keeps the
+                on navigation so the entrance replays on every route change, and it keeps the
                 query string out of it - picking an episode or a sort does not restart the page.
+                The entrance itself is picked here too: playback gets `watchOpen`, which scales
+                as well as rises so clicking Watch reads as the frame opening rather than as the
+                next screen sliding in.
               */}
               <Suspense fallback={<LoadingState />}>
-                <div key={location.pathname} className={`${styles.pageStack ?? ''} ${styles.pageEnter ?? ''}`.trim()}>
+                <div
+                  key={location.pathname}
+                  className={`${styles.pageStack ?? ''} ${
+                    location.pathname.startsWith('/watch') ? (styles.watchEnter ?? '') : (styles.pageEnter ?? '')
+                  }`.trim()}
+                >
                   <Outlet />
                 </div>
               </Suspense>
@@ -493,6 +612,30 @@ export function AppShell() {
 
       {/* One overlay, regardless of which button opened it. */}
       <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
+
+      {/*
+        The brand intro, while it is still running.
+
+        Fixed full-viewport surface with only the word and its caret on it. It is decorative -
+        `aria-hidden` and `pointer-events: none` - so the app behind is fully usable the moment
+        it stops covering the screen, and the whole box is removed from the tree once the fade
+        completes. `will-change` lives in the CSS; here only the measured glide transform changes.
+      */}
+      {brandPhase !== 'done' ? (
+        <div
+          className={`${styles.brandIntro ?? ''} ${brandPhase === 'fading' ? (styles.brandIntroFade ?? '') : ''}`.trim()}
+          aria-hidden
+        >
+          <span ref={brandWordRef} className={styles.brandIntroWord ?? ''} style={brandTransform}>
+            {Array.from(BRAND_NAME.slice(0, brandLetters)).map((character, index) => (
+              <span key={index}>{character}</span>
+            ))}
+            {brandLetters < BRAND_NAME.length ? (
+              <span className={styles.brandIntroCaret ?? ''} aria-hidden />
+            ) : null}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }

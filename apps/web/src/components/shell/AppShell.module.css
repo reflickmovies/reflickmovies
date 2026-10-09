@@ -395,6 +395,32 @@ min-width: 0;
   }
 }
 
+/*
+ * Playback opens instead of arriving.
+ *
+ * Same remount-driven contract as `pageEnter`, but the wrapper also scales from just inside
+ * its final size, so the whole screen growing into place behind the player reads as a frame
+ * opening rather than as the next page sliding in. One gesture, a hair longer than the
+ * standard entrance, `backwards` for the same reason: the resting state and the final
+ * keyframe are identical, so nothing is held after the animation and hovers inside the page
+ * are untouched. The shell picks this class for `/watch` routes; every other route keeps
+ * `pageEnter`.
+ */
+.watchEnter {
+  animation: watchOpen 480ms var(--motion-spring-soft) backwards;
+}
+
+@keyframes watchOpen {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ---------------------------------------------------------------- Mobile nav */
 
 /*
@@ -616,4 +642,88 @@ min-width: 0;
   font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- Brand intro */
+
+/*
+ * The first-load typewriter: a full-surface box on which the wordmark spells itself, then
+ * glides down to where the logo actually lives.
+ *
+ * Opaque background so the typed letters have a clean ground and the arriving app is not
+ * already competing with them; `pointer-events: none` because the whole thing is decorative.
+ * Fixed rather than inheriting the shell's height lock, because this box covers the viewport by
+ * definition. The fade class only drops `opacity`, and the plain `transition` on it means the
+ * surface - and the letters on it, including the destination they just travelled to - lifts to
+ * reveal the real logo waiting underneath.
+ */
+.brandIntro {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: grid;
+  place-items: center;
+  background-color: var(--lp-bg);
+  pointer-events: none;
+  transition: opacity var(--motion-base) var(--motion-ease);
+}
+
+.brandIntroFade {
+  opacity: 0;
+}
+
+/*
+ * One moving unit: the whole typed word.
+ *
+ * The letters are ordinary spans inside; only this box travels. The glide is an inline
+ * `transform` measured against the resting logo, so the word ends at the same spot and size
+ * the real logo covers rather than at some rehearsed position - which is also why the two can
+ * never drift apart if the brand moves.
+ */
+.brandIntroWord {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.02em;
+  font-family: var(--font-family-serif);
+  font-size: clamp(3rem, 12vw, 5.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--lp-accent-red);
+  transform-origin: center;
+  transition: transform var(--motion-spring-duration) var(--motion-spring);
+  will-change: transform;
+}
+
+/* Each letter arrives with the same short rise, on the beat the typewriter reaches it. */
+.brandIntroWord > span {
+  animation: premiumRise 340ms var(--motion-spring-soft) backwards;
+}
+
+/*
+ * The caret, blinking on the typewriter's beat.
+ *
+ * Larger than a text caret on purpose: at this size it has to be visible across a phone held
+ * at arm's length, or the typing reads as a static word. Steps rather than a fade so it snaps
+ * on and off the way a real caret does.
+ */
+.brandIntroCaret {
+  align-self: center;
+  width: 0.055em;
+  height: 0.72em;
+  margin-left: 0.08em;
+  border-radius: 99px;
+  background-color: currentColor;
+  animation: brandCaret 900ms steps(2, end) infinite;
+}
+
+@keyframes brandCaret {
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
