@@ -116,6 +116,14 @@ export function useInfiniteBrowse({ enabled = true, ...params }: InfiniteBrowseP
   */
   const consumed = useRef<BrowseResult | null>(null);
 
+  /*
+    How many pages have been merged into `items`, kept as a ref because `requestNext` needs it
+    outside a render. It is the source of truth for "what is the next page", so two requests in
+    the same tick (the observer and the top-up check can both fire for one view before any fetch
+    has started) collapse onto the same page instead of skipping one.
+  */
+  const appendedRef = useRef(0);
+
   useEffect(() => {
     const data = current.data;
     if (!data || consumed.current === data) return;
@@ -124,6 +132,7 @@ export function useInfiniteBrowse({ enabled = true, ...params }: InfiniteBrowseP
     if (data.items.length === 0) return;
 
     consumed.current = data;
+    appendedRef.current += 1;
 
     setItems((existing) => {
       const seen = new Set(existing.map((title) => `${title.type}:${title.slug}`));
@@ -157,6 +166,7 @@ export function useInfiniteBrowse({ enabled = true, ...params }: InfiniteBrowseP
 
     previousFilterKey.current = filterKey;
     consumed.current = null;
+    appendedRef.current = 0;
     setItems([]);
     setPage(1);
   }, [filterKey]);
@@ -164,46 +174,102 @@ export function useInfiniteBrowse({ enabled = true, ...params }: InfiniteBrowseP
   const totalPages = current.data?.pagination.totalPages ?? 1;
   const hasMore = page < totalPages && items.length < MAX_ITEMS;
 
+  /*
+    Live values for the observer and the top-up check below.
+
+    The observer is created once and kept for the life of the sentinel node, so everything it
+    reads must come through refs rather than the render it was born in. `totalPages` starts as
+    one until the first page lands, which is why the ref's initial value matters here.
+  */
+  const totalPagesRef = useRef(totalPages);
+  totalPagesRef.current = totalPages;
+  const hasMoreRef = useRef(false);
+  hasMoreRef.current = hasMore;
+  const busyRef = useRef(false);
+  busyRef.current = current.isRefetching;
+
   const requestNext = useCallback(() => {
-    setPage((value) => (value < totalPages ? value + 1 : value));
-  }, [totalPages]);
+    setPage((value) => {
+      /*
+        The next page is derived from what is already appended rather than a blind `value + 1`,
+        so a duplicate call while a page is in flight lands on the same page instead of
+        skipping ahead - the observer's initial callback and the top-up check can both fire for
+        one view before React has had a render in which `isRefetching` could hold them apart.
+      */
+      const next = appendedRef.current + 1;
+      if (next <= value || next > totalPagesRef.current) return value;
+      return next;
+    });
+  }, []);
 
   /*
     The sentinel.
 
-    One mechanism, an `IntersectionObserver` over a stable ref. The earlier version also
-    attached a `focus` listener for the short-grid case, which double-fired with the observer
-    and skipped a page; keyboard users are covered already, because focusing a node below the
-    viewport scrolls it into view and scrolling is exactly what the observer watches.
+    One `IntersectionObserver`, bound to the sentinel node rather than re-created on a page
+    change. An observer fires an initial callback the first time `observe()` is called, so
+    re-creating it on every `page` bump re-observed a sentinel that was still in view and
+    immediately requested the next page - each request aborted the previous one (via the
+    keyed `useQuery`) before it could append, freezing the grid on the first page.
 
     The root is the shell's own scrollport rather than the viewport. `.shellScroll` is a
     `100dvh` box with a sticky header above it, so a viewport-rooted observer measures against
     a rectangle that does not exist - the sentinel could read as intersecting while entirely
     clipped out of sight, and the next page would load before the reader got near the end.
   */
-  const sentinelNode = useRef<HTMLElement | null>(null);
+  const sentinelNodeRef = useRef<HTMLElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
-  const sentinelRef = useCallback((node: HTMLElement | null) => {
-    sentinelNode.current = node;
-  }, []);
+  const sentinelRef = useCallback(
+    (node: HTMLElement | null) => {
+      sentinelNodeRef.current = node;
+      observerRef.current?.disconnect();
+      observerRef.current = null;
 
+      const root = node ? document.getElementById('main') : null;
+      if (!node || !root) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!hasMoreRef.current || busyRef.current) return;
+          if (entries.some((entry) => entry.isIntersecting)) requestNext();
+        },
+        { root, rootMargin: ROOT_MARGIN },
+      );
+
+      observer.observe(node);
+      observerRef.current = observer;
+    },
+    [requestNext],
+  );
+
+  useEffect(() => () => observerRef.current?.disconnect(), []);
+
+  /*
+    Top-up for the cases the observer cannot see.
+
+    The observer only fires on intersection *transitions*. If a short grid or a tall viewport
+    keeps the sentinel inside the margin, no transition happens and it would sit idle, so after
+    rows are appended this measures the sentinel against the scrollport directly and fetches on
+    while it is still within reach. `busyRef` stops it from piling requests onto an in-flight
+    page; the observer and this check can both fire for the same view, and the ref is what keeps
+    them from asking twice.
+  */
   useEffect(() => {
-    const node = sentinelNode.current;
-    if (!enabled || !hasMore || node == null) return;
+    if (!enabled || !hasMore || busyRef.current) return;
+    const node = sentinelNodeRef.current;
+    const root = document.getElementById('main');
+    if (!node || !root) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) requestNext();
-      },
-      { root: document.getElementById('main'), rootMargin: ROOT_MARGIN },
-    );
+    const rootRect = root.getBoundingClientRect();
+    const nodeRect = node.getBoundingClientRect();
+    const margin = Number.parseInt(ROOT_MARGIN, 10) || 0;
 
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [enabled, hasMore, page, requestNext]);
+    if (nodeRect.top - rootRect.top <= rootRect.height + margin) requestNext();
+  }, [enabled, hasMore, items, requestNext]);
 
   const refetch = useCallback(() => {
     consumed.current = null;
+    appendedRef.current = 0;
     setItems([]);
     setPage(1);
     current.refetch();

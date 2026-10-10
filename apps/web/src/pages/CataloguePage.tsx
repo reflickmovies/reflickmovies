@@ -8,7 +8,7 @@ import { SORT_LABELS, isSort } from '../types/api';
 import type { Sort, TitleType } from '../types/api';
 import { TitleGrid, TitleGridSkeleton } from '../components/titles';
 import { FilterChips, Notice, PageHeader, SortTabs } from '../components/page';
-import { EmptyState, LinkButton } from '../components/ui';
+import { EmptyState, LinkButton, Spinner } from '../components/ui';
 import styles from './CataloguePage.module.css';
 
 /**
@@ -280,7 +280,14 @@ export function CataloguePage({ kind }: CataloguePageProps) {
                 </button>
               </div>
             ) : hasMore ? (
-              isFetchingMore ? 'Loading more' : 'Scroll for more'
+              isFetchingMore ? (
+                <span className={styles.sentinelLoading ?? ''}>
+                  <Spinner size="sm" />
+                  Loading more
+                </span>
+              ) : (
+                'Scroll for more'
+              )
             ) : (
               'End of catalogue'
             )}
