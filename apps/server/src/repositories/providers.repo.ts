@@ -89,7 +89,7 @@ export interface ProviderRow {
  *
  * Both a movie and a TV row share a prefix, so the list is matched at the front of the key.
  */
-const PREFERRED_PROVIDER_PREFIXES = ['filmu-', 'bingr-'];
+const PREFERRED_PROVIDER_PREFIXES = ['bingr-', 'filmu-'];
 
 /** Position in the pinned list, or one past the end for every unpinned provider. */
 function preferredRank(key: string): number {

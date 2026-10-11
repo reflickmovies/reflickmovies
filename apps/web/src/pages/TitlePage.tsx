@@ -114,11 +114,14 @@ export function TitlePage({ type }: TitlePageProps) {
     A reader arriving here from within the app has somewhere to return to, and a history length of
     one means they came straight to the URL instead (the app's own first entry) - in which case
     "go back" has nothing to answer, so it goes home.
+    If the reader is on a watch page we send them home rather than into the detail page's
+    history, which prevents the back button from looping between the two screens.
   */
   const handleBack = useCallback(() => {
-    if (window.history.length > 1) navigate(-1);
+    if (window.location.pathname.startsWith('/watch/')) navigate(ROUTES.home);
+    else if (window.history.length > 1) navigate(-1);
     else navigate(ROUTES.home);
-  }, [navigate]);
+  }, [navigate, ROUTES.home]);
 
   if (error && !title) {
     return (
