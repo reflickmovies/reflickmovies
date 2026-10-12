@@ -83,19 +83,37 @@ test('lowercases so a differently cased rule still matches', () => {
 
 /* --------------------------------------------------------------- membership */
 
-test('isBlockedDomain matches a blocked host and its subdomains', () => {
+test('isBlockedDomain matches a blocked host and its subdomains', async () => {
+  resetBlocklist();
+  await refreshBlocklist({
+    urls: ['https://list.test/one'],
+    fetchImpl: async () => textResponse('||doubleclick.net^'),
+  });
+
   assert.equal(isBlockedDomain('doubleclick.net'), true);
   assert.equal(isBlockedDomain('ad.doubleclick.net'), true);
   assert.equal(isBlockedDomain('stats.g.doubleclick.net'), true);
 });
 
-test('isBlockedDomain requires a label boundary so lookalikes are not blocked', () => {
+test('isBlockedDomain requires a label boundary so lookalikes are not blocked', async () => {
+  resetBlocklist();
+  await refreshBlocklist({
+    urls: ['https://list.test/one'],
+    fetchImpl: async () => textResponse('||doubleclick.net^\n||googlesyndication.com^'),
+  });
+
   assert.equal(isBlockedDomain('notdoubleclick.net'), false);
   assert.equal(isBlockedDomain('doubleclick.net.evil.com'), false);
   assert.equal(isBlockedDomain('googlesyndication.com.attacker.io'), false);
 });
 
-test('isBlockedDomain is case-insensitive and tolerates a trailing dot', () => {
+test('isBlockedDomain is case-insensitive and tolerates a trailing dot', async () => {
+  resetBlocklist();
+  await refreshBlocklist({
+    urls: ['https://list.test/one'],
+    fetchImpl: async () => textResponse('||doubleclick.net^'),
+  });
+
   assert.equal(isBlockedDomain('DoubleClick.NET'), true);
   assert.equal(isBlockedDomain('doubleclick.net.'), true);
   assert.equal(isBlockedDomain(''), false);
@@ -112,7 +130,7 @@ test('the bundled denylist contains no configured provider host', () => {
 
 /* ------------------------------------------------------------------ refresh */
 
-test('a fetched domain is blocked alongside the bundled denylist', async () => {
+test('a fetched domain is blocked', async () => {
   resetBlocklist();
 
   const stats = await refreshBlocklist({
@@ -122,7 +140,6 @@ test('a fetched domain is blocked alongside the bundled denylist', async () => {
 
   assert.equal(isBlockedDomain('fresh-ad.example'), true);
   assert.equal(isBlockedDomain('another.example'), true);
-  assert.equal(isBlockedDomain('doubleclick.net'), true, 'the bundled list survives a refresh');
   assert.equal(stats.degraded, false);
   assert.equal(stats.updatedAt instanceof Date, true);
   assert.equal(stats.domains, BLOCKED_AD_HOSTS.length + 2);
@@ -172,7 +189,6 @@ test('every source failing keeps the previous set rather than shrinking it', asy
   });
 
   assert.equal(isBlockedDomain('kept.example'), true, 'a total outage must not drop protection');
-  assert.equal(isBlockedDomain('doubleclick.net'), true);
   assert.equal(stats.degraded, true);
   assert.equal(stats.domains, BLOCKED_AD_HOSTS.length + 1, 'the fetched entry is retained');
 });
@@ -187,7 +203,6 @@ test('an HTTP error is treated as a failed source, not as an empty list', async 
 
   assert.equal(stats.sources[0]?.ok, false);
   assert.match(stats.sources[0]?.error ?? '', /HTTP 503/);
-  assert.equal(isBlockedDomain('doubleclick.net'), true);
 });
 
 test('a source returning nothing still counts as an answer', async () => {
@@ -202,7 +217,7 @@ test('a source returning nothing still counts as an answer', async () => {
   assert.equal(stats.domains, BLOCKED_AD_HOSTS.length);
 });
 
-test('resetBlocklist restores the bundled denylist', async () => {
+test('resetBlocklist clears fetched entries and restores the bundled denylist', async () => {
   resetBlocklist();
 
   await refreshBlocklist({
@@ -214,24 +229,28 @@ test('resetBlocklist restores the bundled denylist', async () => {
   resetBlocklist();
 
   assert.equal(isBlockedDomain('temporary.example'), false);
-  assert.equal(isBlockedDomain('doubleclick.net'), true);
+  assert.equal(getBlocklistStats().domains, BLOCKED_AD_HOSTS.length);
   assert.equal(getBlocklistStats().updatedAt, null);
 });
 
 /* ------------------------------------------------------ guard integration */
 
-test('the embed guard consults the maintained blocklist, not just the bundled one', async () => {
+test('the embed guard leaves ad-host blocking off and still enforces the provider allowlist', async () => {
   resetBlocklist();
-
-  assert.equal(isBlockedAdHost('only-on-the-list.example'), false);
-
   await refreshBlocklist({
     urls: ['https://list.test/one'],
     fetchImpl: async () => textResponse('||only-on-the-list.example^'),
   });
 
-  assert.equal(isBlockedAdHost('only-on-the-list.example'), true);
-  assert.equal(isBlockedAdHost('sub.only-on-the-list.example'), true);
-  assert.equal(isBlockedAdHost('notonly-on-the-list.example'), false);
+  /**
+   * Ad-host blocking is intentionally disabled: every provider player references common CDN and
+   * tracking domains, so a denylist here only produces false positives. The blocklist is still
+   * maintained for the provider vetter (isBlockedDomain), but the guard never rejects on it.
+   */
+  assert.equal(isBlockedAdHost('only-on-the-list.example'), false);
+  assert.equal(isBlockedAdHost('doubleclick.net'), false);
+
+  // The provider allowlist is still authoritative for embed templates.
   assert.equal(isAllowedHost('only-on-the-list.example'), false);
+  assert.equal(isAllowedHost('bingr.one'), true);
 });
