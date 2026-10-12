@@ -10,6 +10,14 @@ import {
 } from '../../src/services/blocklist.service.js';
 import { isBlockedAdHost, isAllowedHost } from '../../src/services/embedGuard.service.js';
 import { ALLOWED_EMBED_HOSTS, BLOCKED_AD_HOSTS } from '../../src/config/constants.js';
+import { env } from '../../src/config/env.js';
+
+/**
+ * The blocklist is disabled in production (`ADBLOCK_ON` defaults to false), so only the bundled
+ * (empty) denylist is ever in effect. These tests exercise the refresh machinery directly, so they
+ * switch it back on.
+ */
+env.ADBLOCK_ON = true;
 
 const textResponse = (body: string, status = 200): Response =>
   new Response(body, { status, headers: { 'content-type': 'text/plain' } });

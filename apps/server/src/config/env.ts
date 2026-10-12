@@ -93,8 +93,8 @@ const EnvSchema = z.object({
   TMDB_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),
   TMDB_MAX_RETRIES: z.coerce.number().int().min(0).max(8).default(3),
 
-  /* ---- Ad blocklist. The denylist outranks the provider allowlist. ---- */
-  ADBLOCK_ON: bool(true),
+  /* ---- Ad blocklist. Disabled for now: only the bundled (empty) denylist is in effect. ---- */
+  ADBLOCK_ON: bool(false),
   ADBLOCK_REFRESH_HOURS: z.coerce.number().int().min(1).max(168).default(24),
   ADBLOCK_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   /**
