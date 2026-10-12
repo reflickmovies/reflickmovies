@@ -51,6 +51,7 @@ export const ALLOWED_EMBED_HOSTS = new Set([
   'vidbolt.xyz',
   'nxsha.space',
   'vaplayer.ru',
+  'blakiteapi.xyz',
 ]);
 
 /**

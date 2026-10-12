@@ -256,6 +256,21 @@
             "kinds": [
                 "tv"
             ]
+        },
+        {
+            "key": "blakite-tv",
+            "name": "Blakite",
+            "badge": "HD",
+            "priority": 4,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://blakiteapi.xyz/embed/{{tmdb}}/{{season}}-{{episode}}",
+            "hosts": [
+                "blakiteapi.xyz"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
         }
     ]
 }
