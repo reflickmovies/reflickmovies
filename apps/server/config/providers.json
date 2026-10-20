@@ -271,6 +271,498 @@
             "kinds": [
                 "tv"
             ]
+        },
+        {
+            "key": "nexus-movie",
+            "name": "Nexus",
+            "badge": "HD",
+            "priority": 4,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://www.moviesnexus.fun/movie/{{tmdb}}",
+            "hosts": [
+                "www.moviesnexus.fun"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "nexus-tv",
+            "name": "Nexus",
+            "badge": "HD",
+            "priority": 4,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://www.moviesnexus.fun/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "www.moviesnexus.fun"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vidrift-movie",
+            "name": "Vidrift",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://embed.vidrift.net/embed/movie/{{tmdb}}",
+            "hosts": [
+                "embed.vidrift.net"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vidrift-tv",
+            "name": "Vidrift",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://embed.vidrift.net/embed/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "embed.vidrift.net"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vidfast-movie",
+            "name": "VidFast",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidfast.pro/movie/{{tmdb}}",
+            "hosts": [
+                "vidfast.pro",
+                "vidfast.vc"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vidfast-tv",
+            "name": "VidFast",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidfast.pro/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vidfast.pro",
+                "vidfast.vc"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vidlink-movie",
+            "name": "VidLink",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidlink.pro/movie/{{tmdb}}",
+            "hosts": [
+                "vidlink.pro"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vidlink-tv",
+            "name": "VidLink",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidlink.pro/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vidlink.pro"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "videasy-movie",
+            "name": "Videasy",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://player.videasy.net/movie/{{tmdb}}",
+            "hosts": [
+                "player.videasy.net",
+                "player.videasy.to"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "videasy-tv",
+            "name": "Videasy",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://player.videasy.net/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "player.videasy.net",
+                "player.videasy.to"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vixsrc-movie",
+            "name": "VixSrc",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vixsrc.to/movie/{{tmdb}}",
+            "hosts": [
+                "vixsrc.to"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vixsrc-tv",
+            "name": "VixSrc",
+            "badge": "HD",
+            "priority": 3,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vixsrc.to/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vixsrc.to"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vidy-movie",
+            "name": "Vidy",
+            "badge": "HD",
+            "priority": 4,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidy.st/movie/{{tmdb}}",
+            "hosts": [
+                "vidy.st",
+                "www.vidy.st"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vidy-tv",
+            "name": "Vidy",
+            "badge": "HD",
+            "priority": 4,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidy.st/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vidy.st",
+                "www.vidy.st"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vsembed-movie",
+            "name": "VSembed",
+            "badge": "HD",
+            "priority": 4,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vsembed.ru/embed/movie/{{tmdb}}",
+            "hosts": [
+                "vsembed.ru"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vsembed-tv",
+            "name": "VSembed",
+            "badge": "HD",
+            "priority": 4,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vsembed.ru/embed/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vsembed.ru"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vidcore-movie",
+            "name": "VidCore",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidcore.net/movie/{{tmdb}}",
+            "hosts": [
+                "vidcore.net",
+                "vidcore.io"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vidcore-tv",
+            "name": "VidCore",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidcore.net/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vidcore.net",
+                "vidcore.io"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "modocine-movie",
+            "name": "Modocine",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://play.modocine.com/embed/movie/{{tmdb}}",
+            "hosts": [
+                "play.modocine.com"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "modocine-tv",
+            "name": "Modocine",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://play.modocine.com/embed/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "play.modocine.com"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vidzen-movie",
+            "name": "VidZen",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidzen.fun/movie/{{tmdb}}",
+            "hosts": [
+                "vidzen.fun"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vidzen-tv",
+            "name": "VidZen",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidzen.fun/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vidzen.fun"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "zoryva-movie",
+            "name": "Zoryva",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://zoryva.me/embed/movie/{{tmdb}}",
+            "hosts": [
+                "zoryva.me"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "zoryva-tv",
+            "name": "Zoryva",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://zoryva.me/embed/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "zoryva.me"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "vidnest-movie",
+            "name": "VidNest",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidnest.fun/movie/{{tmdb}}",
+            "hosts": [
+                "vidnest.fun"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "vidnest-tv",
+            "name": "VidNest",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://vidnest.fun/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "vidnest.fun"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "streamvault-movie",
+            "name": "StreamVault",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://streamvaultsrc.click/embed/movie/{{tmdb}}",
+            "hosts": [
+                "streamvaultsrc.click"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "streamvault-tv",
+            "name": "StreamVault",
+            "badge": "HD",
+            "priority": 5,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://streamvaultsrc.click/embed/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "streamvaultsrc.click"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "embedmaster-movie",
+            "name": "EmbedMaster",
+            "badge": "HD",
+            "priority": 6,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://embedmaster.link/movie/{{tmdb}}",
+            "hosts": [
+                "embedmaster.link",
+                "embdmstrplayer.com"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "embedmaster-tv",
+            "name": "EmbedMaster",
+            "badge": "HD",
+            "priority": 6,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://embedmaster.link/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "embedmaster.link",
+                "embdmstrplayer.com"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
+        },
+        {
+            "key": "framextv-movie",
+            "name": "frameXTV",
+            "badge": "HD",
+            "priority": 6,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://framextv.tech/embed/movie/{{tmdb}}",
+            "hosts": [
+                "framextv.tech",
+                "framextv.cc"
+            ],
+            "enabled": true,
+            "kinds": [
+                "movie"
+            ]
+        },
+        {
+            "key": "framextv-tv",
+            "name": "frameXTV",
+            "badge": "HD",
+            "priority": 6,
+            "idSpace": "tmdb",
+            "urlTemplate": "https://framextv.tech/embed/tv/{{tmdb}}/{{season}}/{{episode}}",
+            "hosts": [
+                "framextv.tech",
+                "framextv.cc"
+            ],
+            "enabled": true,
+            "kinds": [
+                "tv"
+            ]
         }
     ]
 }

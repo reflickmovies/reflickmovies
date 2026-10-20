@@ -163,61 +163,81 @@ export async function getServers(
       const resolved: ResolvedServer[] = [];
       const rejected: Array<{ key: string; reason: string }> = [];
 
-      for (const provider of providers) {
-        if (isDemoted(failures, provider.key)) {
-          rejected.push({ key: provider.key, reason: 'disabled after repeated reports' });
-          continue;
-        }
+      /**
+       * Resolved concurrently rather than one at a time.
+       *
+       * Every provider costs at least one network round trip to walk its redirect chain, and the
+       * list has grown well past the point where awaiting them in series is acceptable: a single
+       * slow host would delay every source after it, and the viewer stares at the spinner for the
+       * sum of all of them. The cache key is per URL, so the fan-out is cheap after the first hit.
+       */
+      const outcomes = await Promise.all(
+        providers.map(
+          async (
+            provider,
+          ): Promise<
+            | { rejected: { key: string; reason: string } }
+            | { server: Omit<ResolvedServer, 'primary'> }
+            | null
+          > => {
+            if (isDemoted(failures, provider.key)) {
+              return { rejected: { key: provider.key, reason: 'disabled after repeated reports' } };
+            }
 
-        if (!provider.kinds?.includes(type)) {
-          continue;
-        }
+            if (!provider.kinds?.includes(type)) return null;
 
-        const outcome = resolveTemplate(
-          provider.urlTemplate,
-          provider.idSpace,
-          {
-            kind: type === 'tv' ? 'tv' : 'movie',
-            tmdb: row.tmdbId,
-            imdb: row.imdbId,
-            slug: row.slug,
-            season,
-            episode,
+            const outcome = resolveTemplate(
+              provider.urlTemplate,
+              provider.idSpace,
+              {
+                kind: type === 'tv' ? 'tv' : 'movie',
+                tmdb: row.tmdbId,
+                imdb: row.imdbId,
+                slug: row.slug,
+                season,
+                episode,
+              },
+              provider.hosts,
+            );
+
+            if ('error' in outcome) {
+              return { rejected: { key: provider.key, reason: outcome.error } };
+            }
+
+            /**
+             * Resolve the redirect chain before the URL reaches the browser.
+             *
+             * This is what replaced the iframe sandbox. A 302 is chosen by the origin server and
+             * resolved before any attribute is read, so the only place a redirect can be stopped is
+             * here, before the frame is created. The frame is handed the final URL.
+             *
+             * Policy rejections (ad host, unlisted host, bad scheme, loop) drop the provider. A
+             * transport failure does not: it means we could not check, not that the URL is bad, and
+             * dropping every provider on a network blip would empty the source list entirely.
+             */
+            const guarded = await resolveEmbedUrlCached(outcome.url, provider.hosts);
+
+            if (isEmbedRejection(guarded) && guarded.policy) {
+              return { rejected: { key: provider.key, reason: guarded.error } };
+            }
+
+            return {
+              server: {
+                key: provider.key,
+                name: provider.name,
+                badge: provider.badge,
+                url: isEmbedRejection(guarded) ? outcome.url : guarded.url,
+                type: 'iframe',
+              },
+            };
           },
-          provider.hosts,
-        );
+        ),
+      );
 
-        if ('error' in outcome) {
-          rejected.push({ key: provider.key, reason: outcome.error });
-          continue;
-        }
-
-        /**
-         * Resolve the redirect chain before the URL reaches the browser.
-         *
-         * This is what replaced the iframe sandbox. A 302 is chosen by the origin server and
-         * resolved before any attribute is read, so the only place a redirect can be stopped is
-         * here, before the frame is created. The frame is handed the final URL.
-         *
-         * Policy rejections (ad host, unlisted host, bad scheme, loop) drop the provider. A
-         * transport failure does not: it means we could not check, not that the URL is bad, and
-         * dropping every provider on a network blip would empty the source list entirely.
-         */
-        const guarded = await resolveEmbedUrlCached(outcome.url, provider.hosts);
-
-        if (isEmbedRejection(guarded) && guarded.policy) {
-          rejected.push({ key: provider.key, reason: guarded.error });
-          continue;
-        }
-
-        resolved.push({
-          key: provider.key,
-          name: provider.name,
-          badge: provider.badge,
-          url: isEmbedRejection(guarded) ? outcome.url : guarded.url,
-          type: 'iframe',
-          primary: resolved.length === 0,
-        });
+      for (const outcome of outcomes) {
+        if (outcome === null) continue;
+        if ('rejected' in outcome) rejected.push(outcome.rejected);
+        else resolved.push({ ...outcome.server, primary: resolved.length === 0 });
       }
 
       if (rejected.length > 0) log.warn('providers rejected', { slug: row.slug, rejected });
