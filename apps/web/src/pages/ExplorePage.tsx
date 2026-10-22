@@ -1,198 +1,160 @@
-import { useMemo } from 'react';
-import type { CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
-import { Compass, Play, Warning } from '@phosphor-icons/react';
-import { useBrowse } from '../hooks/useReflick';
-import { ROUTES, titlePath } from '../lib/routes';
-import { joinMeta, typeLabel } from '../lib/format';
-import type { TitleSummary } from '../types/api';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Warning } from '@phosphor-icons/react';
+import * as api from '../lib/api';
+import { titlePath } from '../lib/routes';
+import { useQuery } from '../hooks/useQuery';
+import { Notice } from '../components/page';
+import { TitleGridSkeleton } from '../components/titles';
+import { WorksWheel, type WorksWheelItem } from '../components/ui/works-wheel';
+import type { BrowseResult, TitleSummary } from '../types/api';
 import styles from './ExplorePage.module.css';
 
 /**
- * Explore: a poster wall.
+ * Explore: a turning wheel of titles.
  *
- * This replaces a vertical, snap-scrolling feed of full-bleed backdrops. Two reasons:
+ * This is the shadcn `WorksWheel` component - a ring of posters that opens into a drum as you
+ * turn it - fed from the catalogue. The wheel lives in `components/ui/works-wheel.tsx` verbatim
+ * as it ships from the registry; everything here is the wiring that turns TMDB titles into its
+ * `items` and keeps the ring growing.
  *
- * 1. There is no video here, and pretending otherwise is dishonest. The server has no clip or
- *    trailer endpoint and no synced video field, so a full-height panel per title was a large
- *    picture of a poster with a "Watch" link on it - it consumed the entire viewport to show
- *    one title and buried every other title below the fold.
- * 2. A wall of many posters is what exploration looks like. Browsing by browsing is the entire
- *    behaviour here, and one-title-per-screen is the opposite of it.
+ * Why a wheel and why not the masonry wall it replaces: the wall was a scroll, and a scroll only
+ * ever answers "what is next". The wheel answers "what is here" by putting a handful of titles in
+ * the frame at once and letting the reader turn through them deliberately - each card gets the
+ * whole stage rather than a cell in a column, and the front card is a face rather than a strip of
+ * thumbnail. That is a fit for a page whose job is browsing, not listing.
  *
- * Layout is CSS multi-column masonry rather than a grid. A grid needs a fixed aspect ratio per
- * cell, so every cell crops to the same shape and a title with a wide backdrop loses its sides
- * while one with a tall poster gets letterboxed. Multi-column keeps each item's own height, so
- * the wall is genuinely irregular and no artwork is cropped to fit a shape it was not.
- *
- * Everything is still real: three sorts merged and deduplicated, every card linking to the
- * title's own detail page and to its player.
+ * The ring is finite by design - it is built from the items in hand, and the geometry that lays
+ * cards around a circle needs a fixed count to distribute them on - so "endless" is expressed as
+ * a stream the reader pulls: the first page fills the ring on load, and each `Load more` appends
+ * the next page and lets the wheel re-measure around a larger set. A wheel that fetched as it
+ * turned would have no ring to turn, so the count has to come from somewhere the reader controls.
  */
 
+/** Titles per page, matching the catalogue's own paging so the ring grows evenly. */
+const PAGE_SIZE = 20;
+
 interface Entry {
-  id: string;
+  key: string;
   title: TitleSummary;
 }
 
-/** How many titles per sort. Three sorts of twelve gives a wall about three columns deep. */
-const PER_SORT = 16;
-
 export function ExplorePage() {
+  const [page, setPage] = useState(1);
+  const [entries, setEntries] = useState<Entry[]>([]);
+
+  const current = useQuery<BrowseResult>(
+    `explore:p${page}`,
+    (signal) => api.browse({ limit: PAGE_SIZE, page }, signal),
+  );
+
   /*
-    Three queries, merged.
+    Accumulate each response exactly once, tracked by object identity.
 
-    One feed of one sort would be a list with extra steps: trending titles in a grid is not
-    exploration. Trending, newly added and highest rated genuinely disagree, so the merge
-    surfaces things the visitor would not otherwise scroll into. Failures are tolerated
-    per-query rather than failing the page, because one empty sort should not blank a wall that
-    already has content from the other two.
+    `useQuery` replays its cache by reference and does not clear `data` on a key change, so while
+    page two is in flight `current.data` is still page one's response. Keying on the object
+    identity is what stops that stale value being appended a second time under the new page key.
   */
-  const trending = useBrowse({ sort: 'trending', limit: PER_SORT });
-  const latest = useBrowse({ sort: 'latest', limit: PER_SORT });
-  const rated = useBrowse({ sort: 'rating', minVotes: 200, limit: PER_SORT });
+  const consumed = useRef<BrowseResult | null>(null);
 
-  const entries = useMemo<Entry[]>(() => {
-    const seen = new Set<string>();
-    const out: Entry[] = [];
+  useEffect(() => {
+    const data = current.data;
+    if (!data || consumed.current === data) return;
+    consumed.current = data;
 
-    for (const result of [trending, latest, rated]) {
-      for (const title of result.data?.items ?? []) {
-        /*
-          Keyed on type *and* slug, not id: the sorts are paged independently, so the same
-          title appears in more than one of them with the same TMDB id. Deduplicating on id
-          alone would be right; doing both is belt and braces against a future id collision
-          across types.
-        */
+    setEntries((existing) => {
+      const seen = new Set(existing.map((entry) => entry.key));
+      const merged = [...existing];
+
+      for (const title of data.items) {
         const key = `${title.type}:${title.slug}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        out.push({ id: key, title });
+        merged.push({ key, title });
       }
-    }
 
-    return out;
-  }, [trending.data, latest.data, rated.data]);
+      return merged;
+    });
+  }, [current.data]);
 
-  /*
-    True while a first batch is still in flight and nothing has arrived yet.
-
-    `some`, not `all`: with `&&` the moment the first of the three resolves - even to an empty
-    page - `isLoading` went false while the other two were still fetching, so the empty state
-    flashed at a visitor whose page was merely slow. `entries.length` gates the branch below,
-    so this only has to mean "nothing to show yet, and something may still be coming".
-  */
-  const isLoading = entries.length === 0 && (trending.isLoading || latest.isLoading || rated.isLoading);
+  const totalPages = current.data?.pagination.totalPages ?? 1;
+  const hasMore = page < totalPages;
+  const isLoadingFirst = page === 1 && current.isLoading && entries.length === 0;
+  const isFetchingMore = page > 1 && current.isRefetching;
 
   /*
-    Failure messages, derived rather than stored.
+    The wheel's items.
 
-    A single query failing is tolerated and reported inline; three failing is a dead page. The
-    count is shown because "Explore could not load" with no detail says nothing about whether
-    it is the connection or the catalogue.
+    Poster first, backdrop only as a fallback: the wheel crops every card to the same landscape
+    ratio, and a poster in a landscape box loses less than a wide backdrop does in a tall one. A
+    title with neither art still needs a card - an empty `image` renders a bare `bg-muted` tile,
+    which is honest about the gap rather than collapsing the ring.
   */
-  const errors = useMemo(
+  const items = useMemo<WorksWheelItem[]>(
     () =>
-      [trending.error, latest.error, rated.error].filter(
-        (error): error is NonNullable<typeof error> => error != null,
-      ),
-    [trending.error, latest.error, rated.error],
+      entries.map(({ title }) => ({
+        title: title.title,
+        image: title.poster ?? title.backdrop ?? '',
+        href: titlePath(title.type, title.slug),
+      })),
+    [entries],
   );
+
+  const loadMore = useCallback(() => {
+    setPage((value) => value + 1);
+  }, []);
+
+  const error = entries.length === 0 ? current.error : null;
+  const appendError = entries.length > 0 ? current.error : null;
 
   return (
     <div className={styles.page ?? ''}>
       <header className={styles.header ?? ''}>
         <h1 className={styles.title ?? ''}>Explore</h1>
-        <p className={styles.subtitle ?? ''}>
-          {entries.length > 0 ? 'Trending, newly added and highest rated, in one place.' : null}
-        </p>
+        <p className={styles.subtitle ?? ''}>Movies &amp; series</p>
       </header>
 
-      {errors.length > 0 ? (
-        <p className={styles.errorText ?? ''} role="status">
-          <Warning size={16} weight="fill" aria-hidden />
-          {errors.length} of 3 feeds could not be reached. {errors[0]?.message ?? ''}
-        </p>
-      ) : null}
-
-      {isLoading ? (
-        <div className={styles.wall ?? ''} aria-hidden>
-          {Array.from({ length: 12 }, (_, index) => (
-            <div key={index} className={styles.tile ?? ''} data-variant={index % 3} />
-          ))}
-        </div>
-      ) : entries.length === 0 ? (
-        <div className={styles.empty ?? ''}>
-          <Compass size={30} aria-hidden />
-          <h2>Nothing to explore yet</h2>
-          <Link to={ROUTES.popular} className={styles.action ?? ''}>
-            Go to Popular
-          </Link>
-        </div>
+      {error !== null ? (
+        <Notice
+          icon={<Warning size={26} weight="fill" aria-hidden />}
+          title="Could not load Explore"
+          tone="error"
+        >
+          {error.message}
+        </Notice>
+      ) : isLoadingFirst ? (
+        <TitleGridSkeleton count={12} />
       ) : (
-        <div className={styles.wall ?? ''}>
-          {entries.map(({ id, title }, index) => {
-            const meta = joinMeta([
-              title.year ? String(title.year) : null,
-              typeLabel(title.type, true),
-              title.genres[0]?.name,
-            ]);
+        <>
+          <div className={styles.stage ?? ''}>
+            <WorksWheel items={items} label="Movies & series" action="View" />
+          </div>
 
-            return (
-              <article
-                key={id}
-                className={styles.tile ?? ''}
-                style={{ '--tile-i': index } as CSSProperties}
+          {/*
+            Load more, below the wheel rather than inside it. The wheel's own controls are
+            wheel/drag/arrow keys and move between items already in the ring; pulling the next
+            page is a different verb, so it gets its own button where the ring ends. The status
+            line doubles as the append-failure report, keeping the ring on screen when a page
+            does not arrive.
+          */}
+          <div className={styles.footer ?? ''}>
+            {appendError !== null ? (
+              <span className={styles.footerError ?? ''}>
+                Could not load more titles. {appendError.message}
+              </span>
+            ) : hasMore ? (
+              <button
+                type="button"
+                className={styles.loadMore ?? ''}
+                onClick={loadMore}
+                disabled={isFetchingMore}
               >
-                {/*
-                  The detail page is the card.
-
-                  Both destinations are exposed, but the tile itself is a link to the title, not
-                  to the player. In a wall, a visitor is comparing titles rather than committing
-                  to one, so clicking a picture should open the thing being pictured; the play
-                  control is right there for the visitor who already knows.
-                */}
-                <Link to={titlePath(title.type, title.slug)} className={styles.tileLink ?? ''}>
-                  {title.backdrop ?? title.poster ? (
-                    <img
-                      src={title.backdrop ?? title.poster ?? ''}
-                      alt={title.title}
-                      className={styles.artwork ?? ''}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    /*
-                      Reserved box, same as every other artwork in the app. A missing poster
-                      otherwise collapses its tile and the masonry above it closes the gap,
-                      which shifts everything below it under the pointer.
-                    */
-                    <span className={styles.artworkFallback ?? ''} aria-hidden />
-                  )}
-
-                  <div className={styles.tileBody ?? ''}>
-                    <h2 className={styles.tileTitle ?? ''}>{title.title}</h2>
-                    {meta ? <div className={styles.tileMeta ?? ''}>{meta}</div> : null}
-                    {title.overview ? <p className={styles.tileOverview ?? ''}>{title.overview}</p> : null}
-                  </div>
-                </Link>
-
-                {/*
-                  One destination, not two.
-
-                  This used to be a second link sitting over the first, labelled "Play" and going
-                  to the player while the tile beneath it went to the detail page - two targets a
-                  few pixels apart that opened different screens. Playback now begins in exactly
-                  one place, on the detail page, so the whole tile is a single link to the title
-                  and the arrow is a hint about where that leads rather than a separate route.
-                */}
-                <span className={styles.playAction ?? ''} aria-hidden>
-                  <Play size={13} weight="fill" />
-                  Play
-                </span>
-              </article>
-            );
-          })}
-        </div>
+                {isFetchingMore ? 'Loading…' : 'Load more titles'}
+              </button>
+            ) : (
+              <span className={styles.footerNote ?? ''}>End of the catalogue</span>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

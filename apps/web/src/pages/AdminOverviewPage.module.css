@@ -1,5 +1,5 @@
 .uptime {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
   background-color: var(--adm-surface);
   border: 1px solid var(--adm-line);
@@ -12,12 +12,12 @@
 .statGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
 }
 
 .chartPanel {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-lg);
 }
 
 .bars {
@@ -25,7 +25,7 @@
   align-items: flex-end;
   gap: 6px;
   height: 180px;
-  padding-top: 8px;
+  padding-top: var(--space-sm);
 }
 
 .barColumn {
@@ -49,9 +49,9 @@
 .bar {
   width: 100%;
   min-height: 2px;
-  border-radius: 6px 6px 0 0;
-  background: linear-gradient(180deg, var(--adm-accent), rgba(255, 77, 94, 0.4));
-  transition: height 240ms ease;
+  border-radius: 9999px 9999px 0 0;
+  background: linear-gradient(180deg, var(--adm-accent), color-mix(in srgb, var(--adm-accent) 30%, transparent));
+  transition: height var(--motion-base) var(--motion-ease);
 }
 
 .barLabel {
@@ -63,7 +63,7 @@
 .twoCol {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  gap: var(--space-lg);
 }
 
 .factList {
@@ -75,8 +75,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--adm-line);
 }
 
@@ -87,7 +87,7 @@
 .factLabel {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   color: var(--adm-muted);
   font-size: 0.875rem;
 }
@@ -100,7 +100,7 @@
 .note {
   color: var(--adm-muted);
   font-size: 0.875rem;
-  padding: 24px 0;
+  padding: var(--space-xl) 0;
   text-align: center;
 }
 

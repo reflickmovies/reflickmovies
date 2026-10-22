@@ -555,7 +555,7 @@
 }
 
 .episodeOverview {
-  margin-top: 2px;
+  margin-top: var(--space-xxs);
   font-size: var(--font-size-body-sm);
   line-height: var(--line-height-relaxed);
   color: var(--ep-text-muted);

@@ -55,7 +55,7 @@ const KEY = {
   adminStats: () => 'admin:stats',
   adminUsers: (page: number, search: string) => `admin:users:${page}:${search}`,
   adminUser: (id: string) => `admin:user:${id}`,
-  adminVisits: (page: number, ip: string) => `admin:visits:${page}:${ip}`,
+  adminVisits: (page: number, ip: string, search: string) => `admin:visits:${page}:${ip}:${search}`,
   adminVisitStats: (days: number) => `admin:visitstats:${days}`,
   adminTitles: (page: number, search: string, type: string) => `admin:titles:${page}:${search}:${type}`,
   adminProviders: () => 'admin:providers',
@@ -246,10 +246,10 @@ export function useAdminUser(enabled: boolean, id: string | null) {
   );
 }
 
-export function useAdminVisits(enabled: boolean, page: number, ip: string) {
+export function useAdminVisits(enabled: boolean, page: number, ip: string, search: string) {
   return useQuery<api.AdminListPage<AdminVisitRow>>(
-    enabled ? KEY.adminVisits(page, ip) : null,
-    (signal) => api.getAdminVisits({ page, ip }, signal),
+    enabled ? KEY.adminVisits(page, ip, search) : null,
+    (signal) => api.getAdminVisits({ page, ip, search }, signal),
     { ttlMs: 15_000 },
   );
 }

@@ -129,7 +129,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       {createPortal(
-        <div className={styles.viewport ?? ''} role="region" aria-label="Notifications" aria-live="polite">
+        <div className={styles.viewport ?? ''} role="region" aria-label="Status messages" aria-live="polite">
           {toasts.map((toast) => (
             <ToastRow
               key={toast.id}

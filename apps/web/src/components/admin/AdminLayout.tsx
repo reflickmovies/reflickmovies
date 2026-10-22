@@ -16,6 +16,7 @@ import { ProfileAvatar } from '../account/ProfileAvatar';
 import { Wordmark } from '../brand/Wordmark';
 import { Button, LoadingState, useToast } from '../ui';
 import { useSpringIndicator } from '../../hooks/useSpringIndicator';
+import { useAdminLive } from '../../hooks/useAdminLive';
 import { ApiError } from '../../lib/api';
 import { ROUTES } from '../../lib/routes';
 import shellStyles from '../shell/AppShell.module.css';
@@ -100,6 +101,11 @@ export function AdminLayout() {
   // the same two indicators, driven the same way, as `AppShell`.
   const topIndicator = useSpringIndicator();
   const tabIndicator = useSpringIndicator();
+
+  // One socket for the whole console, opened only once an admin is actually signed in. It
+  // refreshes whichever panels the server reports changed, so the dashboard is live without any
+  // page polling for itself.
+  const { connected: live } = useAdminLive(isAdmin && !denied && user !== null);
 
   if (status === 'loading') return <LoadingState label="Checking access…" />;
 
@@ -220,6 +226,14 @@ export function AdminLayout() {
                 </nav>
 
                 <div className={topNavStyles.actions}>
+                  {/* Live indicator: the one bit of socket state worth showing. */}
+                  <span
+                    className={`${styles.liveDot} ${live ? styles.liveOn : ''}`.trim()}
+                    title={live ? 'Live - updates as they happen' : 'Reconnecting…'}
+                  >
+                    <span className={styles.livePulse} aria-hidden />
+                    <span className={styles.liveLabel}>{live ? 'Live' : 'Offline'}</span>
+                  </span>
                   {/*
                     Back to the site. On desktop the rail footer carries it too; on mobile the
                     rail is hidden, so this becomes the only way out - hence the mobile-only copy.

@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Globe, Path } from '@phosphor-icons/react';
 import { useAuth } from '../components/account/AuthProvider';
 import { useAdminVisits, useAdminVisitStats } from '../hooks/useReflick';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import {
   AdminPageHeader,
+  AdminPagination,
   DataTable,
   EmptyRow,
   Panel,
@@ -13,6 +15,7 @@ import {
   formatDateTime,
   formatNumber,
 } from '../components/admin/adminPrimitives';
+import { TrafficChart } from '../components/admin/TrafficChart';
 import { Button, ErrorState, LoadingState } from '../components/ui';
 import { useAdminGateGuard } from '../components/admin/AdminLayout';
 import styles from './AdminAnalyticsPage.module.css';
@@ -24,10 +27,13 @@ export function AdminAnalyticsPage() {
   const { isAdmin } = useAuth();
   const [days, setDays] = useState<number>(30);
   const [page, setPage] = useState(1);
-  const [ipFilter, setIpFilter] = useState('');
+  const [filter, setFilter] = useState('');
+  // The request rides the debounced value; the input rides `filter`, so typing stays instant while
+  // the server is asked once per pause rather than once per key.
+  const debouncedFilter = useDebouncedValue(filter, 300);
 
   const stats = useAdminVisitStats(isAdmin, days);
-  const visits = useAdminVisits(isAdmin, page, ipFilter);
+  const visits = useAdminVisits(isAdmin, page, '', debouncedFilter);
   const statsError = useAdminGateGuard(stats.error);
 
   if (stats.isLoading && stats.data === null) return <LoadingState label="Loading analytics…" />;
@@ -38,7 +44,6 @@ export function AdminAnalyticsPage() {
   const data = stats.data;
   if (data === null) return null;
 
-  const maxVisits = Math.max(1, ...data.daily.map((row) => row.visits));
   const rows = visits.data?.items ?? [];
 
   return (
@@ -63,11 +68,11 @@ export function AdminAnalyticsPage() {
       />
 
       <div className={styles.statGrid}>
-        <StatCard label={`Visits (${days}d)`} value={formatNumber(data.totalVisits)} tone="accent" />
-        <StatCard label="Unique IPs" value={formatNumber(data.uniqueVisitors)} />
+        <StatCard label={`Visits (${days}d)`} value={data.totalVisits} tone="accent" />
+        <StatCard label="Unique visitors" value={data.uniqueVisitors} />
         <StatCard
           label="Avg / day"
-          value={formatNumber(Math.round(data.totalVisits / Math.max(1, data.daily.length)))}
+          value={Math.round(data.totalVisits / Math.max(1, data.daily.length))}
         />
         <StatCard
           label="Top page"
@@ -80,20 +85,7 @@ export function AdminAnalyticsPage() {
         {data.daily.length === 0 ? (
           <p className={styles.note}>No visits in this window.</p>
         ) : (
-          <div className={styles.bars} role="img" aria-label="Daily visit counts">
-            {data.daily.map((row) => (
-              <div key={row.date} className={styles.barColumn} title={`${row.date}: ${row.visits} visits, ${row.unique} unique`}>
-                <div className={styles.barTrack}>
-                  <div className={styles.bar} style={{ height: `${(row.visits / maxVisits) * 100}%` }} />
-                </div>
-                {data.daily.length <= 14 ? (
-                  <span className={styles.barLabel}>
-                    {new Date(`${row.date}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric' })}
-                  </span>
-                ) : null}
-              </div>
-            ))}
-          </div>
+          <TrafficChart data={data.daily} />
         )}
       </Panel>
 
@@ -109,7 +101,7 @@ export function AdminAnalyticsPage() {
                     type="button"
                     className={styles.rankButton}
                     onClick={() => {
-                      setIpFilter(row.ip);
+                      setFilter(row.ip);
                       setPage(1);
                     }}
                   >
@@ -144,19 +136,19 @@ export function AdminAnalyticsPage() {
         <h2 className={styles.logHeading}>Visit log</h2>
         <Toolbar>
           <SearchField
-            value={ipFilter}
+            value={filter}
             onChange={(value) => {
-              setIpFilter(value);
+              setFilter(value);
               setPage(1);
             }}
-            placeholder="Filter by IP address…"
+            placeholder="Search by IP, path, device or agent…"
           />
-          {ipFilter.length > 0 ? (
+          {filter.length > 0 ? (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                setIpFilter('');
+                setFilter('');
                 setPage(1);
               }}
             >
@@ -172,19 +164,23 @@ export function AdminAnalyticsPage() {
                 <th>Time</th>
                 <th>IP</th>
                 <th>User</th>
+                <th>Device</th>
                 <th>Path</th>
                 <th>User agent</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
-                <EmptyRow colSpan={5}>No visits recorded.</EmptyRow>
+                <EmptyRow colSpan={6}>No visits recorded.</EmptyRow>
               ) : (
                 rows.map((row) => (
                   <tr key={row.id}>
                     <td className={styles.dim}>{formatDateTime(row.at)}</td>
                     <td className={styles.mono}>{row.ip}</td>
                     <td>{row.userDisplay ?? <span className={styles.dim}>Guest</span>}</td>
+                    <td className={styles.mono}>
+                      {row.deviceId ? `${row.deviceId.slice(0, 8)}…` : <span className={styles.dim}>—</span>}
+                    </td>
                     <td className={styles.mono}>{row.path}</td>
                     <td className={`${styles.dim} ${styles.ua}`}>{row.userAgent}</td>
                   </tr>
@@ -193,24 +189,12 @@ export function AdminAnalyticsPage() {
             </tbody>
           </DataTable>
 
-          <div className={styles.pager}>
-            <span>
-              Page {visits.data?.page ?? 1} of {visits.data?.totalPages ?? 1} · {formatNumber(visits.data?.total ?? 0)} rows
-            </span>
-            <div className={styles.pagerButtons}>
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= (visits.data?.totalPages ?? 1)}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          <AdminPagination
+            page={visits.data?.page ?? 1}
+            totalPages={visits.data?.totalPages ?? 1}
+            total={visits.data?.total ?? 0}
+            onPage={setPage}
+          />
         </Panel>
       </div>
     </div>

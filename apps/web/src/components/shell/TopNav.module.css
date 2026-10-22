@@ -227,7 +227,7 @@
 /*
  * `.mobileAction` renders only below 1024px and `.hideOnMobile` only above it, so the header can
  * carry a compact mobile cluster - search, theme, the dots menu - without the desktop pills and
- * inert bell/profile controls competing for the same row.
+ * profile controls competing for the same row.
  */
 .mobileAction {
   display: none;

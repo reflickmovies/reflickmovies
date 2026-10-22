@@ -1,20 +1,11 @@
 /*
- * Explore: a wall of poster tiles.
+ * Explore: a turning wheel of titles.
  *
- * Masonry via CSS multi-column, not a grid. A grid needs one aspect ratio for every cell, so
- * each tile crops to the same shape: wide backdrops lose their sides and tall posters get
- * letterboxed inside a fixed box. Multi-column gives every item its own height, so the wall is
- * genuinely irregular and nothing is cropped to fit a shape it was not made for.
- *
- * `break-inside: avoid` is the load-bearing line. Without it a tile is split across two columns
- * and its caption lands in the next column, under a different title's artwork.
- *
- * Column count is explicit per breakpoint for the same reason it is elsewhere in the app:
- * `column-count` derived from measured width made the wall change depth on resize with no
- * content change.
- *
- * All colours come from the shell's `--lp-*` tokens, so this page follows the theme toggle with
- * no theme query of its own.
+ * The page is a thin frame around the shadcn `WorksWheel` (`components/ui/works-wheel.tsx`).
+ * Everything visual that belongs to the app and not the component lives here, on the shell's
+ * `--lp-*` tokens, so the page follows the theme toggle like every other page. The wheel brings
+ * its own Tailwind utilities; these rules only give its stage a box and lay out the header and
+ * the "load more" control beneath it.
  */
 
 .page {
@@ -34,7 +25,7 @@
 
 .title {
   font-family: var(--font-family-display);
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--lp-text);
@@ -45,314 +36,67 @@
   color: var(--lp-text-muted);
 }
 
-/* ---------------------------------------------------------------- Errors */
+/* ----------------------------------------------------------------- Stage */
 
 /*
- * Inline and non-blocking.
+ * The wheel's box.
  *
- * One of the three sorts failing is not a failed page - the other two still returned titles -
- * so this is a status line above the wall rather than a full-page error state that would throw
- * away content the visitor can already use.
+ * The component measures its own stage to size every card against it, so this must have a real
+ * height - a wheel in an auto-height parent measures zero and lays every card out at nothing.
+ * `dvh` keeps it a viewport-filling panel on a phone; `min` caps it on a tall desktop so the
+ * cards do not balloon with the window. Radius and border match the app's panel language so the
+ * stage reads as one of the app's surfaces rather than a foreign rectangle.
  */
-.errorText {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: var(--space-md) var(--space-lg);
-  border-radius: 16px;
-  background-color: var(--lp-pill-inactive);
-  border: 1px solid var(--lp-line);
-  font-size: 0.8125rem;
-  color: var(--lp-text-muted);
-}
-
-.errorText svg {
-  flex-shrink: 0;
-  color: var(--lp-accent-red);
-}
-
-/* ---------------------------------------------------------------- Wall */
-
-/*
- * Two columns from the smallest phone up. One column made each tile as wide as the viewport,
- * which is a lot of poster for a 360px screen and pushed the second title below the fold for
- * no gain - the tiles are short enough that two of them read side by side.
- */
-.wall {
-  column-count: 2;
-  column-gap: var(--space-lg);
-}
-
-@media (min-width: 900px) {
-  .wall {
-    column-count: 3;
-  }
-}
-
-@media (min-width: 1320px) {
-  .wall {
-    column-count: 4;
-  }
-}
-
-/*
- * One tile.
- *
- * `display: inline-block` with `width: 100%` is the pairing that makes multi-column behave:
- * `inline-block` is what `break-inside: avoid` can hold together, and without the explicit
- * width a block-level child would size itself to the column anyway and gain nothing.
- */
-.tile {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-  margin-bottom: var(--space-lg);
-  /* `overflow: hidden` so the caption's own radius clips against the tile, not the wall. */
-  overflow: hidden;
-  border-radius: 20px;
-  background-color: var(--lp-surface);
-  border: 1px solid var(--lp-line);
-  box-shadow: var(--lp-card-shadow);
-  /* Load-bearing: see the note at the top of the file. */
-  break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-  page-break-inside: avoid;
-  transition:
-    transform var(--motion-spring-soft-duration) var(--motion-spring-soft),
-    box-shadow var(--motion-slow) var(--motion-ease-out);
-}
-
-.tile:hover {
-  transform: translateY(-3px);
-}
-
-/*
- * The wall fades in, same recipe as the grids: `--tile-i` from the map index in
- * `ExplorePage.tsx`, a clamped per-tile delay, backwards fill so the hover lift above still
- * works once the entrance is over. Skeleton tiles get no index and arrive instantly,
- * which is right for placeholder geometry that is about to be replaced.
- */
-@media (prefers-reduced-motion: no-preference) {
-  .tile {
-    animation: tileIn var(--motion-spring-soft-duration) var(--motion-spring-soft) backwards;
-    animation-delay: min(calc(var(--tile-i, 0) * 45ms), 450ms);
-  }
-}
-
-@keyframes tileIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* ---------------------------------------------------------------- Artwork */
-
-.artwork,
-.artworkFallback {
-  display: block;
-  width: 100%;
-  /*
-    No `height` and no `aspect-ratio`.
-
-    This is what makes the wall a wall. Each image keeps its own proportions, so tiles come out
-    at different heights and the column fills naturally instead of every row lining up on a
-    fixed line that the artwork above it does not share.
-  */
-  height: auto;
-  background-color: var(--lp-surface-elevated);
-}
-
-.artworkFallback {
-  /*
-    The one place a height is needed. TMDB has gaps, and a title with no artwork would otherwise
-    collapse to a 0px tile that closes the gap in the column above it - shifting every tile
-    below it under the pointer. 16:9 is the common case for a missing backdrop.
-  */
-  aspect-ratio: 16 / 9;
-  border-bottom: 1px solid var(--lp-line-subtle);
-}
-
-/*
- * Caption.
- *
- * Under the artwork rather than over it. An overlay on a masonry tile has no fixed height to
- * anchor to, so a short title showed a tall scrim over a short image and a long one spilled past
- * the bottom edge; a block in flow is always exactly as tall as its own text.
- */
-.tileBody {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: var(--space-md) var(--space-lg) var(--space-lg);
-}
-
-.tileTitle {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--lp-text);
-  /*
-      Two lines then ellipsis. A title of any length is a real title, and letting it run to five
-      lines makes one tile dominate the wall while its neighbours are cropped to nothing.
-    */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.tileMeta {
-  font-family: var(--font-family-numeric);
-  font-size: 0.6875rem;
-  color: var(--lp-text-faint);
-}
-
-/*
- * Overview, and only two lines of it.
- *
- * Present so the wall has something to scan beyond a title; clamped because the full synopsis
- * is three paragraphs and the detail page is one click away.
- */
-.tileOverview {
-  margin-top: 4px;
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  color: var(--lp-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* ---------------------------------------------------------------- Play */
-
-/*
- * A hint over the artwork, top-right.
- *
- * It used to be a real second link - the tile went to the detail page and this went to the
- * player - but two destinations stacked on one tile is two answers to one click, and now that
- * playback only ever begins from the detail page this is no longer a control. It is a badge that
- * says "this is playable", so it carries `pointer-events: none` and lets the tile link underneath
- * receive the click, and it is always visible rather than hover-only, because a hint that appears
- * after you have already decided to interact with the card has arrived too late to inform you.
- */
-.playAction {
-  position: absolute;
-  top: var(--space-md);
-  right: var(--space-md);
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 30px;
-  padding-inline: 12px;
-  border-radius: 9999px;
-  background-color: rgba(16, 16, 19, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(4px);
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-decoration: none;
-  pointer-events: none;
-  transition: background-color var(--motion-fast) var(--motion-ease);
-}
-
-.tile:hover .playAction {
-  background-color: var(--lp-accent-red);
-  border-color: transparent;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tile:hover {
-    transform: none;
-  }
-}
-
-/* ---------------------------------------------------------------- Empty */
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-md);
-  padding: var(--space-2xl);
+.stage {
+  height: min(72dvh, 720px);
   border-radius: 24px;
-  background-color: var(--lp-surface);
+  overflow: hidden;
   border: 1px solid var(--lp-line);
-  box-shadow: var(--lp-card-shadow);
-  color: var(--lp-text-muted);
+  background-color: var(--lp-surface);
 }
 
-.empty h2 {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--lp-text);
+/* ------------------------------------------------------------- Load more */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
 }
 
-.action {
+.loadMore {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   height: 42px;
-  padding-inline: 20px;
+  padding-inline: 24px;
   border-radius: 9999px;
-  background-color: var(--lp-surface-elevated);
   border: 1px solid var(--lp-line);
+  background-color: var(--lp-surface-elevated);
   color: var(--lp-text);
   font-size: 0.875rem;
   font-weight: 600;
-  text-decoration: none;
+  cursor: pointer;
   transition: background-color var(--motion-fast) var(--motion-ease),
     color var(--motion-fast) var(--motion-ease);
 }
 
-.action:hover {
+.loadMore:hover:not(:disabled) {
   background-color: var(--lp-pill-inactive);
   color: var(--lp-accent-red);
 }
 
-/* ---------------------------------------------------------------- Skeleton */
-
-/*
- * Placeholder tiles with three repeating heights.
- *
- * A uniform square skeleton would collapse the masonry into a grid-shaped placeholder and then
- * jump when real, varied heights arrived. Varying the ratio keeps the page's shape roughly
- * stable while data lands.
- */
-.tile[data-variant='0'] {
-  aspect-ratio: 3 / 4;
-  background-color: var(--lp-surface-elevated);
+.loadMore:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
-.tile[data-variant='1'] {
-  aspect-ratio: 16 / 9;
-  background-color: var(--lp-surface-elevated);
+.footerNote {
+  font-size: 0.8125rem;
+  color: var(--lp-text-faint);
 }
 
-.tile[data-variant='2'] {
-  aspect-ratio: 4 / 5;
-  background-color: var(--lp-surface-elevated);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .wall[aria-hidden] .tile::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    transform: translateX(-100%);
-    background-color: rgba(255, 255, 255, 0.06);
-    animation: exploreShimmer 1.5s infinite;
-  }
-}
-
-@keyframes exploreShimmer {
-  100% {
-    transform: translateX(100%);
-  }
+.footerError {
+  font-size: 0.8125rem;
+  color: var(--lp-text-muted);
 }

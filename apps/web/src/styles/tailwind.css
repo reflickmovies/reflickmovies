@@ -1,0 +1,11 @@
+/*
+ * Tailwind, for the shadcn component layer only.
+ *
+ * Imported after `globals.css` in `main.tsx`, so Tailwind's `utilities` layer is emitted last and
+ * a utility class on a pasted-in component still wins over the app's own element styles where the
+ * two meet. `preflight` is off in `tailwind.config.ts`, so this file contributes no reset - it is
+ * purely the utility classes the components reference, scoped by the content glob in the config.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

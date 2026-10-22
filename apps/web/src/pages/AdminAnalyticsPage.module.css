@@ -1,29 +1,36 @@
 .rangeGroup {
   display: inline-flex;
+  gap: 2px;
   padding: 3px;
-  border-radius: 10px;
-  background-color: var(--adm-surface);
+  border-radius: 9999px;
+  background-color: var(--adm-surface-elevated);
   border: 1px solid var(--adm-line);
 }
 
 .rangeButton {
-  padding: 6px 14px;
-  border-radius: 8px;
+  padding: 6px 16px;
+  border-radius: 9999px;
   color: var(--adm-muted);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
 }
 
-.rangeButtonActive {
-  background-color: var(--adm-accent-soft);
-  color: var(--adm-accent);
+.rangeButton:hover {
+  color: var(--adm-text);
+}
+
+.rangeButtonActive,
+.rangeButtonActive:hover {
+  background-color: var(--adm-accent);
+  color: #ffffff;
 }
 
 .statGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
 }
 
 .topPage {
@@ -65,8 +72,8 @@
 .bar {
   width: 100%;
   min-height: 2px;
-  border-radius: 4px 4px 0 0;
-  background: linear-gradient(180deg, var(--adm-accent), rgba(255, 77, 94, 0.35));
+  border-radius: 9999px 9999px 0 0;
+  background: linear-gradient(180deg, var(--adm-accent), color-mix(in srgb, var(--adm-accent) 28%, transparent));
 }
 
 .barLabel {
@@ -77,8 +84,8 @@
 .twoCol {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
-  margin-top: 20px;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
 }
 
 .rankList {
@@ -90,8 +97,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 9px 0;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--adm-line);
 }
 
@@ -125,13 +132,13 @@
 }
 
 .logSection {
-  margin-top: 32px;
+  margin-top: var(--space-2xl);
 }
 
 .logHeading {
   font-size: 1.125rem;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .mono {
@@ -154,20 +161,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   color: var(--adm-muted);
   font-size: 0.875rem;
 }
 
 .pagerButtons {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .note {
   color: var(--adm-muted);
   font-size: 0.875rem;
-  padding: 20px 0;
+  padding: var(--space-xl) 0;
   text-align: center;
 }
 

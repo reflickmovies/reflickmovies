@@ -8,6 +8,7 @@ import * as catalog from '../services/catalog.service.js';
 import { listGenres, listProviders, providerCount } from '../repositories/providers.repo.js';
 import { countAll } from '../repositories/titles.repo.js';
 import { databaseState } from '../db/connection.js';
+import { realtimeClientCount } from '../realtime/hub.js';
 
 /** `/api/providers`: what a visitor is allowed to know about playback. */
 interface ProvidersPayload {
@@ -177,6 +178,7 @@ export const getHealth = asyncHandler(async (_req: Request, res: Response) => { 
     catalogueSize: dbState === 'connected' ? await countAll() : 0,
     providers: dbState === 'connected' ? await providerCount() : 0,
     cache: await cache.statsAsync(),
+    realtimeClients: realtimeClientCount(),
     uptimeSeconds: Math.round(process.uptime()),
   });
 });

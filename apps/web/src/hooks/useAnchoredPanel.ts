@@ -9,8 +9,8 @@ const GAP = 6;
  *
  * A panel flush against the edge of the screen reads as clipped even when it is not clipped,
  * because there is no margin to show that the edge is the screen's and not the panel's. Set to a
- * full `--space-lg` so a phone leaves a visible gutter on both sides, which is also the margin the
- * notification panel's own width reserves.
+ * full `--space-lg` so a phone leaves a visible gutter on both sides, which is also the margin a
+ * panel's own width reserves.
  */
 const VIEWPORT_MARGIN = 16;
 

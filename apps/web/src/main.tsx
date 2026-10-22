@@ -4,6 +4,7 @@ import { App } from './App';
 import { warmApi } from './lib/warmup';
 import { applyTheme } from './theme';
 import './styles/globals.css';
+import './styles/tailwind.css';
 
 /**
  * Bootstrap.

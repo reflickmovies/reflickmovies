@@ -132,6 +132,69 @@
   }
 }
 
+/* ------------------------------------------------------- live indicator */
+
+/*
+ * A small status pill in the header: a dot and a word, green and "Live" when the socket is
+ * open, grey and "Offline" while it reconnects. Deliberately quiet - it reports transport
+ * health, not an alert, and the panels keep showing their last data either way.
+ */
+.liveDot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.livePulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--lp-text-faint);
+  flex-shrink: 0;
+}
+
+.liveOn {
+  color: var(--lp-text-muted);
+}
+
+.liveOn .livePulse {
+  background-color: #38d39f;
+  box-shadow: 0 0 0 0 color-mix(in srgb, #38d39f 55%, transparent);
+  animation: adminLivePulse 2s var(--motion-ease) infinite;
+}
+
+@keyframes adminLivePulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, #38d39f 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* The word yields first on a narrow header, leaving the dot. */
+@media (max-width: 767px) {
+  .liveLabel {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveOn .livePulse {
+    animation: none;
+  }
+}
+
 /* ---------------------------------------------------------------- gate */
 
 .gateWrap {

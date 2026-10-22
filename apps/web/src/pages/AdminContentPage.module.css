@@ -21,9 +21,9 @@
 
 .failures {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2px 9px;
   border-radius: 999px;
-  background-color: rgba(245, 166, 35, 0.15);
+  background-color: color-mix(in srgb, var(--adm-warning) 16%, transparent);
   color: var(--adm-warning);
   font-weight: 700;
   cursor: help;
@@ -33,12 +33,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   color: var(--adm-muted);
   font-size: 0.875rem;
 }
 
 .pagerButtons {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }

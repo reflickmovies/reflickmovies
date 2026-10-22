@@ -51,11 +51,10 @@ function embedOrigins(): string[] {
  * build gets the policy it can actually run under.
  *
  * `connect-src` is the other mode-specific piece. Development talks to the API over the dev
- * server's own origin (`/api` proxy), so `'self'` is enough. A deployed build calls
- * `${VITE_API_URL}/api/...` on the API's own origin - and a `connect-src 'self'` policy makes the
- * browser *reject that fetch before it leaves the machine*, which surfaces in the UI as
- * "Could not reach the server" even though the API is up. So the API origin is threaded in and
- * added only in production, where it is a real origin rather than a proxied path.
+ * server's own origin (`/api` proxy) plus its HMR socket, so `'self' ws: wss:` covers both. A
+ * deployed build calls `${VITE_API_URL}/api/...` on the API's own origin and opens the live admin
+ * socket to `wss://` that same host - `connect-src` matches WebSocket URLs and its scheme must
+ * match, so both the `https://` and `wss://` forms of the API origin are added.
  *
  * `frame-ancestors` is deliberately absent. The spec ignores it in a `<meta>` delivered policy -
  * it is header-only - so writing it here would look like protection and provide none. Clickjacking
@@ -97,9 +96,15 @@ function cspPlugin(origins: string[], apiOrigin: string, apiTarget: string): Plu
         ? `frame-src 'self' ${origins.join(' ')} ${TRAILER_FRAME_HOST} ${apiTarget}`
         : `frame-src 'self' ${origins.join(' ')} ${TRAILER_FRAME_HOST}${apiOrigin ? ` ${apiOrigin}` : ''}`;
 
+      /*
+       * WebSocket URL matching under `connect-src` is scheme-strict: a policy listing only
+       * `https://api...` blocks the `wss://` handshake, which surfaces as a console CSP violation
+       * and a dashboard stuck at "Offline". The socket origin is derived from the API origin and
+       * added beside it.
+       */
       const connectSrc = dev
         ? "connect-src 'self' ws: wss:"
-        : `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ''}`;
+        : `connect-src 'self'${apiOrigin ? ` ${apiOrigin} ${apiOrigin.replace(/^https/, 'wss').replace(/^http/, 'ws')}` : ''}`;
 
       const directives = dev
         ? [...shared, frameSrc, "script-src 'self' 'unsafe-inline'", connectSrc]
@@ -139,6 +144,16 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), cspPlugin(embedOrigins(), apiOrigin, apiTarget)],
+    /*
+     * `@/` mirrors the `paths` mapping in `tsconfig.json`. Both have to exist: TypeScript reads
+     * the tsconfig to type-check the import, and Vite reads this to resolve the module at build
+     * time. Miss either and a `@/…` import type-checks in one place and fails in the other.
+     */
+    resolve: {
+      alias: {
+        '@': resolve(here, 'src'),
+      },
+    },
     server: {
       // `host: true` binds every interface, not just loopback, so a phone on the
       // same Wi-Fi can load the app at http://<lan-ip>:5173.

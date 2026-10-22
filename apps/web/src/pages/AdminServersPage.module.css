@@ -21,7 +21,7 @@
 .priorityInput {
   width: 72px;
   padding: 6px 8px;
-  border-radius: 8px;
+  border-radius: 9999px;
   background-color: var(--adm-surface-2);
   border: 1px solid var(--adm-line);
   color: var(--adm-text);
@@ -36,24 +36,24 @@
 
 .statusOn {
   color: var(--adm-success);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .statusOff {
   color: var(--adm-faint);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cacheGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .stat {
-  padding: 14px;
-  border-radius: 10px;
+  padding: var(--space-md);
+  border-radius: 14px;
   background-color: var(--adm-surface-2);
   border: 1px solid var(--adm-line);
 }
@@ -90,14 +90,15 @@
 .defaultRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-md);
   flex-wrap: wrap;
 }
 
 .defaultSelect {
-  min-width: 220px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  min-width: 240px;
+  height: 40px;
+  padding: 0 var(--space-md);
+  border-radius: 9999px;
   background-color: var(--adm-surface-2);
   border: 1px solid var(--adm-line);
   color: var(--adm-text);
@@ -111,11 +112,11 @@
 
 .badge {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   background-color: var(--adm-surface-2);
   border: 1px solid var(--adm-line);
@@ -123,11 +124,11 @@
 }
 
 .plays {
-  margin-top: 12px;
+  margin-top: var(--space-md);
 }
 
 .sectionNote {
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-lg);
   font-size: 0.8125rem;
   color: var(--adm-muted);
   line-height: 1.5;

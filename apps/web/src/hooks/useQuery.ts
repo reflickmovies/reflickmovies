@@ -140,6 +140,25 @@ function invalidatePrefix(prefix: string): void {
 
 export { invalidatePrefix };
 
+/*
+  A tiny pub/sub so a change that happens outside a component can refetch the components that
+  display it. The admin console's live socket is the only user today: when the server says the
+  visit log changed, every mounted `useQuery` whose key begins with `admin:visits` refetches,
+  and nothing else does.
+
+  Dropping the cache entry (`invalidateQuery`) is not enough on its own - a mounted hook only
+  re-reads when its key or nonce changes, so the entry would be re-fetched on the *next* mount
+  rather than now. These listeners call each hook's own `refetch`, which is the same path the
+  manual refresh uses.
+*/
+type RefetchListener = (prefix: string) => void;
+const refetchListeners = new Set<RefetchListener>();
+
+/** Refetches every mounted query whose key starts with `prefix`. */
+export function refetchQueriesByPrefix(prefix: string): void {
+  for (const listener of refetchListeners) listener(prefix);
+}
+
 export interface QueryOptions {
   /** Skip the request entirely, e.g. while the query string is empty. */
   enabled?: boolean;
@@ -176,6 +195,22 @@ export function useQuery<T>(
   }, [key]);
 
   const isFirstLoad = data === null && error === null;
+
+  /*
+    Join the refetch pub/sub. A prefix broadcast that matches this key refetches it, which is how
+    a server push reaches every mounted panel without any of them knowing a socket exists. Keyed on
+    `key`/`refetch` so re-registering happens only when the query identity actually changes.
+  */
+  useEffect(() => {
+    if (key == null) return;
+    const listener: RefetchListener = (prefix) => {
+      if (key.startsWith(prefix)) refetch();
+    };
+    refetchListeners.add(listener);
+    return () => {
+      refetchListeners.delete(listener);
+    };
+  }, [key, refetch]);
 
   useEffect(() => {
     if (!enabled || key == null) {

@@ -8,6 +8,7 @@ import {
   StatCard,
   formatNumber,
 } from '../components/admin/adminPrimitives';
+import { TrafficChart } from '../components/admin/TrafficChart';
 import { LoadingState, ErrorState } from '../components/ui';
 import { useAdminGateGuard } from '../components/admin/AdminLayout';
 import styles from './AdminOverviewPage.module.css';
@@ -32,8 +33,6 @@ export function AdminOverviewPage() {
   const data = stats.data;
   if (data === null) return null;
 
-  const maxVisits = Math.max(1, ...(visits.data?.daily.map((row) => row.visits) ?? [1]));
-
   return (
     <div>
       <AdminPageHeader
@@ -49,43 +48,35 @@ export function AdminOverviewPage() {
       <div className={styles.statGrid}>
         <StatCard
           label="Visits today"
-          value={formatNumber(data.visits.today)}
-          hint={`${formatNumber(data.visits.todayUnique)} unique IPs`}
+          value={data.visits.today}
+          hint={`${formatNumber(data.visits.todayUnique)} unique visitors`}
           tone="accent"
         />
         <StatCard
           label="Visits this week"
-          value={formatNumber(data.visits.week)}
+          value={data.visits.week}
           hint={`${formatNumber(data.visits.month)} in 30 days`}
         />
         <StatCard
           label="Total accounts"
-          value={formatNumber(data.users.total)}
+          value={data.users.total}
           hint={`${formatNumber(data.users.admins)} admin${data.users.admins === 1 ? '' : 's'}`}
         />
         <StatCard
           label="New accounts"
-          value={formatNumber(data.users.newToday)}
+          value={data.users.newToday}
           hint={`${formatNumber(data.users.newThisWeek)} this week`}
           tone="success"
         />
       </div>
 
       <div className={styles.statGrid}>
-        <StatCard label="Titles in catalogue" value={formatNumber(data.catalogue.total)} />
-        <StatCard
-          label="Films"
-          value={formatNumber(data.catalogue.movies)}
-          hint="movie records"
-        />
-        <StatCard
-          label="Series"
-          value={formatNumber(data.catalogue.series)}
-          hint="tv records"
-        />
+        <StatCard label="Titles in catalogue" value={data.catalogue.total} />
+        <StatCard label="Films" value={data.catalogue.movies} hint="movie records" />
+        <StatCard label="Series" value={data.catalogue.series} hint="tv records" />
         <StatCard
           label="Server failures"
-          value={formatNumber(data.serverFailures)}
+          value={data.serverFailures}
           hint="strikes across all titles"
           tone={data.serverFailures > 0 ? 'warning' : 'default'}
         />
@@ -101,18 +92,7 @@ export function AdminOverviewPage() {
         ) : visits.data === null || visits.data.daily.length === 0 ? (
           <p className={styles.note}>No visits recorded yet. Traffic appears here as people browse the site.</p>
         ) : (
-          <div className={styles.bars} role="img" aria-label="Daily visit counts for the last 14 days">
-            {visits.data.daily.map((row) => (
-              <div key={row.date} className={styles.barColumn} title={`${row.date}: ${row.visits} visits, ${row.unique} unique`}>
-                <div className={styles.barTrack}>
-                  <div className={styles.bar} style={{ height: `${(row.visits / maxVisits) * 100}%` }} />
-                </div>
-                <span className={styles.barLabel}>
-                  {new Date(`${row.date}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric' })}
-                </span>
-              </div>
-            ))}
-          </div>
+          <TrafficChart data={visits.data.daily} />
         )}
       </Panel>
 

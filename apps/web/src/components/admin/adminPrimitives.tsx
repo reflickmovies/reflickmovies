@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { MagnifyingGlass } from '@phosphor-icons/react';
+import { Button } from '../ui';
+import { useCountUp } from '../../hooks/useCountUp';
 import styles from './admin.module.css';
 
 /* --------------------------------------------------------------- header */
@@ -26,6 +28,19 @@ export function AdminPageHeader({
 
 /* ------------------------------------------------------------- stat card */
 
+/**
+ * A number that ramps to its target instead of appearing.
+ *
+ * Its own component rather than a hook call inside `StatCard` because `StatCard` is not
+ * always given a number - `Top page` is a path string - and a hook has to run unconditionally.
+ * Rendering this only for the numeric case keeps the call site legal and lets the text case
+ * skip the animation entirely.
+ */
+function CountUp({ value }: { value: number }) {
+  const shown = useCountUp(value);
+  return <>{formatNumber(Math.round(shown))}</>;
+}
+
 export function StatCard({
   label,
   value,
@@ -33,14 +48,17 @@ export function StatCard({
   tone = 'default',
 }: {
   label: string;
-  value: ReactNode;
+  /** A number counts up to its value; anything else renders as-is. */
+  value: number | ReactNode;
   hint?: string;
   tone?: 'default' | 'accent' | 'success' | 'warning';
 }) {
   return (
     <div className={`${styles.statCard} ${styles[`stat-${tone}`] ?? ''}`.trim()}>
       <span className={styles.statLabel}>{label}</span>
-      <span className={styles.statValue}>{value}</span>
+      <span className={styles.statValue}>
+        {typeof value === 'number' ? <CountUp value={value} /> : value}
+      </span>
       {hint ? <span className={styles.statHint}>{hint}</span> : null}
     </div>
   );
@@ -119,6 +137,51 @@ export function EmptyRow({ colSpan, children }: { colSpan: number; children: Rea
         {children}
       </td>
     </tr>
+  );
+}
+
+/* -------------------------------------------------------------- helpers */
+
+/**
+ * The pager shared by every admin list.
+ *
+ * The three admin pages each hand-rolled an identical previous/next block, which is exactly the
+ * kind of duplication that drifts - one gains a "rows" count, another a disabled style, and the
+ * two pages no longer read as the same table. One component, one appearance.
+ *
+ * `total` is shown because a page count alone does not tell an operator whether a filter matched
+ * twelve rows or twelve thousand, which is the question a pager is usually opened to answer.
+ */
+export function AdminPagination({
+  page,
+  totalPages,
+  total,
+  onPage,
+}: {
+  page: number;
+  totalPages: number;
+  total: number;
+  onPage: (page: number) => void;
+}) {
+  return (
+    <div className={styles.pager}>
+      <span>
+        Page {page} of {Math.max(1, totalPages)} · {formatNumber(total)} row{total === 1 ? '' : 's'}
+      </span>
+      <div className={styles.pagerButtons}>
+        <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page >= Math.max(1, totalPages)}
+          onClick={() => onPage(page + 1)}
+        >
+          Next
+        </Button>
+      </div>
+    </div>
   );
 }
 

@@ -6,6 +6,7 @@ import { countAll } from './repositories/titles.repo.js';
 import { providerCount } from './repositories/providers.repo.js';
 import { startAutoSync, stopAutoSync } from './jobs/autoSync.js';
 import { startBlocklistRefresh, stopBlocklistRefresh } from './jobs/blocklistRefresh.js';
+import { attachRealtime, closeRealtime } from './realtime/hub.js';
 
 const log = createLogger('boot');
 
@@ -55,10 +56,15 @@ async function main(): Promise<void> {
 
   startAutoSync();
 
+  // The live admin stream rides the same server: an upgrade handler on the socket Express is
+  // already listening on, so no second port and no second listen call.
+  attachRealtime(server);
+
   const shutdown = (signal: string) => {
     log.info(`${signal} received, closing`);
     stopAutoSync();
     stopBlocklistRefresh();
+    closeRealtime();
     server.close(() => {
       void disconnectFromDatabase().finally(() => process.exit(0));
     });

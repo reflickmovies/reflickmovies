@@ -353,6 +353,8 @@ export interface AdminVisitRow {
   userDisplay: string | null;
   path: string;
   userAgent: string;
+  /** Stable browser id, used to count a returning reader once. Null for older beacons. */
+  deviceId: string | null;
   at: string;
 }
 

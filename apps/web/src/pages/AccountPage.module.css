@@ -1,16 +1,18 @@
 /*
  * The account portal.
  *
- * Same surface language as Settings - one column of cards on the shell's `--lp-*` tokens,
- * capped at the same 860px so the two pages read as siblings. The identity header is the one
- * bespoke piece: the page is about a person, so it opens with the person rather than a title.
+ * Same surface language as Settings - one column of cards on the shell's `--lp-*` tokens - but
+ * it fills the right-hand column rather than sitting in an 860px stripe. The shell already
+ * clamps the column (`minmax(0, 1fr)`, see `AppShell.module.css`), so the page has a real
+ * ceiling to grow into; the removed cap just stopped it short of it and left a dead gutter on
+ * wide screens. The identity header is the one bespoke piece: the page is about a person, so
+ * it opens with the person rather than a title.
  */
 
 .page {
   display: flex;
   flex-direction: column;
   gap: var(--space-2xl);
-  max-width: 860px;
 }
 
 /* ------------------------------------------------------------- Signed out */

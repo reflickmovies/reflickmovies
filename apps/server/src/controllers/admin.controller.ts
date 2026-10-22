@@ -21,7 +21,12 @@ const providerUpdateSchema = z.object({
   priority: z.number().int().min(0).max(10_000).optional(),
 });
 
-const trackSchema = z.object({ path: z.string().min(1).max(500) });
+const trackSchema = z.object({
+  path: z.string().min(1).max(500),
+  // Optional: an older client or a cleared browser store still sends a beacon, it just falls
+  // back to its IP when uniques are counted. Bounded so a hostile client cannot store a wall.
+  deviceId: z.string().min(1).max(128).nullable().optional(),
+});
 
 const providerDefaultSchema = z.object({ key: z.string().min(1).max(200).nullable() });
 
@@ -63,6 +68,7 @@ export const getVisits = asyncHandler(async (req: Request, res: Response) => {
     page: intParam(req.query.page, 1, 1, 10_000),
     limit: intParam(req.query.limit, 50, 1, 200),
     ip: typeof req.query.ip === 'string' ? req.query.ip : undefined,
+    search: typeof req.query.search === 'string' ? req.query.search : undefined,
   });
   sendData(res, result.items, { total: result.total, page: result.page, totalPages: result.totalPages });
 });
@@ -138,6 +144,7 @@ export const track = asyncHandler(async (req: Request, res: Response) => {
       userId: typeof userId === 'string' ? userId : null,
       path: body.path,
       userAgent: req.get('user-agent') ?? '',
+      deviceId: body.deviceId ?? null,
     })
     .catch(() => {});
 

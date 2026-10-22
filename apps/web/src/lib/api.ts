@@ -30,6 +30,7 @@ import type {
   TitleType,
   WatchEntry,
 } from '../types/api';
+import { getDeviceId } from './deviceId';
 
 export type { AdminCacheStats, AdminProviderDefault } from '../types/api';
 
@@ -497,7 +498,9 @@ export function removeAccountHistory(type: TitleType, slug: string): Promise<Wat
  * Page-view beacon. Fired once per route change by `usePageTracker`.
  *
  * Uses `keepalive` so the request survives a navigation, and swallows its own
- * errors: a tracking failure must never surface to the visitor.
+ * errors: a tracking failure must never surface to the visitor. The device id is
+ * attached so the server can count a returning reader once rather than once per
+ * page - see `lib/deviceId`.
  */
 export function trackPageView(path: string): void {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
@@ -506,10 +509,27 @@ export function trackPageView(path: string): void {
   void fetch(`${BASE}/track`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ path }),
+    body: JSON.stringify({ path, deviceId: getDeviceId() || null }),
     keepalive: true,
     credentials: 'same-origin',
   }).catch(() => {});
+}
+
+/**
+ * The absolute WebSocket URL for the live admin stream.
+ *
+ * A browser cannot set an `Authorization` header on a WebSocket, so the token rides as a query
+ * parameter; the server verifies it and the account's role before accepting the upgrade. `BASE`
+ * is empty in development (the Vite proxy is same-origin), so the URL is built from the current
+ * location there and from the API origin in a deployed build. Returns null without a token, so
+ * the caller has nothing to connect with rather than a socket that will be rejected.
+ */
+export function getAdminSocketUrl(): string | null {
+  if (authToken === null) return null;
+
+  const origin = API_ORIGIN.length > 0 ? API_ORIGIN : window.location.origin;
+  const wsOrigin = origin.replace(/^http/, 'ws');
+  return `${wsOrigin}/api/admin/ws?token=${encodeURIComponent(authToken)}`;
 }
 
 /* ------------------------------------------------------------------ admin */
@@ -553,12 +573,12 @@ export function deleteAdminUser(id: string): Promise<{ ok: boolean }> {
 }
 
 export function getAdminVisits(
-  params: { page?: number; limit?: number; ip?: string } = {},
+  params: { page?: number; limit?: number; ip?: string; search?: string } = {},
   signal?: AbortSignal,
 ): Promise<AdminListPage<AdminVisitRow>> {
   return request<AdminVisitRow[]>('/admin/visits', {
     signal,
-    query: { page: params.page, limit: params.limit, ip: params.ip },
+    query: { page: params.page, limit: params.limit, ip: params.ip, search: params.search },
   }).then((envelope) => ({
     items: envelope.data,
     total: typeof envelope.meta.total === 'number' ? envelope.meta.total : envelope.data.length,
