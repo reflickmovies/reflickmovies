@@ -166,12 +166,33 @@ export function AdminLayout() {
                     ))}
                   </nav>
 
-                  {/* The reader rail's Continue-watching slot, filled here by the operator. */}
+                  {/*
+                    The reader rail's Continue-watching slot, filled here by the console's own
+                    furniture. Everything that is not a destination lives in this one group at the
+                    bottom of the rail: the way out, who is signed in, and the way to sign out.
+                    The top bar used to carry a second copy of "Back to site" and the live
+                    indicator, which split the console's furniture across two edges and left the
+                    operator's identity floating in the header. One group, one place.
+                  */}
                   <div className={styles.sidebarFooter}>
+                    {/*
+                      Live indicator: the one bit of socket state worth showing. It reports
+                      transport health, not an alert - the panels keep showing their last data
+                      either way - so it sits quietly with the rest of the rail furniture.
+                    */}
+                    <span
+                      className={`${styles.liveDot} ${live ? styles.liveOn : ''}`.trim()}
+                      title={live ? 'Live - updates as they happen' : 'Reconnecting…'}
+                    >
+                      <span className={styles.livePulse} aria-hidden />
+                      <span className={styles.liveLabel}>{live ? 'Live' : 'Offline'}</span>
+                    </span>
+
                     <Link to={ROUTES.home} className={styles.backLink}>
                       <House size={16} weight="bold" aria-hidden />
                       <span>Back to site</span>
                     </Link>
+
                     <div className={styles.sidebarUser}>
                       <ProfileAvatar user={user} size={32} />
                       <span className={styles.sidebarUserText}>
@@ -179,6 +200,7 @@ export function AdminLayout() {
                         <span className={styles.sidebarUserEmail}>{user.email}</span>
                       </span>
                     </div>
+
                     <Button
                       variant="ghost"
                       size="sm"
@@ -225,27 +247,15 @@ export function AdminLayout() {
                   })}
                 </nav>
 
+                {/*
+                  The header carries the destination pills and one way to the operator's own
+                  account. "Back to site" and the live indicator used to sit here as well, but
+                  both belong to the rail's bottom group - one home for the console's furniture
+                  rather than the same two controls in two places. On a narrow screen the rail is
+                  gone, and the wordmark above is the link home, while this avatar opens the
+                  account page, which carries its own sign out.
+                */}
                 <div className={topNavStyles.actions}>
-                  {/* Live indicator: the one bit of socket state worth showing. */}
-                  <span
-                    className={`${styles.liveDot} ${live ? styles.liveOn : ''}`.trim()}
-                    title={live ? 'Live - updates as they happen' : 'Reconnecting…'}
-                  >
-                    <span className={styles.livePulse} aria-hidden />
-                    <span className={styles.liveLabel}>{live ? 'Live' : 'Offline'}</span>
-                  </span>
-                  {/*
-                    Back to the site. On desktop the rail footer carries it too; on mobile the
-                    rail is hidden, so this becomes the only way out - hence the mobile-only copy.
-                  */}
-                  <Link
-                    to={ROUTES.home}
-                    className={`${topNavStyles.circleButton} ${topNavStyles.mobileAction}`.trim()}
-                    aria-label="Back to site"
-                    title="Back to site"
-                  >
-                    <House size={18} weight="bold" aria-hidden />
-                  </Link>
                   <button
                     type="button"
                     className={topNavStyles.profileButton}

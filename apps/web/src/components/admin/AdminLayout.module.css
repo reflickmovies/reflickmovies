@@ -10,8 +10,8 @@
  *  - the `--adm-*` palette the admin pages were written against, aliased onto the app's own
  *    `--lp-*` tokens so every panel follows the light/dark theme instead of a fixed surface
  *  - the "Admin" badge beside the wordmark
- *  - the rail footer (back-to-site, the operator, sign out) that fills the slot the reader
- *    gives to Continue watching
+ *  - the rail footer (the live line, back-to-site, the operator, sign out) that fills the slot
+ *    the reader gives to Continue watching
  *  - the not-authorised gate
  */
 
@@ -62,13 +62,17 @@
 /* --------------------------------------------------------- rail footer */
 
 /*
- * The reader rail's Continue-watching slot, filled by the operator's own controls. Pushed to
- * the bottom of the rail by the nav list taking the loose space above it.
+ * The reader rail's Continue-watching slot, filled by the console's own furniture: the way out,
+ * the signed-in operator and the sign out, in one group at the bottom of the rail. Pushed there
+ * by the nav list taking the loose space above it.
+ *
+ * The gap is the tight one because these are a cluster, not four separate sections - the status
+ * line, the link and the identity read as one block of information about who is signed in.
  */
 .sidebarFooter {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   margin-top: auto;
   padding-top: var(--space-md);
   border-top: 1px solid var(--lp-line);
@@ -93,11 +97,12 @@
   color: var(--lp-text);
 }
 
+/* The avatar lines up with the house icon above it, both inset by the link's own padding. */
 .sidebarUser {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: var(--space-sm) var(--space-sm) 0;
+  padding: 0 12px;
   min-width: 0;
 }
 
@@ -135,17 +140,21 @@
 /* ------------------------------------------------------- live indicator */
 
 /*
- * A small status pill in the header: a dot and a word, green and "Live" when the socket is
- * open, grey and "Offline" while it reconnects. Deliberately quiet - it reports transport
- * health, not an alert, and the panels keep showing their last data either way.
+ * A small status line in the rail's bottom group: a dot and a word, green and "Live" when the
+ * socket is open, grey and "Offline" while it reconnects. Deliberately quiet - it reports
+ * transport health, not an alert, and the panels keep showing their last data either way.
+ *
+ * It is a plain row rather than the pill it was in the header: the header is a row of circular
+ * buttons, and a rounded badge there competed with them for attention. Down here, in the
+ * console's furniture group, a dot with a word beside it reads as a status line.
  */
 .liveDot {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-radius: 9999px;
-  background-color: var(--lp-pill-inactive);
+  gap: 7px;
+  align-self: flex-start;
+  /* The dot lines up with the house icon and the avatar below it. */
+  padding-left: 12px;
   color: var(--lp-text-faint);
   font-size: 0.75rem;
   font-weight: 600;
@@ -179,13 +188,6 @@
   }
   100% {
     box-shadow: 0 0 0 0 transparent;
-  }
-}
-
-/* The word yields first on a narrow header, leaving the dot. */
-@media (max-width: 767px) {
-  .liveLabel {
-    display: none;
   }
 }
 
