@@ -109,54 +109,6 @@
   color: var(--lp-text-faint);
 }
 
-/*
- * Previous and next, as a pair.
- *
- * Back is a bare icon and forward is the labelled action, which puts the emphasis on going
- * forwards while still making going back discoverable. `gap: 2px` because the labelled button
- * carries its own padding and a wider gap here read as two unrelated controls.
- *
- * The pair wraps to its own line under 640px rather than compressing. A title, a back button and
- * four words of label do not fit one line at phone widths, and the title is the one that must
- * survive, so the transport drops instead.
- */
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.step {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--lp-line);
-  border-radius: 50%;
-  background-color: var(--lp-surface);
-  box-shadow: var(--lp-card-shadow);
-  color: var(--lp-text-muted);
-  cursor: pointer;
-  transition: background-color var(--motion-fast) var(--motion-ease),
-    border-color var(--motion-fast) var(--motion-ease),
-    color var(--motion-fast) var(--motion-ease);
-}
-
-.step:hover:not(:disabled) {
-  background-color: var(--lp-surface-elevated);
-  border-color: var(--lp-accent-red);
-  color: var(--lp-accent-red);
-}
-
-.step:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
 /* ----------------------------------------------------------------- Main */
 
 .main {
@@ -314,10 +266,9 @@
 /* ----------------------------------------------------------------- Narrow */
 
 /*
- * Below this the bar cannot hold a title, a 40px back button and a pair of transport controls on
- * one line, so it wraps rather than letting the title be squeezed to nothing. The stepper is the
- * thing that drops: it is duplicated by the arrow keys on a keyboard, and it is the only element
- * here that is purely an accelerator.
+ * Below this the bar cannot hold a title, a 40px back button and a source picker on one line, so
+ * it wraps rather than letting the title be squeezed to nothing. The title keeps the width it can
+ * and the picker drops to its own line, where it is still the full-width control over playback.
  */
 @media (max-width: 640px) {
   .bar {
@@ -326,13 +277,6 @@
 
   .barText {
     flex: 1 1 auto;
-  }
-
-  .stepper {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
-    padding-top: var(--space-xs);
   }
 }
 

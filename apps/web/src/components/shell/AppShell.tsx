@@ -26,7 +26,6 @@ import { ProfileAvatar } from '../account/ProfileAvatar';
 import { useThemeMode } from './ThemeMode';
 import { SearchOverlay, SearchOverlayButton, useSearchOverlay } from './SearchOverlayTrigger';
 import { ContinueWatching } from './ContinueWatching';
-import { Notifications } from './Notifications';
 import { SeoManager } from '../seo/SeoManager';
 import { Wordmark } from '../brand/Wordmark';
 import styles from './AppShell.module.css';
@@ -358,14 +357,10 @@ export function AppShell() {
                 </button>
 
                 {/*
-                  The notification bell carries the API's feed: new releases for everyone, plus the
-                  account notices when signed in.
-
                   The avatar is the entry point to the account. Signed in it opens the portal at
-                  `/account`; signed out it opens the sign-in popup. Mobile reaches the same two
-                  paths through the dots menu, since this button is hidden below the breakpoint.
+                  `/account`; signed out it opens the sign-in popup. Mobile reaches the same path
+                  through the dots menu, since this button is hidden below the breakpoint.
                 */}
-                <Notifications />
 
                 {/*
                   Secondary destinations and the theme switch.

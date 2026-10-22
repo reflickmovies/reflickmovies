@@ -270,19 +270,6 @@ export interface ServerReport {
   demoted: boolean;
 }
 
-/** notification.service NotificationKind */
-export type NotificationKind = 'releases' | 'account';
-
-/** notification.service NotificationDto. */
-export interface AppNotification {
-  id: string;
-  kind: NotificationKind;
-  title: string;
-  body: string;
-  href?: string;
-  at: string;
-}
-
 /** auth.service PublicUser */
 export interface AccountUser {
   id: string;

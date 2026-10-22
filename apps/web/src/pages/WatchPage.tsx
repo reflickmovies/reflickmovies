@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Info, SkipBack, SkipForward, Warning } from '@phosphor-icons/react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Info, Warning } from '@phosphor-icons/react';
 import { useEpisodes, useSeasons, useServers, useTitle, useReportServer } from '../hooks/useReflick';
 import { Button, EmptyState, ErrorState, Spinner, useToast } from '../components/ui';
 import { EpisodeRow, SeasonPicker, SourcePicker, VideoPlayer } from '../components/watch';
 import { formatEpisodeLabel, formatSeasonLabel } from '../lib/format';
 import { playerUrl, recordServerPlay } from '../lib/api';
-import { ROUTES, titlePath } from '../lib/routes';
+import { ROUTES, detailBackTarget, titlePath } from '../lib/routes';
 import { useWatchHistory } from '../hooks/useWatchHistory';
 import type { TitleType } from '../types/api';
 import styles from './WatchPage.module.css';
@@ -18,19 +18,21 @@ export interface WatchPageProps {
 /**
  * The player page.
  *
- * Four decisions worth stating, because each one replaced something that was actively worse:
+ * Three decisions worth stating, because each one replaced something that was actively worse:
  *
  *  - The season and episode live in the URL, so a specific episode is shareable, survives a
- *    reload, and Next moves the address rather than internal state.
+ *    reload, and the episode cards below the player can deep-link straight at it.
  *  - The season control and the episode cards are the same components the title page uses, in
  *    their quiet variant. The watch page had grown a private copy of both, which meant the design
  *    only had to be right once - and it was right in two places at once, so it never was.
  *  - Every configured source is a visible tab, not a hidden dropdown. When the first embed is down
  *    or network-blocked, switching is the single action that fixes it, and burying the
  *    alternatives behind a menu turns that into a hunt.
- *  - Next crosses season boundaries. It previously only searched the episodes of the season
- *    currently in memory, so on the last episode of a season the button simply disappeared and the
- *    next episode of the show was one manual click away and completely unadvertised.
+ *
+ * The header bar carries identity and the source picker only. It used to also carry a
+ * previous/next episode stepper, which duplicated the episode list directly beneath it and put a
+ * transport control in the one place a viewer does not look for one - they look down, at the
+ * episode they want to play next.
  */
 export function WatchPage({ type }: WatchPageProps) {
   const { slug } = useParams<{ slug: string }>();
@@ -145,9 +147,9 @@ export function WatchPage({ type }: WatchPageProps) {
     Report the provider that actually got used.
 
     Fired when a source becomes the one on screen, which is what feeds the global
-    "most-used provider" default. Deduped per position + provider so a re-render or a
-    keyboard-driven episode hop does not inflate the count, and fire-and-forget so it can
-    never block playback.
+    "most-used provider" default. Deduped per position + provider so a re-render or an
+    episode change does not inflate the count, and fire-and-forget so it can never block
+    playback.
   */
   const recordedPlayRef = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -233,113 +235,6 @@ export function WatchPage({ type }: WatchPageProps) {
   );
 
   const episodes = episodeData?.episodes ?? [];
-
-  /*
-    Previous and next across the whole show, not just the loaded season.
-
-    The old version searched only `episodeData.episodes`, which is one season, so the last episode
-    of a season had no "next" at all - even when the next season was right there in `seasons`. It
-    now falls through to the following season and opens its first episode. Going back does the
-    mirror: off the front of a season it lands on the last episode of the one before.
-
-    Only seasons that actually have episodes are eligible, so an indexed-but-empty season in the
-    middle of a run is stepped over instead of opening onto an empty player.
-  */
-  const { previous, next } = useMemo(() => {
-    if (!isSeries || season === undefined || episode === undefined) return { previous: undefined, next: undefined };
-
-    const index = episodes.findIndex((entry) => entry.episode === episode);
-
-    /*
-      Which seasons border this one.
-
-      Both directions are resolved independently rather than as a pair, because they fail
-      independently: the first episode of a season has a next but no previous, the last has a
-      previous but no next, and a one-episode season has both problems solved by the same two
-      seasons. Branching on "is there an adjacent episode" and then reading the other one out of
-      the array regardless was how the old version ended up dereferencing an undefined neighbour.
-    */
-    const previousSeason = [...(seasons ?? [])]
-      .filter((entry) => entry.season < season && entry.episodeCount > 0)
-      .sort((a, b) => b.season - a.season)[0];
-
-    const nextSeason = [...(seasons ?? [])]
-      .filter((entry) => entry.season > season && entry.episodeCount > 0)
-      .sort((a, b) => a.season - b.season)[0];
-
-    if (index >= 0) {
-      const adjacent = episodes[index - 1];
-      const following = episodes[index + 1];
-
-      return {
-        previous: adjacent
-          ? { season, episode: adjacent.episode }
-          : previousSeason
-            ? { season: previousSeason.season, episode: previousSeason.episodeCount }
-            : undefined,
-        next: following
-          ? { season, episode: following.episode }
-          : nextSeason
-            ? { season: nextSeason.season, episode: 1 }
-            : undefined,
-      };
-    }
-
-    /*
-      The episode in the URL is not in the list we hold - usually because the season is still
-      loading. Falling back to a neighbouring season gives a usable answer without guessing at an
-      episode number, and when there is neither neighbour both stay undefined, so no button is
-      offered rather than a button that does nothing.
-    */
-    return {
-      previous: previousSeason ? { season: previousSeason.season, episode: previousSeason.episodeCount } : undefined,
-      next: nextSeason ? { season: nextSeason.season, episode: 1 } : undefined,
-    };
-  }, [isSeries, season, episode, episodes, seasons]);
-
-  const handleNext = useCallback(() => {
-    if (next) goToEpisode(next.season, next.episode);
-  }, [next, goToEpisode]);
-
-  const handlePrevious = useCallback(() => {
-    if (previous) goToEpisode(previous.season, previous.episode);
-  }, [previous, goToEpisode]);
-
-  /*
-    Keyboard navigation.
-
-    Left and right move between episodes, which is the one control a viewer reaches for without
-    being told. Bound on the document rather than the player frame: focus is usually in the page,
-    since the frame belongs to the embed, so a handler on the stage would never fire.
-
-    Every guard is there to avoid stealing keys from something the viewer is actually typing in or
-    scrolling. `ArrowUp`/`ArrowDown`, `Home`/`End` and `PageUp`/`PageDown` are deliberately left
-    alone - they belong to the episode list and the page scroll.
-  */
-  useEffect(() => {
-    if (!isSeries || episode === undefined) return;
-
-    const onKeyDown = (event: KeyboardEvent): void => {
-      const target = event.target as HTMLElement | null;
-      const tag = target?.tagName;
-
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-
-      if (event.key === 'ArrowRight') {
-        if (!next) return;
-        event.preventDefault();
-        handleNext();
-      } else if (event.key === 'ArrowLeft') {
-        if (!previous) return;
-        event.preventDefault();
-        handlePrevious();
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isSeries, episode, next, previous, handleNext, handlePrevious]);
 
   const seasonRow = seasons?.find((entry) => entry.season === season) ?? null;
 
@@ -433,9 +328,27 @@ export function WatchPage({ type }: WatchPageProps) {
   return (
     <div className={styles.page ?? ''}>
       <header className={styles.bar ?? ''}>
-        <Link to={titlePath(type, title.slug)} className={styles.barBack ?? ''} aria-label="Back to details">
+        {/*
+          Back leaves the player entirely.
+
+          It used to be a link to this title's own detail page, on the theory that the detail page
+          is "the parent" of the player. That is false when the reader pressed Play from a shelf,
+          a search result or home: sending them to a detail page they never saw is a detour, and
+          because the detail page's own back button then points at the page before *it* - which is
+          the player - the two screens bounce off each other with no way out. `detailBackTarget`
+          holds the last page that was genuinely somewhere else, so back returns there, and the
+          player is the one screen where a link to the detail page is owed regardless: if there is
+          no remembered page the reader arrived by deep link, so the detail page is the honest
+          parent to fall back to.
+        */}
+        <button
+          type="button"
+          className={styles.barBack ?? ''}
+          aria-label="Go back"
+          onClick={() => navigate(detailBackTarget() ?? titlePath(type, title.slug))}
+        >
           <ArrowLeft size={17} aria-hidden />
-        </Link>
+        </button>
 
         <div className={styles.barText ?? ''}>
           <p className={styles.barTitle ?? ''}>{title.title}</p>
@@ -449,36 +362,6 @@ export function WatchPage({ type }: WatchPageProps) {
             onSelect={handleSelectServer}
             variant="accent"
           />
-        ) : null}
-
-        {/*
-          Previous and next as a pair, so the shape of the sequence is legible: one is a quiet
-          icon, the other is the labelled action. Previously "Next episode" appeared alone and
-          asymmetrically, with no hint that going back was possible at all.
-        */}
-        {isSeries && episode !== undefined ? (
-          <div className={styles.stepper ?? ''}>
-            <button
-              type="button"
-              className={styles.step ?? ''}
-              onClick={handlePrevious}
-              disabled={!previous}
-              aria-label={previous ? 'Previous episode' : 'No previous episode'}
-              title={previous ? 'Previous episode' : undefined}
-            >
-              <SkipBack size={15} aria-hidden />
-            </button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<SkipForward size={15} aria-hidden />}
-              onClick={handleNext}
-              disabled={!next}
-            >
-              Next episode
-            </Button>
-          </div>
         ) : null}
       </header>
 

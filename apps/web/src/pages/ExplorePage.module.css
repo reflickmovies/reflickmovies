@@ -232,11 +232,14 @@
 /* ---------------------------------------------------------------- Play */
 
 /*
- * Sits over the artwork, bottom-right.
+ * A hint over the artwork, top-right.
  *
- * In a wall the tile itself is the link to the detail page, so the play control has to be a
- * separate target - but a full-width overlay would swallow the tile link, and a second row
- * under the caption added a row of chrome to every tile.
+ * It used to be a real second link - the tile went to the detail page and this went to the
+ * player - but two destinations stacked on one tile is two answers to one click, and now that
+ * playback only ever begins from the detail page this is no longer a control. It is a badge that
+ * says "this is playable", so it carries `pointer-events: none` and lets the tile link underneath
+ * receive the click, and it is always visible rather than hover-only, because a hint that appears
+ * after you have already decided to interact with the card has arrived too late to inform you.
  */
 .playAction {
   position: absolute;
@@ -256,25 +259,11 @@
   font-size: 0.75rem;
   font-weight: 600;
   text-decoration: none;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--motion-fast) var(--motion-ease),
-    background-color var(--motion-fast) var(--motion-ease);
+  pointer-events: none;
+  transition: background-color var(--motion-fast) var(--motion-ease);
 }
 
-/*
- * Revealed on hover and always visible once focused.
- *
- * Hidden at rest because a red pill on every tile turned the wall into a wall of buttons and
- * nothing read as clickable. `:focus-visible` is not optional here: on a touch device there is
- * no hover, and an opacity-0 control that only Tab can reach is a control nobody reaches.
- */
-.tile:hover .playAction,
-.playAction:focus-visible {
-  opacity: 1;
-}
-
-.playAction:hover {
+.tile:hover .playAction {
   background-color: var(--lp-accent-red);
   border-color: transparent;
 }

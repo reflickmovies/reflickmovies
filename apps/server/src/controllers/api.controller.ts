@@ -7,7 +7,6 @@ import { cache, cacheKey } from '../services/cache.service.js';
 import * as catalog from '../services/catalog.service.js';
 import { listGenres, listProviders, providerCount } from '../repositories/providers.repo.js';
 import { countAll } from '../repositories/titles.repo.js';
-import { listNotifications } from '../services/notification.service.js';
 import { databaseState } from '../db/connection.js';
 
 /** `/api/providers`: what a visitor is allowed to know about playback. */
@@ -166,14 +165,6 @@ export const getProviders = asyncHandler(async (_req: Request, res: Response) =>
 
   cache.set(cacheKey.providers(), payload);
   sendData(res, payload);
-});
-
-/* --------------------------------------------------------- notifications */
-
-export const getNotifications = asyncHandler(async (_req: Request, res: Response) => {
-  // `optionalAuth` has already resolved the token, if any, into `res.locals.userId`.
-  const userId: unknown = res.locals.userId;
-  sendData(res, await listNotifications(typeof userId === 'string' ? userId : undefined));
 });
 
 /* ----------------------------------------------------------------- meta */

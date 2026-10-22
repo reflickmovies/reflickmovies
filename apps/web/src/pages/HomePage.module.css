@@ -178,9 +178,7 @@
   }
 
   .watchButton:hover,
-  .watchButton:active,
-  .glassActionButton:hover,
-  .glassActionButton:active {
+  .watchButton:active {
     transform: none;
   }
 }
@@ -394,34 +392,8 @@
   transform: translateY(-2px);
 }
 
-/* Secondary: translucent pill over the artwork. */
-.glassActionButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 44px;
-  padding-inline: 16px;
-  border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: #ffffff;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: transform var(--motion-fast) var(--motion-ease),
-    background-color var(--motion-fast) var(--motion-ease);
-}
-
-.glassActionButton:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-}
-
 /* The press, as the handoff: dip on the way out of the page, the shell opens on the way in. */
-.watchButton:active,
-.glassActionButton:active {
+.watchButton:active {
   transform: scale(0.965);
 }
 
@@ -785,26 +757,4 @@
 
 .footerLink:hover {
   color: var(--lp-accent-red);
-}
-
-/* ---------------------------------------------------------------- Mobile shelf */
-
-/*
- * The Continue watching row, shown only where the rail is not.
- *
- * Declared after `.shelfSection` because both are a single class on the same element, and the
- * later one wins: `display: none` here has to beat the section's own `display: flex`. Hence the
- * rule cannot move up next to the shelf rules it shares a selector with.
- *
- * The markup is the page's own shelf markup rather than the rail's compact list, so the row reads
- * as part of the page instead of a widget dropped into it.
- */
-.mobileShelf {
-  display: none;
-}
-
-@media (max-width: 1023px) {
-  .mobileShelf {
-    display: flex;
-  }
 }

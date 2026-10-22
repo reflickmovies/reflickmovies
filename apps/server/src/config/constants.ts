@@ -140,7 +140,6 @@ export const OWN_API_SEGMENTS = new Set([
   'genres',
   'providers',
   'search',
-  'notifications',
   'auth',
   'account',
   'track',

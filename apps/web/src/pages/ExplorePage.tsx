@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Compass, Play, Warning } from '@phosphor-icons/react';
 import { useBrowse } from '../hooks/useReflick';
-import { ROUTES, titlePath, watchPath } from '../lib/routes';
+import { ROUTES, titlePath } from '../lib/routes';
 import { joinMeta, typeLabel } from '../lib/format';
 import type { TitleSummary } from '../types/api';
 import styles from './ExplorePage.module.css';
@@ -176,14 +176,19 @@ export function ExplorePage() {
                   </div>
                 </Link>
 
-                <Link
-                  to={watchPath(title.type, title.slug)}
-                  className={styles.playAction ?? ''}
-                  aria-label={`Play ${title.title}`}
-                >
-                  <Play size={13} weight="fill" aria-hidden />
+                {/*
+                  One destination, not two.
+
+                  This used to be a second link sitting over the first, labelled "Play" and going
+                  to the player while the tile beneath it went to the detail page - two targets a
+                  few pixels apart that opened different screens. Playback now begins in exactly
+                  one place, on the detail page, so the whole tile is a single link to the title
+                  and the arrow is a hint about where that leads rather than a separate route.
+                */}
+                <span className={styles.playAction ?? ''} aria-hidden>
+                  <Play size={13} weight="fill" />
                   Play
-                </Link>
+                </span>
               </article>
             );
           })}

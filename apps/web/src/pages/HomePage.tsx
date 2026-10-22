@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import { CaretDown, CaretUp, Database, Flame, Info, Play, Star } from '@phosphor-icons/react';
+import { CaretDown, CaretUp, Database, Flame, Info, Play, Sparkle, Star } from '@phosphor-icons/react';
 import { useHome } from '../hooks/useReflick';
 import { useWatchHistory } from '../hooks/useWatchHistory';
-import { titlePath, watchPath } from '../lib/routes';
+import { useRecommendations } from '../hooks/useRecommendations';
+import { titlePath } from '../lib/routes';
 import { typeLabel } from '../lib/format';
 import type { TitleSummary } from '../types/api';
 import styles from './HomePage.module.css';
@@ -35,6 +36,54 @@ const HERO_INTERVAL_MS = 7_000;
 const CONTINUE_WATCHING_LIMIT = 4;
 
 /**
+ * A hero slide, from whichever of the four sources produced it.
+ *
+ * The hero is a carousel over everything the page knows the reader might want, not just what is
+ * trending: it opens with the catalogue's own trending list, then what this browser was last
+ * watching, then titles matched to it. One shape holds all three so the carousel has a single
+ * render path, and the `reason` is what the badge reads - "Trending now", "Continue watching",
+ * "Because you watched X" - which is what turns a pretty backdrop into a recommendation the
+ * reader can trust.
+ */
+interface HeroSlide {
+  key: string;
+  kind: 'trending' | 'continue' | 'foryou';
+  /** The heading badge: why this title is in the hero at all. */
+  reason: string;
+  type: 'movie' | 'tv';
+  slug: string;
+  title: string;
+  overview: string | null;
+  backdrop: string | null;
+  backdropLarge: string | null;
+  poster: string | null;
+  year: number | null;
+  runtimeLabel: string | null;
+  rating: number | null;
+  /** For a continue-watching slide, where the reader left off. */
+  resumeLabel: string | null;
+}
+
+function fromSummary(summary: TitleSummary, kind: 'trending' | 'foryou', reason: string): HeroSlide {
+  return {
+    key: `${kind}:${summary.type}:${summary.slug}`,
+    kind,
+    reason,
+    type: summary.type,
+    slug: summary.slug,
+    title: summary.title,
+    overview: summary.overview || null,
+    backdrop: summary.backdrop ?? null,
+    backdropLarge: summary.backdropLarge ?? null,
+    poster: summary.poster ?? null,
+    year: summary.year ?? null,
+    runtimeLabel: summary.runtimeLabel ?? null,
+    rating: summary.rating ?? null,
+    resumeLabel: null,
+  };
+}
+
+/**
  * The landing page.
  *
  * Content only: the rail, header and search come from `AppShell`. The previous version drew
@@ -42,50 +91,98 @@ const CONTINUE_WATCHING_LIMIT = 4;
  * navigation from scratch, dropped the search value, and gave two independent copies of the
  * same chrome that inevitably drifted apart.
  *
- * The hero and the shelves are deliberately kept bespoke rather than built from `TitleCard`.
- * The hero is a backdrop with overlaid copy and needs a landscape crop; the shelves are
- * landscape tiles, and the 3:4 poster card would letterbox a 16:9 still into a strip with the
- * caption covering most of it. `TitleCard` is for the portrait grids on the listing pages.
+ * The hero is deliberately bespoke rather than built from `TitleCard`. It is a backdrop with
+ * overlaid copy and needs a landscape crop; the shelves are landscape tiles, and the 3:4 poster
+ * card would letterbox a 16:9 still into a strip with the caption covering most of it.
+ * `TitleCard` is for the portrait grids on the listing pages.
  */
 export function HomePage() {
   const { data, isLoading, error, refetch } = useHome();
 
   /*
-    Continue watching, below the rail breakpoint only.
+    Continue watching and "for you", folded into the page rather than given their own rows.
 
-    The desktop rail carries this list in `ContinueWatching`, and rendering both put the same four
-    titles on one screen twice. The rail is `display: none` under 1024px, so on a phone the list
-    has nowhere else to live - and "pick up where you left off" is the first thing a returning
-    visitor looks for.
-
-    Same `useWatchHistory` read as the rail, so there is one source of truth for the data, but the
-    home page's own shelf markup rather than the rail's compact list: on a wide phone screen a
-    two-line list item is a thin grey row, while the landscape cards below are what the page
-    otherwise looks like. Matching the surrounding rows was the point.
+    The desktop rail carries the compact Continue watching list, and rendering a second copy as a
+    shelf put the same four titles on one screen twice. Recommendations had a page of their own
+    and nothing on the landing page at all, so the landing page never reflected what the reader
+    had actually watched. Both now feed the hero, where a returning visitor's own history is the
+    first personalised thing they see, and the shelves below stay a clean catalogue view.
   */
   const { entries: continueEntries } = useWatchHistory(CONTINUE_WATCHING_LIMIT);
+  const { shelves: recommendationShelves } = useRecommendations();
 
   // Hero carousel
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroPaused, setHeroPaused] = useState(false);
   const timerRef = useRef<number | undefined>(undefined);
 
-  const nextHero = useCallback(() => {
-    setHeroIndex((previous) => previous + 1);
-  }, []);
+  /*
+    The carousel, in priority order.
 
-  const heroSlides: TitleSummary[] = useMemo(() => data?.hero ?? [], [data?.hero]);
+    Trending first because it is the editorial default and is what a first-time visitor should
+    land on. A remembered title comes next and is the one the reader is most likely to want - it
+    is literally where they were - and the "because you watched" matches follow. Deduplicated by
+    `type:slug` so a title that is both trending and recently watched is not offered twice in a
+    row, and capped so the hero does not become an endless slideshow.
+  */
+  const heroSlides = useMemo<HeroSlide[]>(() => {
+    const slides: HeroSlide[] = [];
+    const seen = new Set<string>();
+
+    const push = (slide: HeroSlide) => {
+      const id = `${slide.type}:${slide.slug}`;
+      if (seen.has(id)) return;
+      seen.add(id);
+      slides.push(slide);
+    };
+
+    for (const summary of data?.hero ?? []) push(fromSummary(summary, 'trending', 'Trending now'));
+
+    for (const entry of continueEntries) {
+      push({
+        key: `continue:${entry.type}:${entry.slug}`,
+        kind: 'continue',
+        reason: 'Continue watching',
+        type: entry.type,
+        slug: entry.slug,
+        title: entry.title,
+        overview: null,
+        backdrop: entry.backdrop,
+        backdropLarge: null,
+        poster: entry.poster,
+        year: null,
+        runtimeLabel: null,
+        rating: null,
+        resumeLabel:
+          entry.type === 'tv' && entry.season != null
+            ? `Season ${entry.season}${entry.episode != null ? ` · Episode ${entry.episode}` : ''}`
+            : 'Film',
+      });
+    }
+
+    for (const shelf of recommendationShelves) {
+      for (const summary of shelf.items.slice(0, 2)) {
+        push(fromSummary(summary, 'foryou', `Because you watched ${shelf.seed.title}`));
+      }
+    }
+
+    return slides.slice(0, 10);
+  }, [data?.hero, continueEntries, recommendationShelves]);
+
   const count = heroSlides.length;
-
   const activeHero = count === 0 ? null : heroSlides[heroIndex % count] ?? null;
 
   /**
    * Identity of the visible slide, used as the React `key` for the hero media and copy.
    *
-   * Falls back to the index for a summary with no id, so a partially populated payload still
+   * Falls back to the index for a slide with no id, so a partially populated payload still
    * transitions instead of silently freezing on a missing key.
    */
-  const heroKey = activeHero ? `${activeHero.type}:${activeHero.id ?? heroIndex}` : 'hero-empty';
+  const heroKey = activeHero ? activeHero.key : 'hero-empty';
+
+  const nextHero = useCallback(() => {
+    setHeroIndex((previous) => previous + 1);
+  }, []);
 
   const prevHero = useCallback(() => {
     setHeroIndex((previous) => (previous - 1 + count) % count);
@@ -94,7 +191,7 @@ export function HomePage() {
   /*
    * Advance the carousel.
    *
-   * Keyed on `heroIndex` as well as the count so clearing the interval and starting a new one
+   * Keyed on `heroIndex` as well as the count so clearing the timer and starting a new one
    * each time keeps the rhythm fixed: a timeout that was not restarted would fire sooner and
    * sooner relative to the slide it belongs to.
    */
@@ -160,6 +257,15 @@ export function HomePage() {
     );
   }
 
+  const reasonIcon =
+    activeHero?.kind === 'trending' ? (
+      <Flame size={16} weight="fill" color="#e5484d" aria-hidden />
+    ) : activeHero?.kind === 'continue' ? (
+      <Play size={15} weight="fill" color="#e5484d" aria-hidden />
+    ) : (
+      <Sparkle size={16} weight="fill" color="#e5484d" aria-hidden />
+    );
+
   return (
     <div className={styles.stack ?? ''}>
       {/* -------------------------------------------------------- Hero */}
@@ -196,8 +302,8 @@ export function HomePage() {
           </div>
 
           <div className={styles.trendingBadge ?? ''}>
-            <Flame size={16} weight="fill" color="#e5484d" aria-hidden />
-            <span>Trending Now</span>
+            {reasonIcon}
+            <span>{activeHero.reason}</span>
           </div>
 
           {count > 1 ? (
@@ -236,6 +342,7 @@ export function HomePage() {
               {[
                 activeHero.year != null ? String(activeHero.year) : null,
                 activeHero.runtimeLabel,
+                activeHero.resumeLabel,
                 activeHero.rating != null ? (
                   <span className={styles.ratingBadge ?? ''} key="rating">
                     <Star size={15} weight="fill" color="#f5a524" aria-hidden />
@@ -259,26 +366,15 @@ export function HomePage() {
             {activeHero.overview ? <p className={styles.heroOverview ?? ''}>{activeHero.overview}</p> : null}
 
             <div className={styles.heroActions ?? ''}>
-              <Link to={watchPath(activeHero.type, activeHero.slug)} className={styles.watchButton ?? ''}>
-                <Play size={18} weight="fill" aria-hidden />
-                <span>Watch</span>
-              </Link>
-
               {/*
-                Detail, not "Download".
+                One destination: the title's own page.
 
-                There is no download feature. The previous hero pointed at the detail page twice
-                under the names "Download" and a dots menu, so people went looking for a file
-                that does not exist.
-
-                One link now, and no dots button. The ellipsis was a third control for the same
-                destination as the label beside it, which made the hero look like it had actions
-                it did not have; and it opened nothing - there is no menu behind it - so it was a
-                button that went to the same place as the text next to it. Anything that genuinely
-                belongs behind a menu would have to be a real per-title action list, and there is
-                no such thing to put in it.
+                The hero used to offer "Watch" (straight into the player) beside "More info" (the
+                detail page) - two routes for one title, a few pixels apart. Playback now begins
+                in exactly one place, the detail page, so the primary action here is a single
+                labelled link to it and the secondary pill is gone rather than repeating it.
               */}
-              <Link to={titlePath(activeHero.type, activeHero.slug)} className={styles.glassActionButton ?? ''}>
+              <Link to={titlePath(activeHero.type, activeHero.slug)} className={styles.watchButton ?? ''}>
                 <Info size={18} weight="bold" aria-hidden />
                 <span>More info</span>
               </Link>
@@ -304,62 +400,6 @@ export function HomePage() {
         </div>
       ) : null}
 
-      {/* ------------------------------------------ Continue watching (mobile) */}
-      {/*
-        Gated on the hero having resolved.
-
-        Watch history is local, so it is ready before the first byte of the home payload - which
-        meant the row painted at the top of the page and was then shoved down when the hero landed,
-        a layout shift on every cold load. Waiting for `useHome` to settle puts the row in its final
-        place the first time it appears.
-      */}
-      {!isLoading && continueEntries.length > 0 ? (
-        <section className={`${styles.shelfSection ?? ''} ${styles.mobileShelf ?? ''}`} aria-label="Continue watching">
-          <div className={styles.shelfHeader ?? ''}>
-            <h2 className={styles.shelfTitle ?? ''}>Continue watching</h2>
-          </div>
-
-          <div className={styles.cardsRow ?? ''}>
-            {continueEntries.map((entry, index) => (
-              <Link
-                key={`${entry.type}:${entry.slug}:${entry.season ?? ''}:${entry.episode ?? ''}`}
-                to={watchPath(
-                  entry.type,
-                  entry.slug,
-                  entry.season != null ? { season: entry.season, episode: entry.episode ?? undefined } : undefined,
-                )}
-                className={styles.shelfCard ?? ''}
-                style={{ '--card-i': index } as CSSProperties}
-              >
-                <img
-                  src={entry.backdrop ?? entry.poster ?? ''}
-                  alt={entry.title}
-                  className={styles.cardArtwork ?? ''}
-                  loading="lazy"
-                  decoding="async"
-                />
-
-                <div className={styles.cardGlassOverlay ?? ''}>
-                  <div className={styles.cardGlassInfo ?? ''}>
-                    <div className={styles.cardGlassTitle ?? ''}>{entry.title}</div>
-                    <div className={styles.cardGlassMeta ?? ''}>
-                      {entry.type === 'tv' && entry.season != null
-                        ? `Season ${entry.season}${entry.episode != null ? ` . Episode ${entry.episode}` : ''}`
-                        : 'Film'}
-                    </div>
-                  </div>
-
-                  {/* Decorative: the card's own `alt` already names the title. */}
-                  <div className={styles.redPlayButton ?? ''} aria-hidden>
-                    <Play size={16} weight="fill" />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
       {/* ------------------------------------------------- First shelf row */}
       {isLoading && shelves.length === 0 ? (
         <div className={styles.skeletonBlock ?? ''} aria-busy="true" />
@@ -380,7 +420,7 @@ export function HomePage() {
             {shelf.items.slice(0, SHELF_LIMIT).map((item, index) => (
               <Link
                 key={`${item.type}-${item.id}`}
-                to={watchPath(item.type, item.slug)}
+                to={titlePath(item.type, item.slug)}
                 className={styles.shelfCard ?? ''}
                 style={{ '--card-i': index } as CSSProperties}
               >
@@ -414,7 +454,14 @@ export function HomePage() {
                     </div>
                   </div>
 
-                  {/* Decorative: the card's own `alt` already names the title. */}
+                  {/*
+                    A hint, not a destination.
+
+                    The arrow used to sit inside a card that opened the player; now the card opens
+                    the detail page, so the mark reads as "this is playable" rather than as a
+                    separate button. `aria-hidden` because the card's own link text already names
+                    the title.
+                  */}
                   <div className={styles.redPlayButton ?? ''} aria-hidden>
                     <Play size={16} weight="fill" />
                   </div>
@@ -441,7 +488,7 @@ export function HomePage() {
             {shelf.items.slice(0, SHELF_LIMIT).map((item, index) => (
               <Link
                 key={`${item.type}-${item.id}`}
-                to={watchPath(item.type, item.slug)}
+                to={titlePath(item.type, item.slug)}
                 className={styles.shelfCard ?? ''}
                 style={{ '--card-i': index } as CSSProperties}
               >
@@ -479,4 +526,3 @@ export function HomePage() {
     </div>
   );
 }
-

@@ -410,11 +410,22 @@
  * `minmax(0, 1fr)` on the text track is the horizontal-scroll fix: a bare `1fr` is
  * `minmax(auto, 1fr)`, so the track is sized by its content's min-content width and one episode
  * with a long unbroken title would push the row wider than the page.
+ *
+ * The still column is proportional, not fixed.
+ *
+ * A fixed 148px/200px still was sized for the single-column layout the rows were first built on.
+ * These cards are rendered two-up from 900px, where a card is about 340px wide: 200px of still
+ * plus the gap and padding left the text track around 90px, which is narrower than the episode
+ * title and forced the synopsis into a sliver. A fraction lets the still take its share of the
+ * card - generous when the card is wide, modest when it is not - so the text always has a
+ * readable measure. The floor is the still's minimum legible width; the cap keeps a wide card
+ * from giving it half the row, because a 16:9 still does not need to.
  */
 .episodeRow {
   display: grid;
-  grid-template-columns: 148px minmax(0, 1fr);
-  gap: var(--space-lg);
+  grid-template-columns: minmax(104px, 0.4fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-md);
   padding: var(--space-md);
   border: 1px solid var(--ep-line);
   border-radius: 20px;
@@ -450,7 +461,8 @@
  */
 @media (min-width: 768px) {
   .episodeRow {
-    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-columns: minmax(140px, 0.42fr) minmax(0, 1fr);
+    gap: var(--space-lg);
     padding: var(--space-lg);
   }
 }
@@ -502,9 +514,19 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
+  /* The row is `align-items: start`, so the card does not stretch to the tallest in the grid; the
+     body fills its own card instead and keeps the meta pinned to the bottom of that card. */
+  align-self: stretch;
+  height: 100%;
 }
 
+/*
+ * The title block: number and title on one line, wrapping together.
+ *
+ * `align-items: baseline` rather than `flex-start` so the number sits on the title's first
+ * baseline rather than its cap height.
+ */
 .episodeHeading {
   display: flex;
   align-items: baseline;
@@ -533,6 +555,7 @@
 }
 
 .episodeOverview {
+  margin-top: 2px;
   font-size: var(--font-size-body-sm);
   line-height: var(--line-height-relaxed);
   color: var(--ep-text-muted);
@@ -545,18 +568,26 @@
 
 .episodeMeta {
   margin-top: auto;
+  padding-top: var(--space-xs);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   font-size: var(--font-size-meta);
   color: var(--ep-text-faint);
 }
 
+/*
+ * The play affordance, on its own row under the meta.
+ *
+ * Revealed on hover, and always shown on the active episode. `padding-top` rather than a margin so
+ * it does not collapse against the meta's `margin-top: auto`.
+ */
 .episodeWatchHint {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
   font-size: var(--font-size-meta);
   font-weight: 500;
   color: var(--ep-text-faint);

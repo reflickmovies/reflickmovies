@@ -1,0 +1,232 @@
+/*
+ * The admin top bar: logo left, destination pills dead centre, account on the right.
+ *
+ * A copy of the reader `TopNav` styling by design - same rounded bordered card, same
+ * three-track grid, same spring-filled pill group - so the two headers are indistinguishable
+ * apart from their labels. It is duplicated rather than shared because the admin loads
+ * lazily on `/admin` only, and pulling the reader header's CSS into that chunk (or the
+ * admin's into the reader's) would ship one to people who never open the other.
+ */
+
+.topNav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: 32px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .topNav {
+    border-radius: 24px;
+    padding-inline: var(--space-md);
+    gap: var(--space-sm);
+  }
+}
+
+/*
+ * The logo. Hidden on desktop, where the rail carries the wordmark, exactly as the reader
+ * header does - a second copy would print "Reflick" twice on one screen.
+ */
+.brand {
+  grid-column: 1;
+  display: none;
+  justify-self: start;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.brand svg {
+  display: block;
+  height: 17px;
+  width: auto;
+}
+
+.brand:hover svg {
+  opacity: 0.85;
+}
+
+@media (max-width: 1023px) {
+  .brand {
+    display: block;
+  }
+}
+
+/* ---------------------------------------------------------------- Destinations */
+
+.categoryGroup {
+  grid-column: 2;
+  justify-self: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 9999px;
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  min-width: 0;
+  /*
+   * Five destinations is more than the reader's four, so the row scrolls rather than wrapping -
+   * a wrapped second row would double the header height and eat into the content below.
+   */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.categoryGroup::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * The red fill behind the active destination, springing between pills. Geometry arrives
+ * inline from `useSpringIndicator`; the transition is what makes it swing slightly past the
+ * next pill and settle back.
+ */
+.categoryIndicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  opacity: 0;
+  border-radius: 9999px;
+  background-color: var(--lp-accent-red);
+  pointer-events: none;
+  will-change: transform, width;
+  transition: transform var(--motion-spring-duration) var(--motion-spring),
+    width var(--motion-spring-duration) var(--motion-spring),
+    height var(--motion-spring-duration) var(--motion-spring),
+    opacity var(--motion-base) var(--motion-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .categoryIndicator {
+    transition: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .categoryGroup {
+    margin-inline: 0;
+    flex: 1;
+  }
+}
+
+.categoryPill {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 9px 18px;
+  border-radius: 9999px;
+  text-decoration: none;
+  color: var(--lp-text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+
+.categoryPill:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text);
+}
+
+.categoryPill:active {
+  transform: scale(0.96);
+}
+
+/*
+ * Active destination: white on the indicator's red fill. The pill itself stays transparent -
+ * the sliding fill does the colouring, so the move between two pills is one element
+ * travelling rather than one background disappearing as another appears.
+ */
+.categoryPillActive,
+.categoryPillActive:hover {
+  background-color: transparent;
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------------------- Actions */
+
+.actions {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.circleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: var(--lp-surface-elevated);
+  border: 1px solid var(--lp-line);
+  color: var(--lp-text);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+
+.circleButton:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}
+
+.circleButton:active {
+  transform: scale(0.9);
+}
+
+.profileButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--lp-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease-out);
+}
+
+.profileButton:hover {
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+}
+
+.profileButton:active {
+  transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .categoryPill:active,
+  .circleButton:active,
+  .profileButton:active {
+    transform: none;
+  }
+}

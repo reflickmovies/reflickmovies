@@ -12,7 +12,6 @@ import type {
   AdminVisitStats,
   ApiEnvelope,
   ApiErrorEnvelope,
-  AppNotification,
   AuthPayload,
   BrowseResult,
   Episode,
@@ -298,12 +297,6 @@ export function getGenres(type: TitleType | undefined, signal?: AbortSignal): Pr
 
 export function getProviders(signal?: AbortSignal): Promise<ProvidersPayload> {
   return requestData<ProvidersPayload>('/providers', { signal });
-}
-
-/* --------------------------------------------------------- notifications */
-
-export function getNotifications(signal?: AbortSignal): Promise<AppNotification[]> {
-  return requestData<AppNotification[]>('/notifications', { signal });
 }
 
 /* ----------------------------------------------------------------- detail */

@@ -48,3 +48,40 @@ export function searchPath(query: string): string {
   const trimmed = query.trim();
   return trimmed.length > 0 ? `${ROUTES.search}?q=${encodeURIComponent(trimmed)}` : ROUTES.search;
 }
+
+/**
+ * The last page that was neither a title detail page nor its player.
+ *
+ * Back on a detail page or a watch page used to be `navigate(-1)`, which walks real history and
+ * is correct for a shelf, a search result or home - every entry except one. Detail and watch are
+ * a pair, and each page's back button rewinds into the other, so a reader who goes
+ * detail → watch → back lands on detail, presses back again and is thrown forward into watch.
+ * The two screens ping-pong with no way to leave them.
+ *
+ * This store breaks the loop by remembering the most recent path that was genuinely elsewhere.
+ * The application records it on every navigation (see `BackTargetTracker`), and the buttons read
+ * it instead of the raw history entry. A path that no longer exists is harmless: the router's
+ * catch-all renders the not-found page, which has its own way home, and the next navigation
+ * replaces the value anyway.
+ *
+ * Session-scoped rather than `localStorage`: "where I came from" is a property of this visit, not
+ * of the browser, and a stale value surviving a fresh tab would send a reader somewhere they were
+ * not.
+ */
+let lastExternalPath: string | null = null;
+
+/** True for `/film/:slug`, `/series/:slug` and anything under `/watch`. */
+export function isDetailOrWatchPath(pathname: string): boolean {
+  return pathname.startsWith('/film/') || pathname.startsWith('/series/') || pathname.startsWith('/watch');
+}
+
+/** Called on every route change; ignores the two screens the back button is leaving. */
+export function rememberBackTarget(pathname: string, search: string): void {
+  if (isDetailOrWatchPath(pathname)) return;
+  lastExternalPath = `${pathname}${search}`;
+}
+
+/** Where back should go, or `null` when the reader arrived by deep link. */
+export function detailBackTarget(): string | null {
+  return lastExternalPath;
+}

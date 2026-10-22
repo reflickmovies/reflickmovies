@@ -37,10 +37,6 @@ router.get('/genres', generalLimiter, cacheControl(86_400), api.getGenres);
 
 router.get('/providers', generalLimiter, cacheControl(86_400), api.getProviders);
 
-/* --------------------------------------------------------- notifications */
-
-router.get('/notifications', optionalAuth, generalLimiter, cacheControl(120), api.getNotifications);
-
 /* ------------------------------------------------------------------ auth */
 
 router.post('/auth/register', authLimiter, noStore, auth.register);

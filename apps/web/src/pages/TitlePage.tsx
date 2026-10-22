@@ -38,7 +38,7 @@ import {
   formatYear,
   typeLabel,
 } from '../lib/format';
-import { ROUTES, watchPath } from '../lib/routes';
+import { ROUTES, detailBackTarget, watchPath } from '../lib/routes';
 import type { Credit, Episode, Season, TitleDetails, TitleType } from '../types/api';
 import styles from './TitlePage.module.css';
 
@@ -130,19 +130,26 @@ export function TitlePage({ type }: TitlePageProps) {
   );
 
   /*
-    Back, with a fallback for direct links.
+    Back that never bounces between a title and its own player.
 
-    A reader arriving here from within the app has somewhere to return to, and a history length of
-    one means they came straight to the URL instead (the app's own first entry) - in which case
-    "go back" has nothing to answer, so it goes home.
-    If the reader is on a watch page we send them home rather than into the detail page's
-    history, which prevents the back button from looping between the two screens.
+    The reader's real question is "where was I before this", and `navigate(-1)` answers it
+    correctly for every entry except one: a detail page reached by pressing back out of its own
+    watch page. Left alone, that pair ping-pongs - detail → watch → detail → watch - because each
+    page's own back button rewinds into the other.
+
+    The fix is to remember the last page that was not one of these two screens, and prefer it.
+    `detailBackTarget` records that path whenever a route that is not a detail or watch page is
+    mounted, so returning from a shelf, a search result or home goes exactly where it should.
+    Only when there is no such page - a cold deep link - does it fall back to home.
   */
   const handleBack = useCallback(() => {
-    if (window.location.pathname.startsWith('/watch/')) navigate(ROUTES.home);
-    else if (window.history.length > 1) navigate(-1);
-    else navigate(ROUTES.home);
-  }, [navigate, ROUTES.home]);
+    const fallback = detailBackTarget();
+    if (fallback) {
+      navigate(fallback);
+      return;
+    }
+    navigate(ROUTES.home);
+  }, [navigate]);
 
   if (error && !title) {
     return (
@@ -295,11 +302,15 @@ export function TitlePage({ type }: TitlePageProps) {
 
             <div className={styles.heroActions ?? ''}>
               <Link
-                to={watchPath(type, title.slug, type === 'tv' ? { season: season ?? 1, episode: 1 } : undefined)}
+                to={watchPath(
+                  type,
+                  title.slug,
+                  type === 'tv' ? { season: season ?? 1, episode: activeEpisode ?? 1 } : undefined,
+                )}
                 className={styles.playButton ?? ''}
               >
                 <Play size={19} weight="fill" aria-hidden />
-                {isSeries ? 'Start watching' : 'Play film'}
+                {isSeries ? (activeEpisode != null ? 'Continue watching' : 'Start watching') : 'Play film'}
               </Link>
 
               {isSeries && seasonCount > 0 ? (

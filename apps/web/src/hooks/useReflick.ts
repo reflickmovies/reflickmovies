@@ -11,7 +11,6 @@ import type {
   AdminUserRow,
   AdminVisitRow,
   AdminVisitStats,
-  AppNotification,
   BrowseResult,
   Episode,
   GenreRow,
@@ -44,7 +43,6 @@ const KEY = {
     `browse:${params.type ?? 'all'}:${params.genre ?? 'all'}:${params.sort ?? 'trending'}:min${params.minVotes ?? 0}:${params.page ?? 1}:${params.limit ?? 24}`,
   genres: (type?: TitleType) => `genres:${type ?? 'all'}`,
   health: () => 'health',
-  notifications: () => 'notifications',
   account: () => 'account',
   title: (type: TitleType, slug: string) => `title:${type}:${slug}`,
   related: (type: TitleType, slug: string) => `related:${type}:${slug}`,
@@ -88,21 +86,6 @@ export function useGenres(type?: TitleType) {
  */
 export function useHealth() {
   return useQuery<api.HealthPayload>(KEY.health(), api.getHealth, { ttlMs: 5_000 });
-}
-
-/**
- * The system notifications behind the header bell.
- *
- * No accounts, so there is no per-user inbox - the server derives a short list from real
- * catalogue and pipeline state. Cached for the default window, but polled on a gentle cadence
- * (and refetched whenever the panel opens) so new releases and account notices appear on their
- * own, with no reload. The client reads/unreads on top with its own per-browser store, so the
- * badge stays honest while the list refreshes underneath it.
- */
-export function useNotifications() {
-  return useQuery<AppNotification[]>(KEY.notifications(), (signal) => api.getNotifications(signal), {
-    refetchIntervalMs: 30_000,
-  });
 }
 
 /**

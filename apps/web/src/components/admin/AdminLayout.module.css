@@ -1,129 +1,280 @@
 /*
- * The admin dashboard.
+ * The admin dashboard chrome.
  *
- * A separate, dark-locked surface: the reader app is themed and warm, and an operations
- * console that reflows between light and dark while you read logs is harder to scan.
- * The tokens are local so the dashboard never inherits the reader palette and vice versa.
+ * Rebuilt on the reader app's own frame: the same height-locked shell, the same rounded
+ * rail card and bordered top bar, and the same `--lp-*` surface tokens, so the console reads
+ * as another room in the same product rather than a separate tool. It follows the app theme
+ * (`data-theme` on the document) instead of locking to dark.
+ *
+ * The layout mirrors `AppShell.module.css`: a `100dvh` container with `overflow: hidden`, a
+ * grid of rail + right column, and one scrollport. Because the document never scrolls, the
+ * rail and header are still for free and `main` is the only area that moves.
  */
 
-.root {
-  --adm-bg: #0b0d12;
-  --adm-surface: #14171f;
-  --adm-surface-2: #1c2029;
-  --adm-line: #262b36;
-  --adm-text: #eef1f6;
-  --adm-muted: #9aa3b2;
-  --adm-faint: #656d7c;
-  --adm-accent: #ff4d5e;
-  --adm-accent-soft: rgba(255, 77, 94, 0.14);
+/* ---------------------------------------------------------------- container */
+
+.shellRoot {
+  /*
+   * The admin pages were written against a private `--adm-*` palette. Rather than rewrite every
+   * one of those rules, the names are aliased onto the app's own `--lp-*` tokens here - so the
+   * dashboard inherits the reader theme (light or dark) that `ThemeModeProvider` writes on the
+   * document, instead of forcing a fixed dark surface. Two accents stay literal because they
+   * are status colours, not surface colours.
+   */
+  --adm-bg: var(--lp-bg);
+  --adm-surface: var(--lp-surface);
+  --adm-surface-2: var(--lp-surface-elevated);
+  --adm-line: var(--lp-line);
+  --adm-text: var(--lp-text);
+  --adm-muted: var(--lp-text-muted);
+  --adm-faint: var(--lp-text-faint);
+  --adm-accent: var(--lp-accent-red);
+  --adm-accent-soft: color-mix(in srgb, var(--lp-accent-red) 14%, transparent);
   --adm-success: #38d39f;
   --adm-warning: #f5a623;
 
-  display: flex;
-  min-height: 100vh;
-  background-color: var(--adm-bg);
-  color: var(--adm-text);
-  font-family: var(--font-family-sans, system-ui, sans-serif);
+  height: 100dvh;
+  background-color: var(--lp-bg);
+  color: var(--lp-text);
+  font-family: var(--font-family-sans);
+  box-sizing: border-box;
+  transition: background-color var(--motion-base) var(--motion-ease), color var(--motion-base) var(--motion-ease);
 }
 
-/* -------------------------------------------------------------- sidebar */
+.shellContainer {
+  max-width: 1600px;
+  margin-inline: auto;
+  height: 100dvh;
+  overflow: hidden;
+}
 
-.sidebar {
+.shellGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  height: 100%;
+  min-height: 0;
+  gap: var(--space-lg);
+  padding: var(--space-md);
+}
+
+@media (min-width: 768px) {
+  .shellGrid {
+    padding: var(--space-lg);
+  }
+}
+
+@media (min-width: 1200px) {
+  .shellGrid {
+    padding: var(--space-xl);
+  }
+}
+
+@media (min-width: 1024px) {
+  .shellGrid {
+    grid-template-columns: 270px minmax(0, 1fr);
+    gap: var(--space-xl);
+  }
+}
+
+/* Right-hand column: header on top, scrolling content beneath. */
+.shellMain {
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  width: 248px;
-  padding: 20px 16px;
-  background-color: var(--adm-surface);
-  border-right: 1px solid var(--adm-line);
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  gap: var(--space-lg);
+  min-width: 0;
+  min-height: 0;
 }
 
-.brand {
+/* The single scrollport, with its affordance hidden but scrolling fully active. */
+.shellScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-block-end: var(--space-2xl);
+}
+
+.shellScroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* ---------------------------------------------------------------- rail */
+
+.sidebarColumn {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebarRail {
+  background-color: var(--lp-surface);
+  border-radius: 32px;
+  padding: var(--space-xl) var(--space-lg);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebarInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lp-line) transparent;
+}
+
+.brandHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px 8px 20px;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding-inline: var(--space-sm);
 }
 
-.brandMark {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background-color: var(--adm-accent);
-  color: #fff;
-  font-weight: 800;
-  font-size: 1.1rem;
+.brandWordmark {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
 }
 
-.brandText {
-  display: flex;
-  flex-direction: column;
+.brandWordmark svg {
+  display: block;
+  height: 22px;
+  width: auto;
+}
+
+.brandWordmark:hover svg {
+  opacity: 0.85;
+}
+
+/* The one admin marker on the rail: a quiet pill beside the wordmark. */
+.brandBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-accent-red);
+  font-size: 0.6875rem;
   font-weight: 700;
-  font-size: 1rem;
-  line-height: 1.1;
-}
-
-.brandSub {
-  color: var(--adm-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.nav {
+.navList {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1;
+  min-width: 0;
+}
+
+.navList span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1023px) {
+  .navList {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+  }
 }
 
 .navItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  color: var(--adm-muted);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  transition: background-color 140ms ease, color 140ms ease;
+  gap: var(--space-md);
+  padding: 9px 14px;
+  border-radius: 14px;
+  color: var(--lp-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  position: relative;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
 }
 
 .navItem:hover {
-  background-color: var(--adm-surface-2);
-  color: var(--adm-text);
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text);
 }
 
 .navItemActive {
-  background-color: var(--adm-accent-soft);
-  color: var(--adm-accent);
+  color: var(--lp-accent-red) !important;
+  font-weight: 600;
+  background-color: var(--lp-pill-inactive);
+}
+
+/* Active marker: the trailing dot the reader rail uses, pushed to the row's end. */
+.navDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Pushes the footer to the bottom when the nav is short. */
+.railSpacer {
+  flex: 1;
+  min-height: var(--space-md);
 }
 
 .sidebarFooter {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid var(--adm-line);
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--lp-line);
+  min-width: 0;
 }
 
 .backLink {
-  color: var(--adm-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  color: var(--lp-text-muted);
   font-size: 0.8125rem;
   font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
 }
 
 .backLink:hover {
-  color: var(--adm-text);
+  background-color: var(--lp-pill-inactive);
+  color: var(--lp-text);
 }
 
 .sidebarUser {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--space-sm) var(--space-sm) 0;
+  min-width: 0;
+}
+
+.sidebarUserText {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -133,44 +284,48 @@
 .sidebarUserName {
   font-weight: 700;
   font-size: 0.875rem;
+  color: var(--lp-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .sidebarUserEmail {
-  color: var(--adm-faint);
+  color: var(--lp-text-faint);
   font-size: 0.75rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ----------------------------------------------------------------- main */
+/* ---------------------------------------------------------------- gate */
 
-.main {
-  flex: 1;
-  min-width: 0;
-  padding: 32px 40px 64px;
-  overflow-x: hidden;
+.gateWrap {
+  --adm-accent: var(--lp-accent-red);
+  --adm-accent-soft: color-mix(in srgb, var(--lp-accent-red) 14%, transparent);
+
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--space-2xl) var(--space-lg);
+  background-color: var(--lp-bg);
+  color: var(--lp-text);
 }
-
-/* ----------------------------------------------------------------- gate */
 
 .gate {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-md);
   max-width: 420px;
-  margin: 15vh auto 0;
+  margin-top: 12vh;
   padding: 40px 32px;
-  border-radius: 24px;
-  background-color: var(--adm-surface);
-  border: 1px solid var(--adm-line);
+  border-radius: 32px;
+  background-color: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  box-shadow: var(--lp-card-shadow);
   text-align: center;
-  color: var(--adm-text);
-  background-color: #14171f;
 }
 
 .gateIcon {
@@ -179,17 +334,18 @@
   width: 76px;
   height: 76px;
   border-radius: 50%;
-  background-color: rgba(255, 77, 94, 0.14);
-  color: #ff4d5e;
+  background-color: color-mix(in srgb, var(--lp-accent-red) 14%, transparent);
+  color: var(--lp-accent-red);
 }
 
 .gateTitle {
   font-size: 1.5rem;
   font-weight: 700;
+  color: var(--lp-text);
 }
 
 .gateCopy {
-  color: #9aa3b2;
+  color: var(--lp-text-muted);
   line-height: 1.6;
 }
 
@@ -201,47 +357,29 @@
 
 /* ---------------------------------------------------------- responsive */
 
-@media (max-width: 860px) {
-  .root {
-    flex-direction: column;
+@media (max-width: 1023px) {
+  .shellGrid {
+    grid-template-rows: minmax(0, 1fr);
   }
 
-  .sidebar {
-    width: 100%;
+  /* The rail card becomes a compact top card above the content, still a rounded surface. */
+  .sidebarColumn {
+    overflow: visible;
+  }
+
+  .sidebarRail {
+    border-radius: 24px;
+    padding: var(--space-lg);
     height: auto;
-    position: static;
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 16px;
-    border-right: none;
-    border-bottom: 1px solid var(--adm-line);
   }
 
-  .brand {
-    padding: 0;
+  .sidebarInner {
+    gap: var(--space-lg);
+    overflow: visible;
   }
 
-  .nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-    flex: 1;
-  }
-
-  .sidebarFooter {
-    flex-direction: row;
-    align-items: center;
-    padding-top: 0;
-    border-top: none;
-    gap: 8px;
-  }
-
+  .railSpacer,
   .sidebarUser {
     display: none;
-  }
-
-  .main {
-    padding: 20px 16px 48px;
   }
 }

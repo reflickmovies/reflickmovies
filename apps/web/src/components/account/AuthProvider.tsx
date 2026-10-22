@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../../lib/api';
 import { ROUTES } from '../../lib/routes';
-import { invalidateQuery } from '../../hooks/useQuery';
 import { allWatches, replaceWatchHistory } from '../../lib/watchHistory';
 import type { AccountUser, AuthPayload } from '../../types/api';
 import { AuthModal, type AuthMode, type AuthValues } from './AuthModal';
@@ -52,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api.setAuthToken(payload.token);
     setUser(payload.user);
     setStatus('authenticated');
-    invalidateQuery('notifications');
 
     /*
       Sign-in always ends with a merge, never an overwrite: the browser may hold watches from
@@ -135,7 +133,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api.setAuthToken(null);
     setUser(null);
     setStatus('guest');
-    invalidateQuery('notifications');
     // The local history is deliberately kept: it is this browser's history, and it was that
     // before the account existed.
   }, []);

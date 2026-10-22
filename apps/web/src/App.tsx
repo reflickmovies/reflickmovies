@@ -1,5 +1,5 @@
-import { lazy } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { lazy, useEffect } from 'react';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/account/AuthProvider';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AdminLayout } from './components/admin/AdminLayout';
@@ -7,6 +7,7 @@ import { AppShell } from './components/shell/AppShell';
 import { ThemeModeProvider } from './components/shell/ThemeMode';
 import { ToastProvider } from './components/ui';
 import { usePageTracker } from './hooks/usePageTracker';
+import { rememberBackTarget } from './lib/routes';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage, RouteErrorPage } from './pages/NotFoundPage';
 
@@ -80,6 +81,7 @@ export function App() {
           <BrowserRouter>
             <AuthProvider>
               <PageTracker />
+              <BackTargetTracker />
               <Routes>
                 {/* The admin console: its own chrome, outside the reader shell. */}
                 <Route path="/admin" element={<AdminLayout />}>
@@ -132,5 +134,22 @@ export function App() {
 /** Records one page view per route change. Split out so it can call `useLocation`. */
 function PageTracker() {
   usePageTracker();
+  return null;
+}
+
+/**
+ * Remembers where the reader was before entering a title/player pair.
+ *
+ * Its one job is to feed `lib/routes`' `rememberBackTarget`, which the detail and watch pages'
+ * back buttons consult so they can leave for a real previous page instead of bouncing between
+ * each other. Split out for the same reason as `PageTracker`: it needs `useLocation`, and the
+ * store it writes to is deliberately plain module state rather than React context, so a page
+ * deeper in the tree can read it during an event handler without a provider between them.
+ */
+function BackTargetTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    rememberBackTarget(location.pathname, location.search);
+  }, [location.pathname, location.search]);
   return null;
 }

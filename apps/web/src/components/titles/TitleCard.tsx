@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, Star } from '@phosphor-icons/react';
 import { typeLabel } from '../../lib/format';
-import { titlePath, watchPath } from '../../lib/routes';
+import { titlePath } from '../../lib/routes';
 import type { TitleSummary } from '../../types/api';
 import styles from './TitleCard.module.css';
 
@@ -14,9 +14,12 @@ import styles from './TitleCard.module.css';
  * different caption placement, which is why the landing shelves and the browse grid looked
  * like two products. One card, one place to change it.
  *
- * `to` is overridable because most cards should open the player, not the detail page: the
- * play affordance is the reason someone clicked, and detail is one more click away from
- * there.
+ * A card opens the detail page, not the player. It used to open the player directly, on the
+ * argument that the play affordance is the reason someone clicked - but a catalogue card is a
+ * poster, and a poster's job is to say what a title is before committing two minutes to it.
+ * Sending every click straight into a stream removed the one screen where the synopsis, cast and
+ * episode list live, and made "which of these should I watch" impossible to answer from the grid.
+ * The `Play` arrow stays as a hint that the detail page is where playback starts.
  */
 export interface TitleCardProps {
   title: TitleSummary;
@@ -45,7 +48,7 @@ export function TitleCard({
   index,
   className,
 }: TitleCardProps) {
-  const href = to ?? (playable ? watchPath(title.type, title.slug) : titlePath(title.type, title.slug));
+  const href = to ?? titlePath(title.type, title.slug);
   const artwork = orientation === 'landscape' ? (title.backdrop ?? title.poster) : (title.poster ?? title.backdrop);
 
   return (
