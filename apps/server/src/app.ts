@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { generalLimiter } from './middleware/rateLimit.js';
 import { router } from './routes/index.js';
 import { embedMirror } from './routes/embedMirror.js';
+import { seoRouter } from './routes/seo.js';
 
 export function createApp(): Express {
   const app = express();
@@ -41,6 +42,14 @@ export function createApp(): Express {
   app.get('/', (_req, res) => {
     res.status(200).json({ status: 'ok', service: 'reflick-api', api: API_PREFIX });
   });
+
+  /*
+   * Search-engine files live at the root, not under /api. The static web deployment
+   * rewrites these two paths here (see render.yaml and apps/web/vercel.json), which keeps
+   * the sitemap's URLs on the site origin while the XML is generated from live MongoDB
+   * data rather than a build-time snapshot.
+   */
+  app.use(seoRouter);
 
   /*
    * The mirrored player comes before the API: two of its paths are `/api/...` calls the player

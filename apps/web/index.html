@@ -11,6 +11,64 @@
       name="description"
       content="Reflick is a monochrome streaming catalogue. Films and series, handpicked and in one place."
     />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <link rel="canonical" href="https://www.reflickmovies.linkpc.net/" />
+
+    <!-- Social cards. Kept in step with lib/seo.ts, which updates these per route. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Reflick" />
+    <meta property="og:title" content="Reflick — films and series in one place" />
+    <meta
+      property="og:description"
+      content="Reflick is a monochrome streaming catalogue. Films and series, handpicked and in one place."
+    />
+    <meta property="og:url" content="https://www.reflickmovies.linkpc.net/" />
+    <meta property="og:image" content="https://www.reflickmovies.linkpc.net/reflick-logo.svg" />
+    <meta property="og:image:alt" content="Reflick" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Reflick — films and series in one place" />
+    <meta
+      name="twitter:description"
+      content="Reflick is a monochrome streaming catalogue. Films and series, handpicked and in one place."
+    />
+    <meta name="twitter:image" content="https://www.reflickmovies.linkpc.net/reflick-logo.svg" />
+
+    <script type="application/ld+json" data-reflick-jsonld>
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://www.reflickmovies.linkpc.net/#website",
+            "name": "Reflick",
+            "url": "https://www.reflickmovies.linkpc.net",
+            "description": "Reflick is a monochrome streaming catalogue. Films and series, handpicked and in one place.",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://www.reflickmovies.linkpc.net/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://www.reflickmovies.linkpc.net/search?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://www.reflickmovies.linkpc.net/#organization",
+            "name": "Reflick",
+            "url": "https://www.reflickmovies.linkpc.net",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://www.reflickmovies.linkpc.net/reflick-logo.svg"
+            }
+          }
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
     <link rel="dns-prefetch" href="https://image.tmdb.org" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

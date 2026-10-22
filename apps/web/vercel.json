@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "rewrites": [
+    { "source": "/sitemap.xml", "destination": "https://reflickmovies-api.onrender.com/sitemap.xml" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

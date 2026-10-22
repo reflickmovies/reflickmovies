@@ -27,6 +27,7 @@ import { useThemeMode } from './ThemeMode';
 import { SearchOverlay, SearchOverlayButton, useSearchOverlay } from './SearchOverlayTrigger';
 import { ContinueWatching } from './ContinueWatching';
 import { Notifications } from './Notifications';
+import { SeoManager } from '../seo/SeoManager';
 import { Wordmark } from '../brand/Wordmark';
 import styles from './AppShell.module.css';
 import topNavStyles from './TopNav.module.css';
@@ -563,6 +564,9 @@ export function AppShell() {
 
       {/* One overlay, regardless of which button opened it. */}
       <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
+
+      {/* Keeps the document head in step with the route. Renders nothing. */}
+      <SeoManager />
     </div>
   );
 }
