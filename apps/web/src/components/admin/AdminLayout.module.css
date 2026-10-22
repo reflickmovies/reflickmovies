@@ -1,26 +1,30 @@
 /*
- * The admin dashboard chrome.
+ * Admin-only chrome.
  *
- * Rebuilt on the reader app's own frame: the same height-locked shell, the same rounded
- * rail card and bordered top bar, and the same `--lp-*` surface tokens, so the console reads
- * as another room in the same product rather than a separate tool. It follows the app theme
- * (`data-theme` on the document) instead of locking to dark.
+ * The shell frame itself - the rail card, the bordered top bar, the scrollport, the mobile tab
+ * bar - is not defined here. It comes straight from the reader's `AppShell.module.css` and
+ * `TopNav.module.css`, imported by `AdminLayout`, so the dashboard and the reader share one
+ * definition and cannot drift. What is left in this file is only what the reader has no
+ * equivalent of:
  *
- * The layout mirrors `AppShell.module.css`: a `100dvh` container with `overflow: hidden`, a
- * grid of rail + right column, and one scrollport. Because the document never scrolls, the
- * rail and header are still for free and `main` is the only area that moves.
+ *  - the `--adm-*` palette the admin pages were written against, aliased onto the app's own
+ *    `--lp-*` tokens so every panel follows the light/dark theme instead of a fixed surface
+ *  - the "Admin" badge beside the wordmark
+ *  - the rail footer (back-to-site, the operator, sign out) that fills the slot the reader
+ *    gives to Continue watching
+ *  - the not-authorised gate
  */
 
-/* ---------------------------------------------------------------- container */
+/* --------------------------------------------------------- token aliases */
 
-.shellRoot {
-  /*
-   * The admin pages were written against a private `--adm-*` palette. Rather than rewrite every
-   * one of those rules, the names are aliased onto the app's own `--lp-*` tokens here - so the
-   * dashboard inherits the reader theme (light or dark) that `ThemeModeProvider` writes on the
-   * document, instead of forcing a fixed dark surface. Two accents stay literal because they
-   * are status colours, not surface colours.
-   */
+/*
+ * The admin pages reference `--adm-*` throughout their own CSS. Rather than rewrite every one
+ * of those rules, the names are mapped onto the shared `--lp-*` surface tokens here. The two
+ * status colours stay literal: they are semantic (success, warning), not surface colours, and
+ * the reader palette has no equivalent.
+ */
+.adminTokens,
+.gateWrap {
   --adm-bg: var(--lp-bg);
   --adm-surface: var(--lp-surface);
   --adm-surface-2: var(--lp-surface-elevated);
@@ -32,135 +36,9 @@
   --adm-accent-soft: color-mix(in srgb, var(--lp-accent-red) 14%, transparent);
   --adm-success: #38d39f;
   --adm-warning: #f5a623;
-
-  height: 100dvh;
-  background-color: var(--lp-bg);
-  color: var(--lp-text);
-  font-family: var(--font-family-sans);
-  box-sizing: border-box;
-  transition: background-color var(--motion-base) var(--motion-ease), color var(--motion-base) var(--motion-ease);
 }
 
-.shellContainer {
-  max-width: 1600px;
-  margin-inline: auto;
-  height: 100dvh;
-  overflow: hidden;
-}
-
-.shellGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  height: 100%;
-  min-height: 0;
-  gap: var(--space-lg);
-  padding: var(--space-md);
-}
-
-@media (min-width: 768px) {
-  .shellGrid {
-    padding: var(--space-lg);
-  }
-}
-
-@media (min-width: 1200px) {
-  .shellGrid {
-    padding: var(--space-xl);
-  }
-}
-
-@media (min-width: 1024px) {
-  .shellGrid {
-    grid-template-columns: 270px minmax(0, 1fr);
-    gap: var(--space-xl);
-  }
-}
-
-/* Right-hand column: header on top, scrolling content beneath. */
-.shellMain {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  min-width: 0;
-  min-height: 0;
-}
-
-/* The single scrollport, with its affordance hidden but scrolling fully active. */
-.shellScroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding-block-end: var(--space-2xl);
-}
-
-.shellScroll::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
-
-/* ---------------------------------------------------------------- rail */
-
-.sidebarColumn {
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.sidebarRail {
-  background-color: var(--lp-surface);
-  border-radius: 32px;
-  padding: var(--space-xl) var(--space-lg);
-  border: 1px solid var(--lp-line);
-  box-shadow: var(--lp-card-shadow);
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.sidebarInner {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-  min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--lp-line) transparent;
-}
-
-.brandHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  padding-inline: var(--space-sm);
-}
-
-.brandWordmark {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-}
-
-.brandWordmark svg {
-  display: block;
-  height: 22px;
-  width: auto;
-}
-
-.brandWordmark:hover svg {
-  opacity: 0.85;
-}
-
-/* The one admin marker on the rail: a quiet pill beside the wordmark. */
+/* The badge is the one admin marker on the rail: a quiet pill beside the wordmark. */
 .brandBadge {
   display: inline-flex;
   align-items: center;
@@ -174,75 +52,24 @@
   text-transform: uppercase;
 }
 
-.navList {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.navList span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 @media (max-width: 1023px) {
-  .navList {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-sm);
+  /* On the compact top card the rail collapses; the badge has no wordmark to sit beside. */
+  .brandBadge {
+    display: none;
   }
 }
 
-.navItem {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: 9px 14px;
-  border-radius: 14px;
-  color: var(--lp-text-muted);
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  position: relative;
-  transition: background-color var(--motion-fast) var(--motion-ease),
-    color var(--motion-fast) var(--motion-ease);
-}
+/* --------------------------------------------------------- rail footer */
 
-.navItem:hover {
-  background-color: var(--lp-pill-inactive);
-  color: var(--lp-text);
-}
-
-.navItemActive {
-  color: var(--lp-accent-red) !important;
-  font-weight: 600;
-  background-color: var(--lp-pill-inactive);
-}
-
-/* Active marker: the trailing dot the reader rail uses, pushed to the row's end. */
-.navDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: currentColor;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-/* Pushes the footer to the bottom when the nav is short. */
-.railSpacer {
-  flex: 1;
-  min-height: var(--space-md);
-}
-
+/*
+ * The reader rail's Continue-watching slot, filled by the operator's own controls. Pushed to
+ * the bottom of the rail by the nav list taking the loose space above it.
+ */
 .sidebarFooter {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  margin-top: auto;
   padding-top: var(--space-md);
   border-top: 1px solid var(--lp-line);
   min-width: 0;
@@ -298,12 +125,16 @@
   white-space: nowrap;
 }
 
+@media (max-width: 1023px) {
+  /* The compact top card has no room for the footer; it lives behind the mobile tab bar. */
+  .sidebarFooter {
+    display: none;
+  }
+}
+
 /* ---------------------------------------------------------------- gate */
 
 .gateWrap {
-  --adm-accent: var(--lp-accent-red);
-  --adm-accent-soft: color-mix(in srgb, var(--lp-accent-red) 14%, transparent);
-
   min-height: 100dvh;
   display: flex;
   justify-content: center;
@@ -353,33 +184,4 @@
   display: flex;
   gap: 12px;
   margin-top: 8px;
-}
-
-/* ---------------------------------------------------------- responsive */
-
-@media (max-width: 1023px) {
-  .shellGrid {
-    grid-template-rows: minmax(0, 1fr);
-  }
-
-  /* The rail card becomes a compact top card above the content, still a rounded surface. */
-  .sidebarColumn {
-    overflow: visible;
-  }
-
-  .sidebarRail {
-    border-radius: 24px;
-    padding: var(--space-lg);
-    height: auto;
-  }
-
-  .sidebarInner {
-    gap: var(--space-lg);
-    overflow: visible;
-  }
-
-  .railSpacer,
-  .sidebarUser {
-    display: none;
-  }
 }
