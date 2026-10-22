@@ -50,38 +50,75 @@ export function searchPath(query: string): string {
 }
 
 /**
- * The last page that was neither a title detail page nor its player.
+ * A real navigation trail, so back walks the history the reader actually built.
  *
- * Back on a detail page or a watch page used to be `navigate(-1)`, which walks real history and
- * is correct for a shelf, a search result or home - every entry except one. Detail and watch are
- * a pair, and each page's back button rewinds into the other, so a reader who goes
+ * Back on a detail page or a watch page used to be `navigate(-1)`, which walks the router's raw
+ * history and is correct for a shelf, a search result or home - every entry except one. Detail
+ * and watch are a pair, and each page's back button rewinds into the other, so a reader who goes
  * detail → watch → back lands on detail, presses back again and is thrown forward into watch.
  * The two screens ping-pong with no way to leave them.
  *
- * This store breaks the loop by remembering the most recent path that was genuinely elsewhere.
- * The application records it on every navigation (see `BackTargetTracker`), and the buttons read
- * it instead of the raw history entry. A path that no longer exists is harmless: the router's
- * catch-all renders the not-found page, which has its own way home, and the next navigation
- * replaces the value anyway.
+ * The old fix remembered only the last page that was neither of the two, which stopped the loop
+ * but lost everything else: detail → watch → back → back could not step *through* watch, because
+ * watch was never recorded. This keeps the whole trail instead - every distinct path visited, in
+ * order - plus a cursor pointing at the current one. That is a browser history stack in
+ * miniature, and it answers the only question the button is asked: "what was I looking at before
+ * this?" - whether that is home, a search, a shelf, or the other half of the detail/watch pair.
  *
- * Session-scoped rather than `localStorage`: "where I came from" is a property of this visit, not
- * of the browser, and a stale value surviving a fresh tab would send a reader somewhere they were
- * not.
+ * Going back moves the cursor without recording, so a back is never itself a new forward entry.
+ * Navigating *forward* from a rewound position truncates the trail after the cursor first, which
+ * is exactly what a browser does: visit A, B, go back to A, then open C, and B is gone.
+ *
+ * Module-scoped rather than `localStorage`: "where I came from" is a property of this visit, not
+ * of the browser, and a stale trail surviving a fresh tab would send a reader somewhere they
+ * were not.
  */
-let lastExternalPath: string | null = null;
+let trail: string[] = [];
+let cursor = -1;
+/** The path a back press is currently travelling *to*, if any. Matched once by `recordVisit`. */
+let pendingBack: string | null = null;
 
-/** True for `/film/:slug`, `/series/:slug` and anything under `/watch`. */
-export function isDetailOrWatchPath(pathname: string): boolean {
-  return pathname.startsWith('/film/') || pathname.startsWith('/series/') || pathname.startsWith('/watch');
+/** Every route change reports here. `BackTargetTracker` is the single caller. */
+export function recordVisit(pathname: string, search: string): void {
+  const path = `${pathname}${search}`;
+
+  /*
+   * A back press we initiated arrives here like any other navigation. Move the cursor instead of
+   * appending, and only if the destination is where we meant to go - a redirect in between would
+   * otherwise silently eat the back.
+   */
+  if (pendingBack !== null && path === pendingBack) {
+    pendingBack = null;
+    const index = trail.lastIndexOf(path, cursor - 1);
+    if (index >= 0) cursor = index;
+    return;
+  }
+  pendingBack = null;
+
+  // Ignore a repeat of the page we are already on (e.g. a query-only re-render reporting twice).
+  if (cursor >= 0 && trail[cursor] === path) return;
+
+  // Forward navigation discards anything ahead of the cursor, then appends.
+  trail = trail.slice(0, cursor + 1);
+  trail.push(path);
+  cursor = trail.length - 1;
 }
 
-/** Called on every route change; ignores the two screens the back button is leaving. */
-export function rememberBackTarget(pathname: string, search: string): void {
-  if (isDetailOrWatchPath(pathname)) return;
-  lastExternalPath = `${pathname}${search}`;
+/**
+ * The path the back button should travel to, or `null` at the start of the trail.
+ *
+ * `null` means there is nothing behind this page - the reader deep-linked straight in - and the
+ * caller falls back to a sensible parent (home, or the title's own detail page).
+ */
+export function backTarget(): string | null {
+  if (cursor <= 0) return null;
+  return trail[cursor - 1] ?? null;
 }
 
-/** Where back should go, or `null` when the reader arrived by deep link. */
-export function detailBackTarget(): string | null {
-  return lastExternalPath;
+/**
+ * Nominate the destination of a back press, so the next `recordVisit` moves the cursor rather
+ * than pushing a new entry. Call this immediately before navigating to a `backTarget()`.
+ */
+export function beginBack(destination: string): void {
+  pendingBack = destination;
 }

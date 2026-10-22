@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -38,7 +38,7 @@ import {
   formatYear,
   typeLabel,
 } from '../lib/format';
-import { ROUTES, detailBackTarget, watchPath } from '../lib/routes';
+import { ROUTES, backTarget, beginBack, watchPath } from '../lib/routes';
 import type { Credit, Episode, Season, TitleDetails, TitleType } from '../types/api';
 import styles from './TitlePage.module.css';
 
@@ -130,26 +130,42 @@ export function TitlePage({ type }: TitlePageProps) {
   );
 
   /*
-    Back that never bounces between a title and its own player.
+    Back walks the reader's real trail.
 
-    The reader's real question is "where was I before this", and `navigate(-1)` answers it
-    correctly for every entry except one: a detail page reached by pressing back out of its own
-    watch page. Left alone, that pair ping-pongs - detail → watch → detail → watch - because each
-    page's own back button rewinds into the other.
+    The question is "where was I before this", and `lib/routes` now keeps the whole visited
+    sequence, so `backTarget` answers it directly - home, a shelf, a search, or the watch page
+    if that is genuinely what preceded this one. `beginBack` tells the trail this next hop is a
+    rewind rather than a fresh visit, so it moves the cursor instead of appending and pressing
+    back twice keeps walking the same history instead of bouncing forward into the player.
 
-    The fix is to remember the last page that was not one of these two screens, and prefer it.
-    `detailBackTarget` records that path whenever a route that is not a detail or watch page is
-    mounted, so returning from a shelf, a search result or home goes exactly where it should.
-    Only when there is no such page - a cold deep link - does it fall back to home.
+    Only a cold deep link - nothing behind this page - falls back, and home is the honest parent
+    there.
   */
   const handleBack = useCallback(() => {
-    const fallback = detailBackTarget();
-    if (fallback) {
-      navigate(fallback);
+    const target = backTarget();
+    if (target) {
+      beginBack(target);
+      navigate(target);
       return;
     }
     navigate(ROUTES.home);
   }, [navigate]);
+
+  /*
+    Scroll to the episode list rather than jumping to it with an anchor.
+
+    A bare `href="#episodes"` does two things at once: it scrolls, and it writes `#episodes` into
+    the address bar, so the URL grows a fragment that has nothing to do with the title and the back
+    button starts walking through scroll positions instead of pages. Swallowing the default and
+    scrolling the section directly keeps the URL clean and hands the motion to the browser's own
+    smooth scrolling (globals.css sets `scroll-behavior: smooth` on the scroll container). The
+    section's `scroll-margin-top` still clears the sticky header, and `block: 'start'` lands its
+    top edge there.
+  */
+  const handleScrollToEpisodes = useCallback((event: ReactMouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    document.getElementById('episodes')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   if (error && !title) {
     return (
@@ -204,19 +220,7 @@ export function TitlePage({ type }: TitlePageProps) {
         visitor came for in a separate box below the fold.
       */}
       <header className={styles.hero ?? ''}>
-        {title.backdrop ? (
-          <img
-            src={title.backdropLarge ?? title.backdrop}
-            alt=""
-            className={styles.heroBackdrop ?? ''}
-            loading="eager"
-            decoding="async"
-            /* The first thing this page paints and its LCP candidate. */
-            fetchPriority="high"
-          />
-        ) : (
-          <div className={styles.heroBackdropFallback ?? ''} aria-hidden />
-        )}
+        <HeroBackdrop backdrop={title.backdropLarge ?? title.backdrop} trailerKey={details?.trailer?.key ?? null} />
         <div className={styles.heroScrim ?? ''} aria-hidden />
 
         <button type="button" className={styles.heroBack ?? ''} onClick={handleBack} aria-label="Go back">
@@ -770,6 +774,59 @@ function SocialLinks({ social }: { social: TitleDetails['social'] | null }) {
 /* ----------------------------------------------------------------- trailer */
 
 /**
+ * The hero artwork, upgraded to a moving trailer when one exists.
+ *
+ * The backdrop image paints first - eager and high-priority, because it is the LCP candidate and
+ * the page must never look empty - and a muted, looping, control-less trailer fades in over it
+ * once the YouTube frame is ready. Nothing is *replaced*: the still stays underneath the whole
+ * time, so a viewer with autoplay blocked, a slow connection or no trailer at all just keeps
+ * looking at the artwork we already had. That is the fallback, and it needs no separate branch.
+ *
+ * The frame is genuinely mounted only when a trailer key exists, and unmounted when it does not,
+ * so a title without a trailer downloads no iframe and starts no YouTube player. `onLoad` gates
+ * the fade so the reveal does not flash YouTube's own loading chrome.
+ */
+function HeroBackdrop({ backdrop, trailerKey }: { backdrop: string | null; trailerKey: string | null }) {
+  const [trailerReady, setTrailerReady] = useState(false);
+
+  return (
+    <>
+      {backdrop ? (
+        <img
+          src={backdrop}
+          alt=""
+          className={styles.heroBackdrop ?? ''}
+          loading="eager"
+          decoding="async"
+          /* The first thing this page paints and its LCP candidate. */
+          fetchPriority="high"
+        />
+      ) : (
+        <div className={styles.heroBackdropFallback ?? ''} aria-hidden />
+      )}
+
+      {trailerKey ? (
+        <iframe
+          className={`${styles.heroTrailer ?? ''} ${trailerReady ? (styles.heroTrailerReady ?? '') : ''}`.trim()}
+          /*
+            `autoplay=1&mute=1` is the only combination browsers allow without a gesture. `loop`
+            with `playlist` set to the same key is YouTube's own idiom for a single looped clip.
+            `controls=0` and `modestbranding` keep it a background rather than a second player;
+            the real player, with controls, is one click away in the trailer dialog below.
+          */
+          src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&loop=1&playlist=${trailerKey}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+          title="Trailer"
+          aria-hidden
+          tabIndex={-1}
+          allow="autoplay; encrypted-media"
+          onLoad={() => setTrailerReady(true)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/**
  * The hero's trailer control.
  *
  * A button rather than a link because it opens a dialog on this page rather than navigating;
@@ -779,13 +836,29 @@ function SocialLinks({ social }: { social: TitleDetails['social'] | null }) {
  */
 function TrailerButton({ trailer, title }: { trailer: NonNullable<TitleDetails['trailer']>; title: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  /*
+    Whether the dialog is open is React state, not just the element's own attribute, because the
+    iframe inside has to unmount when it closes. A `<dialog>` that is merely hidden keeps its
+    YouTube player alive, so closing with the ✕ paused nothing - reopening resumed the same clip
+    mid-scene, and the audio could even keep playing where the browser treats a closed dialog as
+    still rendered. Unmounting the frame on close is the only way to actually stop it.
+  */
+  const [open, setOpen] = useState(false);
+
+  const close = useCallback(() => {
+    dialogRef.current?.close();
+    setOpen(false);
+  }, []);
 
   return (
     <>
       <button
         type="button"
         className={styles.heroSecondary ?? ''}
-        onClick={() => dialogRef.current?.showModal()}
+        onClick={() => {
+          dialogRef.current?.showModal();
+          setOpen(true);
+        }}
         aria-haspopup="dialog"
       >
         <PlayCircle size={18} aria-hidden />
@@ -801,11 +874,17 @@ function TrailerButton({ trailer, title }: { trailer: NonNullable<TitleDetails['
         the button above, never on mount. The hero is `overflow: hidden` to keep the artwork
         inside its rounded frame, which is safe here: a modal dialog lives in the top layer and
         is not clipped by an ancestor's overflow.
+
+        `onClose`/`onCancel` keep the state honest: Escape fires `cancel` then `close`, and both
+        paths must clear `open` so the iframe unmounts and the audio stops. Without them a reader
+        who closed with the keyboard would leave `open` stuck true and the frame mounted.
       */}
       <dialog
         ref={dialogRef}
         className={styles.trailerDialog ?? ''}
         aria-label={`${title} trailer`}
+        onClose={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
       >
         <div className={styles.trailerPanel ?? ''}>
           <div className={styles.trailerBar ?? ''}>
@@ -813,7 +892,7 @@ function TrailerButton({ trailer, title }: { trailer: NonNullable<TitleDetails['
             <button
               type="button"
               className={styles.trailerClose ?? ''}
-              onClick={() => dialogRef.current?.close()}
+              onClick={close}
               aria-label="Close trailer"
             >
               ✕
@@ -821,18 +900,21 @@ function TrailerButton({ trailer, title }: { trailer: NonNullable<TitleDetails['
           </div>
 
           {/*
-            The no-cookie host, which serves the same video without the advertising cookie.
-            `title` on the frame rather than an aria-label on a wrapper: a frame with no
-            accessible name is announced as "frame" by a screen reader.
+            Mounted only while open, so closing genuinely cuts the video rather than just hiding
+            it. The no-cookie host serves the same video without the advertising cookie. `title`
+            on the frame rather than an aria-label on a wrapper: a frame with no accessible name
+            is announced as "frame" by a screen reader.
           */}
           <div className={styles.trailerFrameWrap ?? ''}>
-            <iframe
-              className={styles.trailerFrame ?? ''}
-              src={`https://www.youtube-nocookie.com/embed/${trailer.key}?rel=0&modestbranding=1`}
-              title={`${title} — ${trailer.name}`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+            {open ? (
+              <iframe
+                className={styles.trailerFrame ?? ''}
+                src={`https://www.youtube-nocookie.com/embed/${trailer.key}?rel=0&modestbranding=1&autoplay=1`}
+                title={`${title} — ${trailer.name}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : null}
           </div>
 
           <a

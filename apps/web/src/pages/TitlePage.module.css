@@ -75,6 +75,42 @@
 }
 
 /*
+ * The autoplaying trailer, over the still.
+ *
+ * A YouTube frame is 16:9 and the hero is a short wide band, so the frame is blown up to cover
+ * the box the same way the backdrop image is (`object-fit: cover` has no analogue on an iframe,
+ * so the cover is done with size and a centring transform). It sits at the same z-index as the
+ * still and later in the DOM, so it paints on top, and beneath the scrim at `z-index: 1` - the
+ * scrim still does its whole job of making the copy legible over a moving picture.
+ *
+ * It is transparent until `onLoad` flips `.heroTrailerReady`, so the reveal is a fade from the
+ * still rather than a flash of YouTube's loading spinner. `pointer-events: none` keeps the frame
+ * from eating clicks aimed at the hero's own buttons, and the aria-hidden/tabIndex on the element
+ * keep it out of the tab order - it is decoration here; the real player is in the dialog.
+ */
+.heroTrailer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 600ms var(--motion-ease);
+}
+
+.heroTrailerReady {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroTrailer {
+    transition: none;
+  }
+}
+
+/*
  * The scrim, and the reason the copy is legible.
  *
  * Two gradients rather than one flat wash: a diagonal that darkens the lower-left where the text

@@ -6,7 +6,7 @@ import { Button, EmptyState, ErrorState, Spinner, useToast } from '../components
 import { EpisodeRow, SeasonPicker, SourcePicker, VideoPlayer } from '../components/watch';
 import { formatEpisodeLabel, formatSeasonLabel } from '../lib/format';
 import { playerUrl, recordServerPlay } from '../lib/api';
-import { ROUTES, detailBackTarget, titlePath } from '../lib/routes';
+import { ROUTES, backTarget, beginBack, titlePath } from '../lib/routes';
 import { useWatchHistory } from '../hooks/useWatchHistory';
 import type { TitleType } from '../types/api';
 import styles from './WatchPage.module.css';
@@ -329,23 +329,27 @@ export function WatchPage({ type }: WatchPageProps) {
     <div className={styles.page ?? ''}>
       <header className={styles.bar ?? ''}>
         {/*
-          Back leaves the player entirely.
+          Back walks the reader's real trail.
 
           It used to be a link to this title's own detail page, on the theory that the detail page
-          is "the parent" of the player. That is false when the reader pressed Play from a shelf,
-          a search result or home: sending them to a detail page they never saw is a detour, and
+          is "the parent" of the player. That is false when the reader pressed Play from a shelf, a
+          search result or home: sending them to a detail page they never saw is a detour, and
           because the detail page's own back button then points at the page before *it* - which is
-          the player - the two screens bounce off each other with no way out. `detailBackTarget`
-          holds the last page that was genuinely somewhere else, so back returns there, and the
-          player is the one screen where a link to the detail page is owed regardless: if there is
-          no remembered page the reader arrived by deep link, so the detail page is the honest
-          parent to fall back to.
+          the player - the two screens bounce off each other with no way out. `backTarget` answers
+          the only question worth asking here - "where was I before this" - with the next entry in
+          the visited trail, and `beginBack` marks the hop a rewind so pressing back again keeps
+          walking that trail rather than re-appending. Only a cold deep link, with nothing behind
+          it, falls back to the detail page, which is the honest parent in that one case.
         */}
         <button
           type="button"
           className={styles.barBack ?? ''}
           aria-label="Go back"
-          onClick={() => navigate(detailBackTarget() ?? titlePath(type, title.slug))}
+          onClick={() => {
+            const target = backTarget() ?? titlePath(type, title.slug);
+            beginBack(target);
+            navigate(target);
+          }}
         >
           <ArrowLeft size={17} aria-hidden />
         </button>

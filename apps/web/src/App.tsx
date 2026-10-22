@@ -7,7 +7,7 @@ import { AppShell } from './components/shell/AppShell';
 import { ThemeModeProvider } from './components/shell/ThemeMode';
 import { ToastProvider } from './components/ui';
 import { usePageTracker } from './hooks/usePageTracker';
-import { rememberBackTarget } from './lib/routes';
+import { recordVisit } from './lib/routes';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage, RouteErrorPage } from './pages/NotFoundPage';
 
@@ -138,18 +138,18 @@ function PageTracker() {
 }
 
 /**
- * Remembers where the reader was before entering a title/player pair.
+ * Records every distinct page into `lib/routes`' navigation trail.
  *
- * Its one job is to feed `lib/routes`' `rememberBackTarget`, which the detail and watch pages'
- * back buttons consult so they can leave for a real previous page instead of bouncing between
- * each other. Split out for the same reason as `PageTracker`: it needs `useLocation`, and the
- * store it writes to is deliberately plain module state rather than React context, so a page
- * deeper in the tree can read it during an event handler without a provider between them.
+ * Its one job is to feed `recordVisit`, which builds the history the detail and watch pages'
+ * back buttons walk - so they leave for a real previous page instead of bouncing between each
+ * other. Split out for the same reason as `PageTracker`: it needs `useLocation`, and the store it
+ * writes to is deliberately plain module state rather than React context, so a page deeper in the
+ * tree can read it during an event handler without a provider between them.
  */
 function BackTargetTracker() {
   const location = useLocation();
   useEffect(() => {
-    rememberBackTarget(location.pathname, location.search);
+    recordVisit(location.pathname, location.search);
   }, [location.pathname, location.search]);
   return null;
 }
