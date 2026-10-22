@@ -12,6 +12,8 @@ import { AbortedError, ApiError } from '../lib/api';
  *    results cannot leave a stale response on screen
  *  - an in-memory cache keyed by the request, so going back to the detail page you
  *    just left does not refetch it
+ *  - a durable browser copy of that cache (localStorage), so a reload renders the
+ *    catalogue immediately instead of over a blank skeleton while the request flies
  *  - `stale` flagging, so the UI can keep showing cached rows while it refetches
  *    rather than flashing a skeleton over content that is already correct
  */
@@ -39,6 +41,65 @@ const cache = new Map<string, CacheEntry<unknown>>();
 const DEFAULT_TTL_MS = 120_000;
 const MAX_CACHE_ENTRIES = 200;
 
+/*
+  Durable browser cache.
+
+  The in-memory map dies with the tab, so every reload paid a full cold round trip for
+  data that had not changed. This mirrors it into localStorage under one namespaced key.
+
+  It is deliberately best-effort and never throws: localStorage is absent in SSR, throws
+  in private mode when full, and a corrupt value must degrade to "no cache" rather than
+  break the app. The stored entries carry their own timestamps so the same TTL logic
+  applies to a value read a day after it was written.
+*/
+const PERSIST_KEY = 'reflick:query-cache:v1';
+/** Only persist the newest few keys: older shelves are losers of the slowest race. */
+const PERSIST_MAX_ENTRIES = 60;
+/*
+  Anything cached for at least this long is worth persisting. Volatile queries (a search
+  box keystroke) pass a tiny TTL and are skipped, so the durable cache holds the
+  read-mostly catalogue pages it was meant for rather than the last thing typed.
+*/
+const PERSIST_MIN_TTL_MS = 60_000;
+
+let persistHydrated = false;
+
+function hydratePersistedCache(): void {
+  if (persistHydrated || typeof window === 'undefined') return;
+  persistHydrated = true;
+
+  try {
+    const raw = window.localStorage.getItem(PERSIST_KEY);
+    if (!raw) return;
+
+    const parsed = JSON.parse(raw) as Array<[string, CacheEntry<unknown>]>;
+    if (!Array.isArray(parsed)) return;
+
+    for (const [key, entry] of parsed) {
+      if (typeof key !== 'string' || entry == null || typeof entry.at !== 'number') continue;
+      cache.set(key, entry);
+    }
+  } catch {
+    /* A corrupt or unavailable store is the same as an empty one. */
+  }
+}
+
+function persistCache(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const entries = Array.from(cache.entries())
+      .sort((a, b) => b[1].at - a[1].at)
+      .slice(0, PERSIST_MAX_ENTRIES);
+
+    window.localStorage.setItem(PERSIST_KEY, JSON.stringify(entries));
+  } catch {
+    /* Quota or private mode: durable caching is a bonus, not a requirement. */
+  }
+}
+
+hydratePersistedCache();
+
 function readCache<T>(key: string, ttlMs: number): T | null {
   const entry = cache.get(key) as CacheEntry<T> | undefined;
   if (!entry) return null;
@@ -49,21 +110,24 @@ function readCache<T>(key: string, ttlMs: number): T | null {
   return entry.value;
 }
 
-function writeCache<T>(key: string, value: T): void {
+function writeCache<T>(key: string, value: T, persistTtlMs: number): void {
   if (cache.size >= MAX_CACHE_ENTRIES) {
     const oldest = cache.keys().next().value;
     if (typeof oldest === 'string') cache.delete(oldest);
   }
   cache.set(key, { value, at: Date.now() });
+  if (persistTtlMs >= PERSIST_MIN_TTL_MS) persistCache();
 }
 
 /** Called after a mutation so the next visit to a page refetches instead of replaying. */
 export function invalidateQuery(key: string): void {
   cache.delete(key);
+  persistCache();
 }
 
 export function clearQueryCache(): void {
   cache.clear();
+  persistCache();
 }
 
 /** All cache keys beginning with a prefix, used to drop every shelf at once. */
@@ -71,6 +135,7 @@ function invalidatePrefix(prefix: string): void {
   for (const key of Array.from(cache.keys())) {
     if (key.startsWith(prefix)) cache.delete(key);
   }
+  persistCache();
 }
 
 export { invalidatePrefix };
@@ -140,7 +205,7 @@ export function useQuery<T>(
       try {
         const value = await fetcherRef.current(controller.signal);
         if (!active) return;
-        writeCache(key, value);
+        writeCache(key, value, ttlMs);
         setData(value);
         setError(null);
       } catch (caught) {

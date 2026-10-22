@@ -8,7 +8,8 @@ import * as titles from '../../repositories/titles.repo.js';
 import { GenreModel } from '../../db/models/index.js';
 import type { TitleDocument } from '../../db/models/index.js';
 import type { GenreRef, TitleType } from '../../domain/types.js';
-import type { TmdbMovie, TmdbTv } from './tmdb.types.js';
+import type { TmdbMovie, TmdbMovieDetail, TmdbTv, TmdbTvDetail } from './tmdb.types.js';
+import { mapMovieDetails, mapTvDetails } from './details.mapper.js';
 
 const log = createLogger('ingest');
 
@@ -104,10 +105,27 @@ export async function ingestTitle(
    * than dropped. `SYNC_GENRES` only decides what the landing page surfaces, so filtering
    * here would leave a war film or a family film with an empty genre array purely because
    * nobody put that genre in the nav. Preserving the id keeps the row filterable later.
+   *
+   * Two sources, because a summary row and a detail row name the field differently. A
+   * detail response carries `genres: [{id, name}]` and has no `genre_ids` at all, so
+   * hydrating a title by slug - which is exactly what happens on a cold deep link -
+   * used to write `genres: []` and the detail page then showed no genre pills, no
+   * related titles and no genre filter for a film that plainly has them.
    */
-  const genres: GenreRef[] = ((item as TmdbMovie).genre_ids ?? []).map((id) => ({
+  const genreIds =
+    (item as TmdbMovie).genre_ids ?? (item as TmdbMovieDetail).genres?.map((genre) => genre.id) ?? [];
+
+  /*
+   * A detail response also carries the names, so an id the curated genre table has never
+   * heard of still resolves to "War" rather than to the string "10752".
+   */
+  const genreNamesFromItem = new Map(
+    ((item as TmdbMovieDetail).genres ?? []).map((genre) => [genre.id, genre.name]),
+  );
+
+  const genres: GenreRef[] = genreIds.map((id) => ({
     id,
-    name: genreNames.get(id) ?? String(id),
+    name: genreNames.get(id) ?? genreNamesFromItem.get(id) ?? String(id),
   }));
 
   /*
@@ -240,16 +258,44 @@ export async function findTmdbIdBySlug(slug: string, type: TitleType): Promise<n
 /**
  * Fetches one title by its public slug and stores it.
  *
+ * Uses the heavyweight detail endpoint rather than the cheap one. This is the path a deep
+ * link to a title nobody has browsed takes, and it is the only moment the full record is
+ * guaranteed to be needed - so collecting credits, keywords, the certification and the
+ * trailer here costs one request instead of leaving `getTitle` to make a second one a few
+ * milliseconds later for the same title.
+ *
  * @returns the stored TMDB id, or `null` when TMDB has no such title.
  */
 export async function hydrateBySlug(slug: string, type: TitleType): Promise<number | null> {
   const tmdbId = await findTmdbIdBySlug(slug, type);
   if (tmdbId === null) return null;
 
-  const detail = type === 'tv' ? await tmdb.tvDetail(tmdbId) : await tmdb.movieDetail(tmdbId);
+  const detail =
+    type === 'tv' ? await tmdb.tvDetailFull(tmdbId) : await tmdb.movieDetailFull(tmdbId);
 
   const genreNames = await loadGenreNames();
   await ingestTitle(detail as TmdbMovie | TmdbTv, type, genreNames, { withDetail: false });
+
+  /*
+   * Written as a second, separate update rather than folded into `upsertTitle`.
+   *
+   * `upsertTitle` is the summary writer, called by every path in this module; teaching it
+   * about `details` would mean the nightly trending refresh could overwrite a complete
+   * credits list with whatever a summary pass happened to carry, which is nothing. Keeping
+   * the two writes apart is what makes the summary refresh safe to run as often as it likes.
+   *
+   * A failure here is swallowed on purpose: the title itself is already stored, and a page
+   * with no cast list is a better outcome than a page that 500s because credits would not
+   * save.
+   */
+  try {
+    await titles.setTitleDetails(
+      tmdbId,
+      type === 'tv' ? mapTvDetails(detail as TmdbTvDetail) : mapMovieDetails(detail as TmdbMovieDetail),
+    );
+  } catch (error) {
+    log.warn('title details write failed', { tmdbId, type, error });
+  }
 
   log.info('hydrated on demand', { slug, type, tmdbId });
   return tmdbId;

@@ -1,6 +1,15 @@
 import type {
   AccountPayload,
   AccountUser,
+  AdminCacheStats,
+  AdminDashboardStats,
+  AdminProviderDefault,
+  AdminProviderRow,
+  AdminTitleRow,
+  AdminUserDetail,
+  AdminUserRow,
+  AdminVisitRow,
+  AdminVisitStats,
   ApiEnvelope,
   ApiErrorEnvelope,
   AppNotification,
@@ -22,6 +31,8 @@ import type {
   TitleType,
   WatchEntry,
 } from '../types/api';
+
+export type { AdminCacheStats, AdminProviderDefault } from '../types/api';
 
 /**
  * One place where the browser talks to the API.
@@ -387,13 +398,37 @@ export async function reportServer(
   return (payload as ApiEnvelope<ServerReport>).data;
 }
 
+/**
+ * Reports that a provider was actually used to play a title.
+ *
+ * Fire-and-forget, like the visit beacon: this feeds the global "most-used provider"
+ * default and must never delay playback or surface an error. `keepalive` so a provider
+ * chosen as the page is being left still counts.
+ */
+export function recordServerPlay(type: TitleType, slug: string, provider: string): void {
+  void fetch(`${BASE}/titles/${type}/${encodeURIComponent(slug)}/servers/play`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    credentials: 'same-origin',
+    keepalive: true,
+    body: JSON.stringify({ provider }),
+  }).catch(() => {});
+}
+
 /** Health is used by the status panel, not by normal data fetching. */
 export interface HealthPayload {
   status: 'ok' | 'degraded';
   database: string;
   catalogueSize: number;
   providers: number;
-  cache: { size: number; hits: number; misses: number };
+  /** Combined L1+L2 figures, with the layers broken out. */
+  cache: {
+    entries: number;
+    max: number;
+    approximateBytes: number;
+    l1: { entries: number; approximateBytes: number };
+    l2: { entries: number; approximateBytes: number };
+  };
   uptimeSeconds: number;
 }
 
@@ -461,4 +496,130 @@ export function removeAccountHistory(type: TitleType, slug: string): Promise<Wat
   return requestData<WatchEntry[]>(`/account/history/${type}/${encodeURIComponent(slug)}`, {
     method: 'DELETE',
   });
+}
+
+/* ------------------------------------------------------------------ track */
+
+/**
+ * Page-view beacon. Fired once per route change by `usePageTracker`.
+ *
+ * Uses `keepalive` so the request survives a navigation, and swallows its own
+ * errors: a tracking failure must never surface to the visitor.
+ */
+export function trackPageView(path: string): void {
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  if (authToken !== null) headers.authorization = `Bearer ${authToken}`;
+
+  void fetch(`${BASE}/track`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ path }),
+    keepalive: true,
+    credentials: 'same-origin',
+  }).catch(() => {});
+}
+
+/* ------------------------------------------------------------------ admin */
+
+export interface AdminListPage<T> {
+  items: T[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export function getAdminStats(signal?: AbortSignal): Promise<AdminDashboardStats> {
+  return requestData<AdminDashboardStats>('/admin/stats', { signal });
+}
+
+export function getAdminUsers(
+  params: { page?: number; limit?: number; search?: string } = {},
+  signal?: AbortSignal,
+): Promise<AdminListPage<AdminUserRow>> {
+  return request<AdminUserRow[]>('/admin/users', {
+    signal,
+    query: { page: params.page, limit: params.limit, search: params.search },
+  }).then((envelope) => ({
+    items: envelope.data,
+    total: typeof envelope.meta.total === 'number' ? envelope.meta.total : envelope.data.length,
+    page: typeof envelope.meta.page === 'number' ? envelope.meta.page : 1,
+    totalPages: typeof envelope.meta.totalPages === 'number' ? envelope.meta.totalPages : 1,
+  }));
+}
+
+export function getAdminUser(id: string, signal?: AbortSignal): Promise<AdminUserDetail> {
+  return requestData<AdminUserDetail>(`/admin/users/${encodeURIComponent(id)}`, { signal });
+}
+
+export function setAdminUserRole(id: string, role: 'user' | 'admin'): Promise<AdminUserRow> {
+  return requestData<AdminUserRow>(`/admin/users/${encodeURIComponent(id)}/role`, { method: 'PATCH', body: { role } });
+}
+
+export function deleteAdminUser(id: string): Promise<{ ok: boolean }> {
+  return requestData<{ ok: boolean }>(`/admin/users/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function getAdminVisits(
+  params: { page?: number; limit?: number; ip?: string } = {},
+  signal?: AbortSignal,
+): Promise<AdminListPage<AdminVisitRow>> {
+  return request<AdminVisitRow[]>('/admin/visits', {
+    signal,
+    query: { page: params.page, limit: params.limit, ip: params.ip },
+  }).then((envelope) => ({
+    items: envelope.data,
+    total: typeof envelope.meta.total === 'number' ? envelope.meta.total : envelope.data.length,
+    page: typeof envelope.meta.page === 'number' ? envelope.meta.page : 1,
+    totalPages: typeof envelope.meta.totalPages === 'number' ? envelope.meta.totalPages : 1,
+  }));
+}
+
+export function getAdminVisitStats(days: number, signal?: AbortSignal): Promise<AdminVisitStats> {
+  return requestData<AdminVisitStats>('/admin/visits/stats', { signal, query: { days } });
+}
+
+export function getAdminTitles(
+  params: { page?: number; limit?: number; search?: string; type?: TitleType } = {},
+  signal?: AbortSignal,
+): Promise<AdminListPage<AdminTitleRow>> {
+  return request<AdminTitleRow[]>('/admin/titles', {
+    signal,
+    query: { page: params.page, limit: params.limit, search: params.search, type: params.type },
+  }).then((envelope) => ({
+    items: envelope.data,
+    total: typeof envelope.meta.total === 'number' ? envelope.meta.total : envelope.data.length,
+    page: typeof envelope.meta.page === 'number' ? envelope.meta.page : 1,
+    totalPages: typeof envelope.meta.totalPages === 'number' ? envelope.meta.totalPages : 1,
+  }));
+}
+
+export function deleteAdminTitle(id: string): Promise<{ ok: boolean }> {
+  return requestData<{ ok: boolean }>(`/admin/titles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function getAdminProviders(signal?: AbortSignal): Promise<AdminProviderRow[]> {
+  return requestData<AdminProviderRow[]>('/admin/providers', { signal });
+}
+
+export function updateAdminProvider(
+  id: string,
+  changes: { enabled?: boolean; priority?: number },
+): Promise<AdminProviderRow> {
+  return requestData<AdminProviderRow>(`/admin/providers/${encodeURIComponent(id)}`, { method: 'PATCH', body: changes });
+}
+
+export function getAdminCache(signal?: AbortSignal): Promise<AdminCacheStats> {
+  return requestData<AdminCacheStats>('/admin/cache', { signal });
+}
+
+export function clearAdminCache(): Promise<{ ok: boolean; entries: number }> {
+  return requestData<{ ok: boolean; entries: number }>('/admin/cache/clear', { method: 'POST' });
+}
+
+export function getAdminProviderDefault(signal?: AbortSignal): Promise<AdminProviderDefault> {
+  return requestData<AdminProviderDefault>('/admin/provider-default', { signal });
+}
+
+export function setAdminProviderDefault(key: string | null): Promise<AdminProviderDefault> {
+  return requestData<AdminProviderDefault>('/admin/provider-default', { method: 'PATCH', body: { key } });
 }

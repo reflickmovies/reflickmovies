@@ -75,6 +75,17 @@ function cspPlugin(origins: string[], apiOrigin: string, apiTarget: string): Plu
     "form-action 'self'",
   ];
 
+  /*
+   * The trailer player on a title page.
+   *
+   * `-nocookie` rather than the regular host: it serves the same videos without the
+   * advertising cookie, which is the one Google offers precisely for embedding on sites
+   * that would rather not set it. Listed here rather than folded into the provider list
+   * because it is not a stream provider - it never plays the title, only its trailer -
+   * and a row added to `providers.json` should not be able to widen what the app frames.
+   */
+  const TRAILER_FRAME_HOST = 'https://www.youtube-nocookie.com';
+
   return {
     name: 'reflick-csp',
     transformIndexHtml(html, ctx) {
@@ -83,8 +94,8 @@ function cspPlugin(origins: string[], apiOrigin: string, apiTarget: string): Plu
       /* The mirrored player is not proxied (see `server.proxy` below), so the frame can only be
        * the API origin itself - the API URL in development, `apiOrigin` in a deployed build. */
       const frameSrc = dev
-        ? `frame-src 'self' ${origins.join(' ')} ${apiTarget}`
-        : `frame-src 'self' ${origins.join(' ')}${apiOrigin ? ` ${apiOrigin}` : ''}`;
+        ? `frame-src 'self' ${origins.join(' ')} ${TRAILER_FRAME_HOST} ${apiTarget}`
+        : `frame-src 'self' ${origins.join(' ')} ${TRAILER_FRAME_HOST}${apiOrigin ? ` ${apiOrigin}` : ''}`;
 
       const connectSrc = dev
         ? "connect-src 'self' ws: wss:"

@@ -1,6 +1,6 @@
 import type { FilterQuery } from 'mongoose';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../config/constants.js';
-import type { TitleType } from '../domain/types.js';
+import type { TitleDetailsRecord, TitleType } from '../domain/types.js';
 import { EpisodeModel, SeasonModel, TitleModel, type EpisodeDocument, type TitleDocument } from '../db/models/index.js';
 
 /**
@@ -377,6 +377,25 @@ export async function upsertTitle(
     { $set: { ...update, tmdbId, type, syncedAt: new Date() }, $setOnInsert: { serverFailures: {} } },
     { upsert: true },
   );
+}
+
+/**
+ * Writes the detail-page extras for one title.
+ *
+ * Deliberately a separate write from `upsertTitle`, and deliberately does not move
+ * `syncedAt`. The two subdocuments answer different freshness questions - "is this row
+ * still a faithful copy of the summary" versus "has this title been through a full
+ * detail fetch" - and folding one into the other made a nightly trending refresh look
+ * like it had also collected credits, so stale cast lists never got replaced.
+ *
+ * No upsert: details are only ever written for a row that already exists, because the
+ * caller has just read that row to build them.
+ */
+export async function setTitleDetails(
+  tmdbId: number,
+  details: TitleDetailsRecord,
+): Promise<void> {
+  await TitleModel.updateOne({ tmdbId }, { $set: { details } });
 }
 
 /**

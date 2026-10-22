@@ -23,6 +23,9 @@ export interface UserDocument {
   email: string;
   displayName: string;
   passwordHash: string;
+  role: 'user' | 'admin';
+  lastLoginAt: Date | null;
+  lastLoginIp: string | null;
   watchHistory: WatchHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
@@ -54,6 +57,9 @@ const userSchema = new mongoose.Schema<UserDocument>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     displayName: { type: String, required: true, trim: true },
     passwordHash: { type: String, required: true },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    lastLoginAt: { type: Date, default: null },
+    lastLoginIp: { type: String, default: null },
     watchHistory: { type: [watchHistorySchema], default: [] },
   },
   { versionKey: false, timestamps: true },

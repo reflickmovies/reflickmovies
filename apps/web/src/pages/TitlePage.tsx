@@ -1,24 +1,45 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  ArrowSquareOut,
   CalendarBlank,
+  Camera,
   Clock,
+  FacebookLogo,
   FileX,
   FilmSlate,
+  GlobeHemisphereWest,
+  InstagramLogo,
+  MusicNotes,
+  PenNib,
   Play,
+  PlayCircle,
+  Scissors,
   Star,
+  Tag,
   Television,
+  TwitterLogo,
+  UserSquare,
+  Users,
+  VideoCamera,
   Warning,
 } from '@phosphor-icons/react';
 import { useEpisodes, useRelated, useSeasons, useTitle } from '../hooks/useReflick';
 import { TitleShelf, TitleShelfSkeleton } from '../components/titles';
 import { EpisodeRow, SeasonHeader, SeasonPicker } from '../components/watch';
 import { Notice } from '../components/page';
-import { formatAirDate, formatSeasonLabel, formatYear, typeLabel } from '../lib/format';
+import {
+  formatAirDate,
+  formatFullDate,
+  formatMoney,
+  formatSeasonLabel,
+  formatYear,
+  typeLabel,
+} from '../lib/format';
 import { ROUTES, watchPath } from '../lib/routes';
-import type { Episode, Season, TitleType } from '../types/api';
+import type { Credit, Episode, Season, TitleDetails, TitleType } from '../types/api';
 import styles from './TitlePage.module.css';
 
 export interface TitlePageProps {
@@ -163,6 +184,7 @@ export function TitlePage({ type }: TitlePageProps) {
     for a moment on every cold load, and a reader who had already picked a season lost it.
   */
   const seasonCount = seasons?.length ?? 0;
+  const details = title.details;
 
   return (
     <article className={styles.page ?? ''}>
@@ -229,6 +251,17 @@ export function TitlePage({ type }: TitlePageProps) {
 
               <span className={styles.heroMetaItem ?? ''}>{typeLabel(type, true)}</span>
 
+              {/*
+                The age rating, in the meta row where a reader checks for it before deciding
+                whether to press play. Sits beside the format and the year rather than buried in
+                the facts list for the same reason the year is up here.
+              */}
+              {details?.certification ? (
+                <span className={styles.heroMetaItem ?? ''}>
+                  <span className={styles.certification ?? ''}>{details.certification}</span>
+                </span>
+              ) : null}
+
               {title.runtimeLabel ? (
                 <span className={styles.heroMetaItem ?? ''}>
                   <Clock size={15} aria-hidden />
@@ -275,6 +308,15 @@ export function TitlePage({ type }: TitlePageProps) {
                   Episodes
                 </a>
               ) : null}
+
+              {/*
+                The trailer is a modal rather than a link out, so the reader stays on the page.
+                Rendered from the same `details` payload as the cast list, which means it appears
+                the moment the extras land and is simply absent until then.
+              */}
+              {details?.trailer ? (
+                <TrailerButton trailer={details.trailer} title={title.title} />
+              ) : null}
             </div>
           </div>
         </div>
@@ -305,12 +347,59 @@ export function TitlePage({ type }: TitlePageProps) {
           `null` for an unknown value rather than a dash: rendering an em dash for every missing
           field made a title with no IMDb id and no original title show two rows of "—" that read
           like data the server had and could not find.
+
+          The order is what a reader looks for, not what the API happens to return: when it
+          happened, whether it is out yet, what it is rated, then the production facts, then the
+          identifiers and links at the end.
         */}
         <dl className={styles.facts ?? ''}>
-          <Fact label="Type">{typeLabel(type, false)}</Fact>
-          <Fact label="Released">{formatYear(title.year)}</Fact>
+          <Fact label="Released">{formatFullDate(title.releasedAt) ?? formatYear(title.year)}</Fact>
           <Fact label="Status">{title.status}</Fact>
           <Fact label="Original title">{title.originalTitle}</Fact>
+
+          {details?.productionCountries?.length ? (
+            <Fact label={details.productionCountries.length === 1 ? 'Country' : 'Countries'}>
+              {details.productionCountries.map((country) => country.name).join(', ')}
+            </Fact>
+          ) : null}
+
+          {title.originalLanguage ? (
+            <Fact label="Language">{languageName(title.originalLanguage, details)}</Fact>
+          ) : null}
+
+          {details?.spokenLanguages?.length ? (
+            <Fact label="Spoken languages">
+              {details.spokenLanguages
+                .map((language) => language.englishName ?? language.name)
+                .join(', ')}
+            </Fact>
+          ) : null}
+
+          <Fact label="Budget">{formatMoney(details?.budget)}</Fact>
+          <Fact label="Box office">{formatMoney(details?.revenue)}</Fact>
+
+          {details?.productionCompanies?.length ? (
+            <Fact label="Production">
+              {details.productionCompanies.map((company) => company.name).join(', ')}
+            </Fact>
+          ) : null}
+
+          {isSeries && title.numberOfSeasons != null ? (
+            <Fact label="Seasons">{String(title.numberOfSeasons)}</Fact>
+          ) : null}
+
+          {isSeries && title.numberOfEpisodes != null ? (
+            <Fact label="Episodes">{String(title.numberOfEpisodes)}</Fact>
+          ) : null}
+
+          {title.homepage ? (
+            <Fact label="Website">
+              <a href={title.homepage} target="_blank" rel="noreferrer noopener">
+                {hostnameOf(title.homepage)}
+              </a>
+            </Fact>
+          ) : null}
+
           <Fact label="IMDb">
             {title.imdbId ? (
               <a href={`https://www.imdb.com/title/${title.imdbId}`} target="_blank" rel="noreferrer noopener">
@@ -325,7 +414,63 @@ export function TitlePage({ type }: TitlePageProps) {
             </a>
           </Fact>
         </dl>
+
+        <SocialLinks social={details?.social ?? null} />
       </section>
+
+      {/* ----------------------------------------------------------- Cast */}
+      {/*
+        The cast strip.
+
+        Gated on `details` existing at all rather than on the cast being non-empty, because the
+        two states read differently: an empty array is "TMDB has no cast for this", while `null`
+        is "we have not asked yet". The first is worth a line saying so; the second should show
+        nothing and simply fill in when the extras land.
+      */}
+      {details ? (
+        <section className={styles.section ?? ''} aria-labelledby="cast-heading">
+          <div className={styles.sectionHeader ?? ''}>
+            <h2 className={styles.sectionHeading ?? ''} id="cast-heading">
+              Cast
+            </h2>
+            {details.cast.length > 0 ? (
+              <span className={styles.sectionCount ?? ''}>{details.cast.length}</span>
+            ) : null}
+          </div>
+
+          {details.cast.length === 0 ? (
+            <p className={styles.overviewEmpty ?? ''}>No cast has been credited for this title.</p>
+          ) : (
+            <ul className={styles.castStrip ?? ''}>
+              {details.cast.map((person) => (
+                <li key={`${person.id}-${person.character ?? ''}`} className={styles.castCard ?? ''}>
+                  <PersonPhoto person={person} className={styles.castPhoto ?? ''} />
+                  <p className={styles.castName ?? ''}>{person.name}</p>
+                  {person.character ? <p className={styles.castCharacter ?? ''}>{person.character}</p> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
+      {/* ----------------------------------------------------------- Crew */}
+      {details ? <CrewSection details={details} /> : null}
+
+      {/* -------------------------------------------------------- Keywords */}
+      {details && details.keywords.length > 0 ? (
+        <section className={styles.section ?? ''}>
+          <h2 className={styles.sectionHeading ?? ''}>Keywords</h2>
+          <ul className={styles.keywordList ?? ''}>
+            {details.keywords.map((keyword) => (
+              <li key={keyword} className={styles.keyword ?? ''}>
+                <Tag size={12} aria-hidden />
+                {keyword}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {/* -------------------------------------------------------- Episodes */}
       {/*
@@ -391,6 +536,21 @@ function tmdbUrl(type: TitleType, id: number): string {
   return `https://www.themoviedb.org/${type === 'movie' ? 'movie' : 'tv'}/${id}`;
 }
 
+/** The readable part of a homepage URL. A full URL reads as a second link target in a fact row. */
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+/** ISO 639-1 code to a display name, preferring the full language list when the server sent one. */
+function languageName(code: string, details: TitleDetails | null): string | null {
+  const match = details?.spokenLanguages?.find((language) => language.code === code);
+  return match?.englishName ?? match?.name ?? code;
+}
+
 /**
  * Label/value pair. Renders nothing when the value is unknown.
  *
@@ -431,6 +591,256 @@ function genrePath(type: TitleType, genreId: number): string {
   return `${type === 'tv' ? ROUTES.series : ROUTES.films}?genre=${genreId}`;
 }
 
+/* ------------------------------------------------------------------ people */
+
+/**
+ * A profile photo, or the initials-shaped fallback.
+ *
+ * The fallback keeps the same box as the image so the row does not reflow when a person has no
+ * photo on TMDB - which is roughly one in four, and always the person you were looking for.
+ */
+function PersonPhoto({ person, className }: { person: Credit; className: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (person.profile && !failed) {
+    return (
+      <img
+        className={className}
+        src={person.profile}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div className={`${className} ${styles.personPhotoFallback ?? ''}`} aria-hidden>
+      <Users size={22} />
+    </div>
+  );
+}
+
+/**
+ * The credited crew, grouped by the roles a reader actually looks for.
+ *
+ * Directors, writers, creators, producers, music, camera and editing are pulled out of the
+ * crew list into their own labelled blocks with photos, because those are the seven answers
+ * to "who made this". Everything else TMDB credits is one disclosure below them: a full crew
+ * list runs to hundreds of entries on a large production, and none of the mid-tier roles
+ * justify occupying a screen of height by default.
+ */
+function CrewSection({ details }: { details: TitleDetails }) {
+  const blocks: Array<{ label: string; icon: ReactNode; people: Credit[] }> = [
+    { label: 'Directed by', icon: <UserSquare size={13} aria-hidden />, people: details.directors },
+    { label: 'Written by', icon: <PenNib size={13} aria-hidden />, people: details.writers },
+    { label: 'Created by', icon: <PenNib size={13} aria-hidden />, people: details.creators },
+    { label: 'Produced by', icon: <VideoCamera size={13} aria-hidden />, people: details.producers },
+    { label: 'Music by', icon: <MusicNotes size={13} aria-hidden />, people: details.composers },
+    {
+      label: 'Cinematography',
+      icon: <Camera size={13} aria-hidden />,
+      people: details.cinematographers,
+    },
+    { label: 'Film editing', icon: <Scissors size={13} aria-hidden />, people: details.editors },
+  ].filter((block) => block.people.length > 0);
+
+  if (blocks.length === 0 && details.otherCrew.length === 0) return null;
+
+  return (
+    <section className={styles.section ?? ''} aria-labelledby="crew-heading">
+      <div className={styles.sectionHeader ?? ''}>
+        <h2 className={styles.sectionHeading ?? ''} id="crew-heading">
+          Crew
+        </h2>
+      </div>
+
+      <div className={styles.crewGrid ?? ''}>
+        {blocks.map((block) => (
+          <div key={block.label} className={styles.crewBlock ?? ''}>
+            <h3 className={styles.crewLabel ?? ''}>
+              {block.icon}
+              {block.label}
+            </h3>
+            <ul className={styles.crewList ?? ''}>
+              {block.people.map((person) => (
+                <li key={`${person.id}-${person.job ?? ''}`} className={styles.crewPerson ?? ''}>
+                  <PersonPhoto person={person} className={styles.crewPhoto ?? ''} />
+                  <span className={styles.crewName ?? ''}>{person.name}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {/*
+        The rest of the credited crew, behind a disclosure.
+
+        A native `<details>` rather than a state-driven collapse: it is keyboard-operable and
+        announces its own state without any ARIA wiring, and the list is the kind of thing a
+        reader either wants in full or does not look at at all - so it should not occupy a
+        screen of height by default.
+      */}
+      {details.otherCrew.length > 0 ? (
+        <details className={styles.crewMore ?? ''}>
+          <summary className={styles.crewMoreSummary ?? ''}>
+            Full crew credit list ({details.otherCrew.length})
+          </summary>
+          <ul className={styles.crewRoster ?? ''}>
+            {details.otherCrew.map((person) => (
+              <li key={`${person.id}-${person.job ?? ''}`} className={styles.crewRosterRow ?? ''}>
+                <span className={styles.crewRosterJob ?? ''}>{person.job}</span>
+                <span className={styles.crewRosterName ?? ''}>{person.name}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ social */
+
+const SOCIAL_HOSTS = {
+  facebook: (handle: string) => `https://www.facebook.com/${handle}`,
+  instagram: (handle: string) => `https://www.instagram.com/${handle}`,
+  twitter: (handle: string) => `https://twitter.com/${handle}`,
+  wikidata: (handle: string) => `https://www.wikidata.org/wiki/${handle}`,
+} as const;
+
+/**
+ * Links to the title's profiles, when TMDB has any.
+ *
+ * Handles, not URLs: the server sends the bare identifier so this stays the only place that
+ * decides which host a handle belongs to, and a change of social platform is a change here
+ * rather than a re-sync of the catalogue.
+ */
+function SocialLinks({ social }: { social: TitleDetails['social'] | null }) {
+  if (!social) return null;
+
+  const links = [
+    { label: 'Facebook', icon: <FacebookLogo size={16} weight="fill" aria-hidden />, handle: social.facebook, to: SOCIAL_HOSTS.facebook },
+    { label: 'Instagram', icon: <InstagramLogo size={16} weight="fill" aria-hidden />, handle: social.instagram, to: SOCIAL_HOSTS.instagram },
+    { label: 'X', icon: <TwitterLogo size={16} weight="fill" aria-hidden />, handle: social.twitter, to: SOCIAL_HOSTS.twitter },
+    { label: 'Wikidata', icon: <GlobeHemisphereWest size={16} aria-hidden />, handle: social.wikidata, to: SOCIAL_HOSTS.wikidata },
+    // `flatMap` rather than a filter with a type predicate: dropping the missing handles here
+    // leaves the surviving entries as plain objects, so the `url` below is a string without a
+    // narrowing step that has to restate the shape it is narrowing.
+  ].flatMap(({ label, icon, handle, to }) => (handle ? [{ label, icon, url: to(handle) }] : []));
+
+  if (links.length === 0) return null;
+
+  return (
+    <div className={styles.socialRow ?? ''}>
+      <span className={styles.socialLabel ?? ''}>Elsewhere</span>
+      <ul className={styles.socialList ?? ''}>
+        {links.map((link) => (
+          <li key={link.label}>
+            <a
+              href={link.url}
+              className={styles.socialLink ?? ''}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {link.icon}
+              {link.label}
+              <ArrowSquareOut size={12} aria-hidden />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------- trailer */
+
+/**
+ * The hero's trailer control.
+ *
+ * A button rather than a link because it opens a dialog on this page rather than navigating;
+ * a link that does not navigate is a promise the DOM cannot keep for a middle-click or a
+ * "open in new tab", which is exactly the reader who wanted the YouTube page instead - so that
+ * reader is given the explicit "Watch on YouTube" link inside the dialog instead.
+ */
+function TrailerButton({ trailer, title }: { trailer: NonNullable<TitleDetails['trailer']>; title: string }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  return (
+    <>
+      <button
+        type="button"
+        className={styles.heroSecondary ?? ''}
+        onClick={() => dialogRef.current?.showModal()}
+        aria-haspopup="dialog"
+      >
+        <PlayCircle size={18} aria-hidden />
+        Trailer
+      </button>
+
+      {/*
+        A native `<dialog>`, so the platform supplies the focus trap, the Escape handling and
+        the inert background. Hand-rolling those three is where modal implementations drift out
+        of sync with their own focus order.
+
+        The dialog is inert until `showModal()` - it starts closed and is only ever opened by
+        the button above, never on mount. The hero is `overflow: hidden` to keep the artwork
+        inside its rounded frame, which is safe here: a modal dialog lives in the top layer and
+        is not clipped by an ancestor's overflow.
+      */}
+      <dialog
+        ref={dialogRef}
+        className={styles.trailerDialog ?? ''}
+        aria-label={`${title} trailer`}
+      >
+        <div className={styles.trailerPanel ?? ''}>
+          <div className={styles.trailerBar ?? ''}>
+            <p className={styles.trailerTitle ?? ''}>{trailer.name}</p>
+            <button
+              type="button"
+              className={styles.trailerClose ?? ''}
+              onClick={() => dialogRef.current?.close()}
+              aria-label="Close trailer"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/*
+            The no-cookie host, which serves the same video without the advertising cookie.
+            `title` on the frame rather than an aria-label on a wrapper: a frame with no
+            accessible name is announced as "frame" by a screen reader.
+          */}
+          <div className={styles.trailerFrameWrap ?? ''}>
+            <iframe
+              className={styles.trailerFrame ?? ''}
+              src={`https://www.youtube-nocookie.com/embed/${trailer.key}?rel=0&modestbranding=1`}
+              title={`${title} — ${trailer.name}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+
+          <a
+            href={`https://www.youtube.com/watch?v=${trailer.key}`}
+            className={styles.trailerOpen ?? ''}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Watch on YouTube
+            <ArrowSquareOut size={13} aria-hidden />
+          </a>
+        </div>
+      </dialog>
+    </>
+  );
+}
+
+/* ---------------------------------------------------------------- skeleton */
+
 /** Placeholder matching the real hero's geometry, so nothing moves when the data lands. */
 function DetailSkeleton() {
   return (
@@ -447,6 +857,8 @@ function DetailSkeleton() {
     </div>
   );
 }
+
+/* --------------------------------------------------------------- episodes */
 
 interface EpisodeBrowserProps {
   seasons: Season[];

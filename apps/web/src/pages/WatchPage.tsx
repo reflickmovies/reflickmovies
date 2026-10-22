@@ -5,7 +5,7 @@ import { useEpisodes, useSeasons, useServers, useTitle, useReportServer } from '
 import { Button, EmptyState, ErrorState, Spinner, useToast } from '../components/ui';
 import { EpisodeRow, SeasonPicker, SourcePicker, VideoPlayer } from '../components/watch';
 import { formatEpisodeLabel, formatSeasonLabel } from '../lib/format';
-import { playerUrl } from '../lib/api';
+import { playerUrl, recordServerPlay } from '../lib/api';
 import { ROUTES, titlePath } from '../lib/routes';
 import { useWatchHistory } from '../hooks/useWatchHistory';
 import type { TitleType } from '../types/api';
@@ -140,6 +140,23 @@ export function WatchPage({ type }: WatchPageProps) {
   const handleSelectServer = useCallback((key: string) => {
     setActiveServerKey(key);
   }, []);
+
+  /*
+    Report the provider that actually got used.
+
+    Fired when a source becomes the one on screen, which is what feeds the global
+    "most-used provider" default. Deduped per position + provider so a re-render or a
+    keyboard-driven episode hop does not inflate the count, and fire-and-forget so it can
+    never block playback.
+  */
+  const recordedPlayRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!activeServer || !slug) return;
+    const stamp = `${positionKey}:${activeServer.key}`;
+    if (recordedPlayRef.current.has(stamp)) return;
+    recordedPlayRef.current.add(stamp);
+    recordServerPlay(type, slug, activeServer.key);
+  }, [activeServer, slug, type, positionKey]);
 
   /*
     Popup prevented → toast.

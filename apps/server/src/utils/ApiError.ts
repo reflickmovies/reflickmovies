@@ -28,6 +28,10 @@ export class ApiError extends Error {
     return new ApiError(401, 'UNAUTHORIZED', message);
   }
 
+  static forbidden(message = "You don't have permission to do that."): ApiError {
+    return new ApiError(403, 'FORBIDDEN', message);
+  }
+
   /**
    * A sign-in that names no account at all.
    *

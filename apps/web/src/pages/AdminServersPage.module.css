@@ -1,0 +1,135 @@
+.name {
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+.dim {
+  color: var(--adm-muted);
+}
+
+.mono {
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.priorityInput {
+  width: 72px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background-color: var(--adm-surface-2);
+  border: 1px solid var(--adm-line);
+  color: var(--adm-text);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.priorityInput:focus-visible {
+  outline: 2px solid var(--adm-accent);
+  outline-offset: 1px;
+}
+
+.statusOn {
+  color: var(--adm-success);
+  font-weight: 700;
+}
+
+.statusOff {
+  color: var(--adm-faint);
+  font-weight: 700;
+}
+
+.cacheGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  padding: 14px;
+  border-radius: 10px;
+  background-color: var(--adm-surface-2);
+  border: 1px solid var(--adm-line);
+}
+
+.statLabel {
+  display: block;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--adm-muted);
+  margin-bottom: 6px;
+}
+
+.statValue {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+.statHint {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--adm-faint);
+}
+
+.cacheActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.defaultRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.defaultSelect {
+  min-width: 220px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background-color: var(--adm-surface-2);
+  border: 1px solid var(--adm-line);
+  color: var(--adm-text);
+  font-size: 0.875rem;
+}
+
+.defaultSelect:focus-visible {
+  outline: 2px solid var(--adm-accent);
+  outline-offset: 1px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background-color: var(--adm-surface-2);
+  border: 1px solid var(--adm-line);
+  color: var(--adm-muted);
+}
+
+.plays {
+  margin-top: 12px;
+}
+
+.sectionNote {
+  margin: 0 0 16px;
+  font-size: 0.8125rem;
+  color: var(--adm-muted);
+  line-height: 1.5;
+  max-width: 70ch;
+}

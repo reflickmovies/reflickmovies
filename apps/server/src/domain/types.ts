@@ -10,6 +10,107 @@ export interface GenreRef {
   name: string;
 }
 
+/* ------------------------------------------------------------ title extras */
+
+/**
+ * One person's involvement with a title.
+ *
+ * Cast entries carry `character` and `order`; crew entries carry `job` and `department`.
+ * A single person routinely appears in both - a director who also wrote the film is two
+ * records - which is what a detail page wants, because the two facts are shown in
+ * different places.
+ */
+export interface CreditRef {
+  tmdbId: number;
+  name: string;
+  character: string | null;
+  job: string | null;
+  department: string | null;
+  profilePath: string | null;
+  /** Billing order for cast. `null` for crew and for series aggregate credits. */
+  order: number | null;
+}
+
+export interface CompanyRef {
+  tmdbId: number;
+  name: string;
+  logoPath: string | null;
+}
+
+export interface CountryRef {
+  /** ISO 3166-1 alpha-2, e.g. "US". */
+  code: string;
+  name: string;
+}
+
+export interface LanguageRef {
+  /** ISO 639-1, e.g. "en". */
+  code: string;
+  name: string;
+  englishName: string | null;
+}
+
+export interface SocialIds {
+  facebook: string | null;
+  instagram: string | null;
+  twitter: string | null;
+  wikidata: string | null;
+}
+
+/**
+ * Everything the detail page shows that the summary row does not.
+ *
+ * Stored on the title document rather than in its own collection: it is read with the
+ * title, never queried on its own, and a title without it is still a complete summary.
+ * `fetchedAt` is what makes it refreshable - the same contract `syncedAt` makes the row
+ * itself refreshable - so an older copy is overwritten rather than treated as authoritative.
+ */
+export interface TitleDetailsRecord {
+  cast: CreditRef[];
+  directors: CreditRef[];
+  writers: CreditRef[];
+  /** Series only. Films put their director in `directors` and have no creators. */
+  creators: CreditRef[];
+  producers: CreditRef[];
+  composers: CreditRef[];
+  cinematographers: CreditRef[];
+  editors: CreditRef[];
+  /**
+   * The rest of the credited crew, capped.
+   *
+   * Unbounded crew lists run to hundreds of people on a large production, and the top
+   * billings are already extracted above. This carries the mid-tier roles - production
+   * design, costume, sound, casting - that a reader occasionally looks for.
+   */
+  otherCrew: CreditRef[];
+  keywords: string[];
+  productionCompanies: CompanyRef[];
+  productionCountries: CountryRef[];
+  spokenLanguages: LanguageRef[];
+  /** US age rating where TMDB has one, else the first region that has any. */
+  certification: string | null;
+  budget: number | null;
+  revenue: number | null;
+  /** YouTube key of the preferred trailer, for an embedded player. */
+  trailerKey: string | null;
+  trailerName: string | null;
+  trailerPublishedAt: string | null;
+  social: SocialIds;
+  fetchedAt: Date;
+}
+
+/** Roles pulled out of the crew list into their own rows. Everything else is `otherCrew`. */
+export const HIGHLIGHTED_CREW_JOBS = [
+  'directors',
+  'writers',
+  'producers',
+  'composers',
+  'cinematographers',
+  'editors',
+] as const;
+
+export type HighlightedCrewJob = (typeof HIGHLIGHTED_CREW_JOBS)[number];
+
 export interface TitleRecord {
   tmdbId: number;
   imdbId: string | null;
@@ -41,6 +142,14 @@ export interface TitleRecord {
   adult: boolean;
   numberOfSeasons: number | null;
   numberOfEpisodes: number | null;
+  /**
+   * The detail-page extras - cast, crew, keywords, certification, budget, trailer.
+   *
+   * `undefined` rather than `null` on a row that has never been through a full detail
+   * fetch, which is the normal state for anything the sync has only summarised. See
+   * `TitleDetailsRecord` for why it lives here rather than in its own collection.
+   */
+  details?: TitleDetailsRecord;
   /** providerKey -> consecutive failure count. */
   serverFailures: Record<string, number>;
   syncedAt: Date;

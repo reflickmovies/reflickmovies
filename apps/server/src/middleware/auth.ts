@@ -1,5 +1,6 @@
 import type { Request, RequestHandler, Response } from 'express';
 import { verifyToken } from '../services/auth.service.js';
+import { UserModel } from '../db/models/user.model.js';
 import { ApiError } from '../utils/ApiError.js';
 
 /**
@@ -38,6 +39,36 @@ export const requireAuth: RequestHandler = (req, res, next) => {
 
   res.locals.userId = userId;
   next();
+};
+
+/**
+ * Rejects unless the caller is a signed-in admin.
+ *
+ * Runs a DB lookup on every request because the role can change between requests
+ * (a demotion takes effect immediately, without waiting for the token to expire).
+ * The token alone is not authoritative for authorisation - it proves identity,
+ * not permission.
+ */
+export const requireAdmin: RequestHandler = async (req, res, next) => {
+  try {
+    const token = readToken(req);
+    const userId = token === null ? null : verifyToken(token);
+    if (userId === null) {
+      next(ApiError.unauthorized());
+      return;
+    }
+
+    const role = await UserModel.findById(userId).select('role').lean<{ role?: string } | null>();
+    if (role?.role !== 'admin') {
+      next(ApiError.forbidden());
+      return;
+    }
+
+    res.locals.userId = userId;
+    next();
+  } catch (error) {
+    next(error);
+  }
 };
 
 /** The authenticated user id, for a route guarded by `requireAuth`. */

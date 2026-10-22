@@ -1,0 +1,260 @@
+/*
+ * Shared dashboard primitives.
+ *
+ * Kept apart from the reader app's `ui.module.css` on purpose: these read the `--adm-*`
+ * tokens defined by `AdminLayout`, and the two palettes must not leak into each other.
+ */
+
+/* -------------------------------------------------------------- header */
+
+.pageHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.pageTitle {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pageSubtitle {
+  margin-top: 4px;
+  color: var(--adm-muted);
+  font-size: 0.9375rem;
+}
+
+.pageActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------ stat card */
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px;
+  border-radius: 16px;
+  background-color: var(--adm-surface);
+  border: 1px solid var(--adm-line);
+}
+
+.stat-accent {
+  border-color: rgba(255, 77, 94, 0.35);
+}
+
+.stat-success {
+  border-color: rgba(56, 211, 159, 0.35);
+}
+
+.stat-warning {
+  border-color: rgba(245, 166, 35, 0.35);
+}
+
+.statLabel {
+  color: var(--adm-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.statHint {
+  color: var(--adm-faint);
+  font-size: 0.8125rem;
+}
+
+/* --------------------------------------------------------------- panel */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  background-color: var(--adm-surface);
+  border: 1px solid var(--adm-line);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.panelTitle {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.panelActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------- toolbar */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.searchField {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: var(--adm-faint);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border-radius: 10px;
+  background-color: var(--adm-surface);
+  border: 1px solid var(--adm-line);
+  color: var(--adm-text);
+  font-size: 0.9375rem;
+}
+
+.searchInput::placeholder {
+  color: var(--adm-faint);
+}
+
+.searchInput:focus-visible {
+  outline: 2px solid var(--adm-accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+/* ----------------------------------------------------------- data table */
+
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--adm-line);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.table th {
+  padding: 12px 16px;
+  text-align: left;
+  color: var(--adm-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--adm-surface-2);
+  border-bottom: 1px solid var(--adm-line);
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--adm-line);
+  color: var(--adm-text);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background-color: var(--adm-surface-2);
+}
+
+.emptyCell {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--adm-muted);
+}
+
+/* --------------------------------------------------------- pagination */
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  color: var(--adm-muted);
+  font-size: 0.875rem;
+}
+
+.pagerButtons {
+  display: flex;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------- badges */
+
+.roleBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.roleAdmin {
+  background-color: var(--adm-accent-soft);
+  color: var(--adm-accent);
+}
+
+.roleUser {
+  background-color: var(--adm-surface-2);
+  color: var(--adm-muted);
+}
+
+.statusOn {
+  color: var(--adm-success);
+  font-weight: 700;
+}
+
+.statusOff {
+  color: var(--adm-faint);
+  font-weight: 700;
+}
+
+.mono {
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+}
+
+.muted {
+  color: var(--adm-muted);
+}

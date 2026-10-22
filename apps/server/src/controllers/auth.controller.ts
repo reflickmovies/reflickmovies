@@ -79,7 +79,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const body = parse(loginSchema, req.body);
-  sendData(res, await auth.login(body.username ?? null, body.email ?? null, body.password));
+  sendData(res, await auth.login(body.username ?? null, body.email ?? null, body.password, req.ip));
 });
 
 export const me = asyncHandler(async (_req: Request, res: Response) => {

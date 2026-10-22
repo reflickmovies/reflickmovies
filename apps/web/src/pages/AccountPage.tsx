@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FilmSlate, SignOut, Television, Trash, UserCircle } from '@phosphor-icons/react';
+import { FilmSlate, Gear, SignOut, Television, Trash, UserCircle } from '@phosphor-icons/react';
 import * as api from '../lib/api';
 import { ROUTES, titlePath } from '../lib/routes';
 import { invalidateQuery } from '../hooks/useQuery';
@@ -45,7 +45,7 @@ function memberSince(iso: string): string {
 export function AccountPage() {
   const navigate = useNavigate();
   const { push } = useToast();
-  const { user, status, signOut, openAuth, applyUser } = useAuth();
+  const { user, status, signOut, openAuth, applyUser, isAdmin } = useAuth();
   const signedIn = user !== null;
   const { data, error, isLoading, refetch } = useAccount(signedIn);
 
@@ -186,6 +186,18 @@ export function AccountPage() {
           Sign out
         </Button>
       </header>
+
+      {isAdmin ? (
+        <Link to={ROUTES.admin} className={styles.adminBanner ?? ''}>
+          <Gear size={20} weight="bold" aria-hidden />
+          <span>
+            <span className={styles.adminBannerTitle ?? ''}>Admin dashboard</span>
+            <span className={styles.adminBannerCopy ?? ''}>
+              Manage accounts, traffic and the catalogue.
+            </span>
+          </span>
+        </Link>
+      ) : null}
 
       <section className={styles.stats ?? ''} aria-label="Your activity">
         <Stat label="Titles watched" value={stats?.watched ?? history.length} />

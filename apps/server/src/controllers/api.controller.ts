@@ -185,7 +185,7 @@ export const getHealth = asyncHandler(async (_req: Request, res: Response) => { 
     database: dbState,
     catalogueSize: dbState === 'connected' ? await countAll() : 0,
     providers: dbState === 'connected' ? await providerCount() : 0,
-    cache: cache.stats(),
+    cache: await cache.statsAsync(),
     uptimeSeconds: Math.round(process.uptime()),
   });
 });

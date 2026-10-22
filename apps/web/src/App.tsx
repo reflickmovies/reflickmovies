@@ -2,9 +2,11 @@ import { lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './components/account/AuthProvider';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AdminLayout } from './components/admin/AdminLayout';
 import { AppShell } from './components/shell/AppShell';
 import { ThemeModeProvider } from './components/shell/ThemeMode';
 import { ToastProvider } from './components/ui';
+import { usePageTracker } from './hooks/usePageTracker';
 import { HomePage } from './pages/HomePage';
 import { NotFoundPage, RouteErrorPage } from './pages/NotFoundPage';
 
@@ -27,6 +29,24 @@ const RecommendedPage = lazy(() => import('./pages/RecommendedPage').then((m) =>
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const WatchPage = lazy(() => import('./pages/WatchPage').then((m) => ({ default: m.WatchPage })));
 const AccountPage = lazy(() => import('./pages/AccountPage').then((m) => ({ default: m.AccountPage })));
+
+/* Admin. Kept apart from the reader chunks: an operator's console is never on a
+   visitor's critical path, and a visitor should never download the dashboard. */
+const AdminOverviewPage = lazy(() =>
+  import('./pages/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })),
+);
+const AdminUsersPage = lazy(() =>
+  import('./pages/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })),
+);
+const AdminAnalyticsPage = lazy(() =>
+  import('./pages/AdminAnalyticsPage').then((m) => ({ default: m.AdminAnalyticsPage })),
+);
+const AdminContentPage = lazy(() =>
+  import('./pages/AdminContentPage').then((m) => ({ default: m.AdminContentPage })),
+);
+const AdminServersPage = lazy(() =>
+  import('./pages/AdminServersPage').then((m) => ({ default: m.AdminServersPage })),
+);
 
 /**
  * Routes.
@@ -59,7 +79,17 @@ export function App() {
         <ErrorBoundary fallback={(error) => <RouteErrorPage error={error} />}>
           <BrowserRouter>
             <AuthProvider>
+              <PageTracker />
               <Routes>
+                {/* The admin console: its own chrome, outside the reader shell. */}
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminOverviewPage />} />
+                  <Route path="users" element={<AdminUsersPage />} />
+                  <Route path="analytics" element={<AdminAnalyticsPage />} />
+                  <Route path="content" element={<AdminContentPage />} />
+                  <Route path="servers" element={<AdminServersPage />} />
+                </Route>
+
                 <Route element={<AppShell />}>
                   <Route index element={<HomePage />} />
 
@@ -97,4 +127,10 @@ export function App() {
       </ThemeModeProvider>
     </ToastProvider>
   );
+}
+
+/** Records one page view per route change. Split out so it can call `useLocation`. */
+function PageTracker() {
+  usePageTracker();
+  return null;
 }

@@ -4,6 +4,13 @@ import { invalidateQuery, useQuery } from './useQuery';
 import { useDebouncedValue } from './useDebouncedValue';
 import type {
   AccountPayload,
+  AdminDashboardStats,
+  AdminProviderRow,
+  AdminTitleRow,
+  AdminUserDetail,
+  AdminUserRow,
+  AdminVisitRow,
+  AdminVisitStats,
   AppNotification,
   BrowseResult,
   Episode,
@@ -47,6 +54,15 @@ const KEY = {
   suggest: (query: string) => `suggest:${query}`,
   servers: (type: TitleType, slug: string, season?: number, episode?: number) =>
     `servers:${type}:${slug}:${season ?? '-'}:${episode ?? '-'}`,
+  adminStats: () => 'admin:stats',
+  adminUsers: (page: number, search: string) => `admin:users:${page}:${search}`,
+  adminUser: (id: string) => `admin:user:${id}`,
+  adminVisits: (page: number, ip: string) => `admin:visits:${page}:${ip}`,
+  adminVisitStats: (days: number) => `admin:visitstats:${days}`,
+  adminTitles: (page: number, search: string, type: string) => `admin:titles:${page}:${search}:${type}`,
+  adminProviders: () => 'admin:providers',
+  adminCache: () => 'admin:cache',
+  adminProviderDefault: () => 'admin:provider-default',
 } as const;
 
 /* ------------------------------------------------------------------- home */
@@ -218,6 +234,70 @@ export function useReportServer(type: TitleType, slug: string) {
     },
 [type, slug],
   );
+}
+
+/* ------------------------------------------------------------------ admin */
+
+/**
+ * The admin dashboard's reads.
+ *
+ * Enabled only for an admin, so a non-admin visitor renders the guard rather than
+ * firing requests that would 403. TTLs are short because every one of these panels
+ * is a live operational view.
+ */
+export function useAdminStats(enabled: boolean) {
+  return useQuery<AdminDashboardStats>(enabled ? KEY.adminStats() : null, api.getAdminStats, { ttlMs: 15_000 });
+}
+
+export function useAdminUsers(enabled: boolean, page: number, search: string) {
+  return useQuery<api.AdminListPage<AdminUserRow>>(
+    enabled ? KEY.adminUsers(page, search) : null,
+    (signal) => api.getAdminUsers({ page, search }, signal),
+    { ttlMs: 15_000 },
+  );
+}
+
+export function useAdminUser(enabled: boolean, id: string | null) {
+  return useQuery<AdminUserDetail>(enabled && id ? KEY.adminUser(id) : null, (signal) =>
+    api.getAdminUser(id as string, signal),
+  );
+}
+
+export function useAdminVisits(enabled: boolean, page: number, ip: string) {
+  return useQuery<api.AdminListPage<AdminVisitRow>>(
+    enabled ? KEY.adminVisits(page, ip) : null,
+    (signal) => api.getAdminVisits({ page, ip }, signal),
+    { ttlMs: 15_000 },
+  );
+}
+
+export function useAdminVisitStats(enabled: boolean, days: number) {
+  return useQuery<AdminVisitStats>(enabled ? KEY.adminVisitStats(days) : null, (signal) =>
+    api.getAdminVisitStats(days, signal),
+    { ttlMs: 60_000 },
+  );
+}
+
+export function useAdminTitles(enabled: boolean, page: number, search: string, type: TitleType | '') {
+  return useQuery<api.AdminListPage<AdminTitleRow>>(
+    enabled ? KEY.adminTitles(page, search, type) : null,
+    (signal) => api.getAdminTitles({ page, search, type: type || undefined }, signal),
+    { ttlMs: 15_000 },
+  );
+}
+
+export function useAdminProviders(enabled: boolean) {
+  return useQuery<AdminProviderRow[]>(enabled ? KEY.adminProviders() : null, api.getAdminProviders, { ttlMs: 15_000 });
+}
+
+export function useAdminCache(enabled: boolean) {
+  return useQuery<api.AdminCacheStats>(enabled ? KEY.adminCache() : null, api.getAdminCache, { ttlMs: 5_000 });
+}
+
+export function useAdminProviderDefault(enabled: boolean) {
+  return useQuery<api.AdminProviderDefault>(enabled ? KEY.adminProviderDefault() : null, api.getAdminProviderDefault, {
+    ttlMs: 15_000,
+  });
 }
 
 export type { Sort };

@@ -507,6 +507,450 @@
   color: var(--lp-red-hover);
 }
 
+/* ------------------------------------------------------- Section helpers */
+
+/*
+ * A heading with an optional count beside it.
+ *
+ * The count is the number of people credited, which is the one thing a reader scanning the
+ * cast row cannot get without counting the cards. Quiet enough to read as part of the
+ * heading rather than as a separate stat.
+ */
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.sectionCount {
+  font-family: var(--font-family-numeric);
+  font-size: 0.875rem;
+  color: var(--lp-text-faint);
+}
+
+/*
+ * The age rating, in the hero's meta row.
+ *
+ * A hairline box in translucent white rather than a filled badge: it sits on the scrimmed
+ * artwork alongside the year and the runtime, and a solid block of colour there reads as a
+ * call to action. Uppercase and tabular so "PG-13" and "18" sit on the same baseline as the
+ * values either side of it.
+ */
+.certification {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding-inline: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 5px;
+  color: #ffffff;
+  font-family: var(--font-family-numeric);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* ------------------------------------------------------------------ Cast */
+
+/*
+ * A scroll-snap strip rather than a wrapping grid.
+ *
+ * Twenty people at a readable card width is several screens of height if the row wraps, and
+ * billing order only reads as billing order along one axis. The strip is the arrangement
+ * every catalogue uses for a cast, and it matches the order the server sends them in.
+ *
+ * The scrollbar is left visible rather than hidden: on a row that is wider than the viewport
+ * by design, hiding the only affordance that says "there is more of this" leaves the last
+ * few names unreachable for anyone who does not think to drag.
+ */
+.castStrip {
+  display: flex;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0 0 var(--space-sm);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.castCard {
+  flex: 0 0 128px;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.castPhoto {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid var(--lp-line);
+  background-color: var(--lp-surface-elevated);
+}
+
+/*
+ * The fallback for a person TMDB has no photo for - roughly one in four, and always the one
+ * you were looking for. Shares the photo's box so the name below it does not move.
+ */
+.personPhotoFallback {
+  display: grid;
+  place-items: center;
+  background-color: var(--lp-surface-elevated);
+  color: var(--lp-text-faint);
+}
+
+.castName {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--lp-text);
+  overflow-wrap: anywhere;
+}
+
+.castCharacter {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--lp-text-faint);
+  /*
+    Character names are frequently longer than the card and often unbroken ("Voice of the
+    Narrator (uncredited)"). They wrap rather than stretch the strip, which would push the
+    scroll width out and make every card after the first further away.
+  */
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ Crew */
+
+.crewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-xl) var(--space-2xl);
+}
+
+.crewBlock {
+  min-width: 0;
+}
+
+.crewLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 var(--space-md);
+  font-family: var(--font-family-numeric);
+  font-size: var(--font-size-micro);
+  font-weight: 500;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--lp-text-faint);
+}
+
+.crewList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crewPerson {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.crewPhoto {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid var(--lp-line);
+  background-color: var(--lp-surface-elevated);
+}
+
+.crewName {
+  font-size: 0.9375rem;
+  color: var(--lp-text);
+  /* A long unbroken name would otherwise push the grid column past its track. */
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The full credit list, behind a disclosure.
+ *
+ * A native `<details>` rather than a state-driven collapse: it is keyboard-operable and
+ * announces its own expanded state with no ARIA wiring, and this is the kind of content a
+ * reader either wants in full or never looks at - so it should not claim a screen of height
+ * by default.
+ */
+.crewMore {
+  border-top: 1px solid var(--lp-line);
+  padding-top: var(--space-lg);
+}
+
+.crewMoreSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--lp-text-muted);
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.crewMoreSummary:hover {
+  color: var(--lp-accent-red);
+}
+
+.crewRoster {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .crewRoster {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-2xl);
+  }
+}
+
+.crewRosterRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-width: 0;
+  padding-block: 10px;
+  border-bottom: 1px solid var(--lp-line);
+}
+
+.crewRosterJob {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  color: var(--lp-text-faint);
+}
+
+.crewRosterName {
+  font-size: 0.875rem;
+  text-align: right;
+  color: var(--lp-text);
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------- Keywords */
+
+.keywordList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.keyword {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding-inline: 12px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-surface);
+  color: var(--lp-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  /*
+    Keywords come from TMDB unfiltered and include compounds like
+    "based on novel or book" and "during credits scene". They wrap onto a second row
+    rather than stretching one unbreakable pill past the page edge.
+  */
+  overflow-wrap: anywhere;
+}
+
+.keyword svg {
+  flex-shrink: 0;
+  color: var(--lp-text-faint);
+}
+
+/* ---------------------------------------------------------------- Social */
+
+.socialRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.socialLabel {
+  font-family: var(--font-family-numeric);
+  font-size: var(--font-size-micro);
+  font-weight: 500;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--lp-text-faint);
+}
+
+.socialList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.socialLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding-inline: 13px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9999px;
+  background-color: var(--lp-surface);
+  color: var(--lp-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.socialLink:hover {
+  border-color: var(--lp-accent-red);
+  color: var(--lp-accent-red);
+}
+
+/* ---------------------------------------------------------------- Trailer */
+
+/*
+ * The trailer modal.
+ *
+ * No background or border of its own: the panel below is the surface, and painting the
+ * dialog as well would show a second rounded rectangle behind it at any rounding mismatch.
+ *
+ * Centred by the UA's `:modal` rules (`inset: 0; margin: auto`), so there is no positioning
+ * here to get wrong. It lives in the top layer, which is why the hero's `overflow: hidden`
+ * cannot clip it.
+ */
+.trailerDialog {
+  width: min(920px, calc(100vw - 24px));
+  max-width: none;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--lp-text);
+}
+
+.trailerDialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(3px);
+}
+
+.trailerPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 1px solid var(--lp-line);
+  border-radius: 20px;
+  background-color: var(--lp-surface);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.trailerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.trailerTitle {
+  margin: 0;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--lp-text);
+  overflow-wrap: anywhere;
+}
+
+.trailerClose {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--lp-line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--lp-text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+
+.trailerClose:hover {
+  border-color: var(--lp-accent-red);
+  color: var(--lp-accent-red);
+}
+
+/*
+ * The player, sized by its container rather than by the embed's own default.
+ *
+ * An absolute fill inside a 16:9 box is what stops the frame reflowing when YouTube's own
+ * chrome loads in, which otherwise nudges every element below it by a few pixels the moment
+ * the modal opens.
+ */
+.trailerFrameWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #000000;
+}
+
+.trailerFrame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.trailerOpen {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  color: var(--lp-accent-red);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.trailerOpen:hover {
+  color: var(--lp-red-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /*
  * The episodes heading row.
  *

@@ -1,4 +1,5 @@
 import { hasTmdbKey } from '../config/env.js';
+import { IMAGE_CDN } from '../config/constants.js';
 import { cache, cacheKey } from './cache.service.js';
 import * as titles from '../repositories/titles.repo.js';
 import { genreNameMap, listGenres, listProviders } from '../repositories/providers.repo.js';
@@ -6,8 +7,11 @@ import { createLogger } from '../utils/logger.js';
 import { SHELVES, type ShelfKey } from '../config/shelves.js';
 import { hydrateEpisodes, hydrateOnMiss, isCatalogueEmpty, refresh } from '../jobs/autoSync.js';
 import { ensureCapacity } from '../jobs/catalogueGrowth.js';
+import * as tmdb from './tmdb/tmdb.service.js';
+import { mapMovieDetails, mapTvDetails } from './tmdb/details.mapper.js';
 import type { GenreRow } from '../repositories/providers.repo.js';
 import type { TitleDocument } from '../db/models/index.js';
+import type { CreditRef, TitleDetailsRecord } from '../domain/types.js';
 import type { TitleSummaryRow } from '../repositories/titles.repo.js';
 
 const log = createLogger('catalog');
@@ -34,6 +38,8 @@ const BACKDROP = 'w1280';
 const BACKDROP_LARGE = 'original';
 const LOGO = 'w500';
 const STILL = 'w780';
+/** Cast headshots. Small enough that twenty of them cost less than one poster. */
+const PROFILE = IMAGE_CDN.thumb;
 
 /* ------------------------------------------------------------------ DTOs */
 
@@ -79,6 +85,77 @@ export interface TitleDetailDto extends TitleSummaryDto {
   originalLanguage: string | null;
   /** ISO country codes. Empty for films. */
   originCountry: string[];
+  /** The title's own site, when it has one. */
+  homepage: string | null;
+  /** Exact release date, ISO `YYYY-MM-DD`. Finer-grained than the summary's `year`. */
+  releasedAt: string | null;
+  numberOfSeasons: number | null;
+  numberOfEpisodes: number | null;
+  /**
+   * Cast, crew, keywords, certification, budget and trailer.
+   *
+   * `null` while the first full detail fetch is still in flight. The page renders the
+   * sections it has and omits the rest, which is the same treatment it gives a title
+   * TMDB has no credits for at all.
+   */
+  details: TitleDetailsDto | null;
+}
+
+/** One person on the detail page: an actor with a character, or a crew member with a job. */
+export interface CreditDto {
+  id: number;
+  name: string;
+  character: string | null;
+  job: string | null;
+  department: string | null;
+  /** Absolute profile photo URL, already sized. `null` when TMDB has no photo. */
+  profile: string | null;
+  order: number | null;
+}
+
+export interface CompanyDto {
+  id: number;
+  name: string;
+  logo: string | null;
+}
+
+export interface CountryDto {
+  code: string;
+  name: string;
+}
+
+export interface LanguageDto {
+  code: string;
+  name: string;
+  englishName: string | null;
+}
+
+export interface TrailerDto {
+  /** YouTube video key, ready for an embed URL. */
+  key: string;
+  name: string;
+  publishedAt: string | null;
+}
+
+export interface TitleDetailsDto {
+  cast: CreditDto[];
+  directors: CreditDto[];
+  writers: CreditDto[];
+  creators: CreditDto[];
+  producers: CreditDto[];
+  composers: CreditDto[];
+  cinematographers: CreditDto[];
+  editors: CreditDto[];
+  otherCrew: CreditDto[];
+  keywords: string[];
+  productionCompanies: CompanyDto[];
+  productionCountries: CountryDto[];
+  spokenLanguages: LanguageDto[];
+  certification: string | null;
+  budget: number | null;
+  revenue: number | null;
+  trailer: TrailerDto | null;
+  social: TitleDetailsRecord['social'];
 }
 
 export interface EpisodeDto {
@@ -147,6 +224,56 @@ export function toDto(row: TitleSummaryRow): TitleSummaryDto {
     trendingRank: row.trendingRank,
     tagline: row.tagline ?? null,
     overview: row.overview ? row.overview : null,
+  };
+}
+
+/* -------------------------------------------------------- details mapping */
+
+function toCreditDto(credit: CreditRef): CreditDto {
+  return {
+    id: credit.tmdbId,
+    name: credit.name,
+    character: credit.character,
+    job: credit.job,
+    department: credit.department,
+    profile: imageUrl(credit.profilePath, PROFILE),
+    order: credit.order,
+  };
+}
+
+const creditList = (people: CreditRef[] | undefined): CreditDto[] => (people ?? []).map(toCreditDto);
+
+function toDetailsDto(details: TitleDetailsRecord): TitleDetailsDto {
+  return {
+    cast: creditList(details.cast),
+    directors: creditList(details.directors),
+    writers: creditList(details.writers),
+    creators: creditList(details.creators),
+    producers: creditList(details.producers),
+    composers: creditList(details.composers),
+    cinematographers: creditList(details.cinematographers),
+    editors: creditList(details.editors),
+    otherCrew: creditList(details.otherCrew),
+    keywords: details.keywords ?? [],
+    productionCompanies: (details.productionCompanies ?? []).map((company) => ({
+      id: company.tmdbId,
+      name: company.name,
+      logo: imageUrl(company.logoPath, 'w154'),
+    })),
+    productionCountries: details.productionCountries ?? [],
+    spokenLanguages: details.spokenLanguages ?? [],
+    certification: details.certification ?? null,
+    budget: details.budget ?? null,
+    revenue: details.revenue ?? null,
+    trailer:
+      details.trailerKey != null
+        ? {
+            key: details.trailerKey,
+            name: details.trailerName ?? 'Trailer',
+            publishedAt: details.trailerPublishedAt ?? null,
+          }
+        : null,
+    social: details.social ?? { facebook: null, instagram: null, twitter: null, wikidata: null },
   };
 }
 
@@ -326,27 +453,114 @@ async function findOrHydrate(
   return titles.findByRef(type, slug);
 }
 
+/**
+ * How long a stored details subdocument is trusted.
+ *
+ * Longer than the row itself: a cast list, a certification and a production budget do not
+ * move once a title is out, and the alternative is a full-detail round trip on every view
+ * of a popular title. Anything that genuinely changes - a trailer published after release,
+ * a corrected credit - arrives within a day.
+ */
+const DETAILS_FRESH_MS = 24 * 60 * 60_000;
+
+/**
+ * Returns the title's extras, fetching them from TMDB when the stored copy is missing or stale.
+ *
+ * Kept separate from `findOrHydrate` because the two answer different questions. That one
+ * asks "is this row still a faithful copy of the summary"; this one asks "has this title
+ * ever been through a full detail fetch". A nightly trending refresh satisfies the first
+ * without touching the second, so a row can be one minute old and still have no credits at
+ * all - which is the normal state for anything the sync has only summarised.
+ *
+ * A failure here returns whatever is stored rather than failing the request. The detail
+ * page without a cast list is a worse page; a detail page that 500s because TMDB was slow
+ * is no page at all.
+ */
+async function ensureDetails(row: TitleDocument): Promise<TitleDetailsRecord | null> {
+  const stored = row.details ?? null;
+
+  if (stored?.fetchedAt && Date.now() - stored.fetchedAt.getTime() < DETAILS_FRESH_MS) {
+    return stored;
+  }
+
+  try {
+    /*
+     * Each branch fetches and maps inside its own ternary arm. Narrowing `row.type` does
+     * not narrow the result of a separately-assigned `tmdb.tvDetailFull` call, so binding
+     * the response first would leave the mapper argument a union of both shapes.
+     */
+    const record =
+      row.type === 'tv'
+        ? mapTvDetails(await tmdb.tvDetailFull(row.tmdbId))
+        : mapMovieDetails(await tmdb.movieDetailFull(row.tmdbId));
+
+    await titles.setTitleDetails(row.tmdbId, record);
+    return record;
+  } catch (error) {
+    log.warn('title details fetch failed', { tmdbId: row.tmdbId, type: row.type, error });
+    return stored;
+  }
+}
+
+/** ISO `YYYY-MM-DD`, or `null` for a title TMDB has no date for. */
+function isoDate(value: Date | null | undefined): string | null {
+  if (!value) return null;
+  const iso = value.toISOString().slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : null;
+}
+
 export async function getTitle(slug: string, type: 'movie' | 'tv'): Promise<TitleDetailDto | null> {
   const result = await cache.remember(cacheKey.title(`${type}:${slug}`), async () => {
     const row = await findOrHydrate(type, slug);
     if (!row) return null;
 
-    const names = await genreNameMap();
-    return { row, genreNames: (row.genres ?? []).map((genre) => names.get(genre.id) ?? genre.name) };
+    const [details, names] = await Promise.all([
+      ensureDetails(row),
+      genreNameMap(),
+    ]);
+
+    return {
+      row,
+      details,
+      genreNames: (row.genres ?? []).map((genre) => names.get(genre.id) ?? genre.name),
+    };
   });
 
   const value = result.value;
   if (!value) return null;
 
+  /*
+   * The summary projection is an allowlist, so the fields this function reads beyond it
+   * are re-added here rather than widening `PROJECTION` - which would make every grid and
+   * shelf query carry status, country and homepage data none of them render.
+   */
+  const row = value.row as TitleSummaryRow &
+    Pick<
+      TitleDocument,
+      | 'homepage'
+      | 'numberOfSeasons'
+      | 'numberOfEpisodes'
+      | 'releasedAt'
+      | 'status'
+      | 'originalTitle'
+      | 'originalLanguage'
+      | 'originCountry'
+    >;
+
   return {
-    ...toDto(value.row as TitleSummaryRow),
-    imdbId: value.row.imdbId,
-    overview: value.row.overview,
+    ...toDto(row),
+    imdbId: row.imdbId,
+    overview: row.overview,
     genreNames: value.genreNames,
-    status: value.row.status ?? null,
-    originalTitle: value.row.originalTitle ?? null,
-    originalLanguage: value.row.originalLanguage ?? null,
-    originCountry: value.row.originCountry ?? [],
+    status: row.status ?? null,
+    originalTitle: row.originalTitle ?? null,
+    originalLanguage: row.originalLanguage ?? null,
+    originCountry: row.originCountry ?? [],
+    homepage: row.homepage ?? null,
+    releasedAt: isoDate(row.releasedAt),
+    numberOfSeasons: row.numberOfSeasons ?? null,
+    numberOfEpisodes: row.numberOfEpisodes ?? null,
+    details: value.details ? toDetailsDto(value.details) : null,
   };
 }
 

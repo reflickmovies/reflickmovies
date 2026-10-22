@@ -44,6 +44,7 @@ export interface PublicUser {
   id: string;
   email: string;
   displayName: string;
+  role: 'user' | 'admin';
   createdAt: string;
 }
 
@@ -117,6 +118,7 @@ export function toPublicUser(user: HydratedDocument<UserDocument>): PublicUser {
     id: String(user._id),
     email: user.email,
     displayName: user.displayName,
+    role: user.role ?? 'user',
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -151,7 +153,12 @@ export async function register(emailRaw: string, password: string, displayNameRa
   return { user: toPublicUser(user), token: signToken(String(user._id)) };
 }
 
-export async function login(usernameRaw: string | null, emailRaw: string | null, password: string): Promise<AuthResult> {
+export async function login(
+  usernameRaw: string | null,
+  emailRaw: string | null,
+  password: string,
+  ip?: string,
+): Promise<AuthResult> {
   const username = usernameRaw?.trim() ?? '';
   const email = emailRaw?.trim().toLowerCase() ?? '';
 
@@ -176,6 +183,13 @@ export async function login(usernameRaw: string | null, emailRaw: string | null,
 
   if (!verifyPassword(password, user.passwordHash)) {
     throw ApiError.unauthorized('That password is incorrect.');
+  }
+
+  // Record the latest sign-in so the admin dashboard can show where each account was last used.
+  if (ip !== undefined && ip.length > 0) {
+    user.lastLoginAt = new Date();
+    user.lastLoginIp = ip;
+    await user.save();
   }
 
   return { user: toPublicUser(user), token: signToken(String(user._id)) };

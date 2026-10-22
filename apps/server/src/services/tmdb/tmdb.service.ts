@@ -1,6 +1,7 @@
 import { tmdbPage, tmdbRequest } from './tmdb.client.js';
 import type {
   TmdbEpisode,
+  TmdbFindResult,
   TmdbGenre,
   TmdbImages,
   TmdbMovie,
@@ -97,6 +98,46 @@ export function tvDetail(id: number) {
   return tmdbRequest<TmdbTvDetail>(`/tv/${id}`, {
     language: LANGUAGE,
     append_to_response: 'external_ids',
+  });
+}
+
+/**
+ * The heavyweight detail, used only by the title detail page.
+ *
+ * Deliberately separate from `movieDetail`/`tvDetail`: those two are called by the sync
+ * jobs for every row on every trending pass, and folding credits, keywords and videos
+ * into them would multiply the cost of a full catalogue refresh for data none of those
+ * paths ever reads. This one is called once per title, memoised, and persisted.
+ *
+ * Series use `aggregate_credits` rather than `credits`: the plain credits endpoint only
+ * returns the first season's billed cast, so a long-running show would list its season-one
+ * guest stars above a lead who has been in four hundred episodes since.
+ */
+export function movieDetailFull(id: number) {
+  return tmdbRequest<TmdbMovieDetail>(`/movie/${id}`, {
+    language: LANGUAGE,
+    append_to_response: 'credits,keywords,videos,release_dates,external_ids',
+  });
+}
+
+export function tvDetailFull(id: number) {
+  return tmdbRequest<TmdbTvDetail>(`/tv/${id}`, {
+    language: LANGUAGE,
+    append_to_response: 'aggregate_credits,keywords,videos,content_ratings,external_ids',
+  });
+}
+
+/**
+ * Resolves an IMDb id to TMDB movie and series rows.
+ *
+ * `/search/multi` matches on title text only, so "tt0133093" returns nothing even though
+ * the film is indexed. `/find` is the one endpoint that accepts an external identifier
+ * directly, which is what makes pasting an IMDb link into the search box work.
+ */
+export function findByImdb(imdbId: string) {
+  return tmdbRequest<TmdbFindResult>(`/find/${encodeURIComponent(imdbId)}`, {
+    external_source: 'imdb_id',
+    language: LANGUAGE,
   });
 }
 

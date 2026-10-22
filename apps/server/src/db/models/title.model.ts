@@ -8,7 +8,7 @@
  */
 import mongoose from 'mongoose';
 import type { Model } from 'mongoose';
-import type { TitleRecord } from '../../domain/types.js';
+import type { TitleDetailsRecord, TitleRecord } from '../../domain/types.js';
 
 /**
  * One document per film or series.
@@ -17,14 +17,94 @@ import type { TitleRecord } from '../../domain/types.js';
  * within a type, because `/film/dune` and `/series/dune` are legitimately different
  * pages. Every index below exists to serve one query the API actually makes.
  */
-export interface TitleDocument extends Omit<TitleRecord, 'genres'> {
+export interface TitleDocument extends Omit<TitleRecord, 'genres' | 'details'> {
   genres: TitleRecord['genres'];
+  details?: TitleDetailsRecord;
 }
 
 const genreSchema = new mongoose.Schema(
   {
     id: { type: Number, required: true },
     name: { type: String, required: true },
+  },
+  { _id: false },
+);
+
+/*
+ * The detail-page extras.
+ *
+ * Written whole or not at all - there is no partial update that touches one credit and
+ * leaves the rest - so the schema only has to describe the shape, not enforce
+ * per-field write rules. `fetchedAt` is the field that matters operationally: it is
+ * what tells `getTitle` whether this subdocument can be trusted or needs a re-fetch.
+ */
+
+const creditSchema = new mongoose.Schema(
+  {
+    tmdbId: { type: Number, required: true },
+    name: { type: String, required: true },
+    character: { type: String, default: null },
+    job: { type: String, default: null },
+    department: { type: String, default: null },
+    profilePath: { type: String, default: null },
+    order: { type: Number, default: null },
+  },
+  { _id: false },
+);
+
+const detailsSchema = new mongoose.Schema<TitleDetailsRecord>(
+  {
+    cast: { type: [creditSchema], default: [] },
+    directors: { type: [creditSchema], default: [] },
+    writers: { type: [creditSchema], default: [] },
+    creators: { type: [creditSchema], default: [] },
+    producers: { type: [creditSchema], default: [] },
+    composers: { type: [creditSchema], default: [] },
+    cinematographers: { type: [creditSchema], default: [] },
+    editors: { type: [creditSchema], default: [] },
+    otherCrew: { type: [creditSchema], default: [] },
+    keywords: { type: [String], default: [] },
+    productionCompanies: {
+      type: [
+        new mongoose.Schema(
+          { tmdbId: Number, name: String, logoPath: { type: String, default: null } },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+    productionCountries: {
+      type: [new mongoose.Schema({ code: String, name: String }, { _id: false })],
+      default: [],
+    },
+    spokenLanguages: {
+      type: [
+        new mongoose.Schema(
+          { code: String, name: String, englishName: { type: String, default: null } },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+    certification: { type: String, default: null },
+    budget: { type: Number, default: null },
+    revenue: { type: Number, default: null },
+    trailerKey: { type: String, default: null },
+    trailerName: { type: String, default: null },
+    trailerPublishedAt: { type: String, default: null },
+    social: {
+      type: new mongoose.Schema(
+        {
+          facebook: { type: String, default: null },
+          instagram: { type: String, default: null },
+          twitter: { type: String, default: null },
+          wikidata: { type: String, default: null },
+        },
+        { _id: false },
+      ),
+      default: () => ({}),
+    },
+    fetchedAt: { type: Date, required: true },
   },
   { _id: false },
 );
@@ -67,6 +147,14 @@ const titleSchema = new mongoose.Schema<TitleDocument>(
 
     numberOfSeasons: { type: Number, default: null },
     numberOfEpisodes: { type: Number, default: null },
+
+    /*
+     * Optional with no default: a row written by a cheap trending or search pass has
+     * never had a full detail fetch, and a `default: null` here would make every
+     * summary write stamp an explicit null that is indistinguishable from "we looked
+     * and there is nothing". Absent means "not fetched yet", which is the truth.
+     */
+    details: { type: detailsSchema },
 
     serverFailures: { type: Map, of: Number, default: {} },
     syncedAt: { type: Date, required: true, default: () => new Date() },

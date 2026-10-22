@@ -88,6 +88,24 @@ const EnvSchema = z.object({
   CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(1800),
   CACHE_MAX_ENTRIES: z.coerce.number().int().positive().default(500),
   CACHE_STALE_SECONDS: z.coerce.number().int().positive().default(86_400),
+  /**
+   * The durable second-level cache in MongoDB.
+   *
+   * On by default because it is what makes a redeploy cheap: without it every cold start
+   * rebuilds the homepage from scratch. Off is useful for a deployment that wants a
+   * strictly ephemeral cache, or in tests where a shared collection would bleed state
+   * between runs.
+   */
+  CACHE_L2_ENABLED: bool(true),
+  /**
+   * How long an L2 record stays readable, fresh window included.
+   *
+   * Longer than the L1 TTL on purpose. L1 answers the hot path; L2 is the floor that
+   * keeps a freshly-restarted process from hammering MongoDB for data it served a
+   * minute ago. The TTL index expires the row at this point, so the collection cannot
+   * grow without bound.
+   */
+  CACHE_L2_TTL_SECONDS: z.coerce.number().int().positive().default(86_400),
 
   /* ---- Upstream resilience ---- */
   TMDB_TIMEOUT_MS: z.coerce.number().int().positive().default(8000),

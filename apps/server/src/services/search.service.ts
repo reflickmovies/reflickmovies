@@ -31,6 +31,17 @@ export interface SuggestItem {
 const MIN_QUERY_LENGTH = 2;
 
 /**
+ * An IMDb id, e.g. `tt0133093`.
+ *
+ * The `tt` prefix plus seven or eight digits matches every feature-film and series id
+ * IMDb has issued. Recognising it explicitly is what lets a pasted IMDb link or bare id
+ * resolve to a title instead of being searched as literal text - `/search/multi` matches
+ * on title names only, so "tt0133093" would otherwise return nothing for a film that is
+ * very much indexed.
+ */
+const IMDB_ID = /^tt\d{7,9}$/i;
+
+/**
  * Search goes to TMDB, not to our own database.
  *
  * This is the deliberate departure from the reference implementations: they answer from
@@ -57,6 +68,20 @@ export async function search(query: string, limit = SEARCH_RESULT_LIMIT): Promis
   const bounded = Math.min(limit, SEARCH_RESULT_LIMIT);
 
   const result = await cache.remember(cacheKey.search(trimmed, bounded), async () => {
+    /*
+     * An IMDb id is tried first, and a miss falls through to the text search rather than
+     * short-circuiting to an empty list. TMDB's `/find` returns no rows for an id it does
+     * not know, and answering "0 results" for a well-formed id that simply is not on TMDB
+     * yet would deny the reader the chance of finding the title by its name instead.
+     */
+    if (IMDB_ID.test(trimmed)) {
+      const items = await searchByImdb(trimmed.toLowerCase(), bounded);
+      if (items.length > 0) {
+        void storeSearchResults(items).catch((error: unknown) => log.warn('search cache write failed', { error }));
+        return { results: items, total: items.length };
+      }
+    }
+
     const response = await tmdb.searchMulti(trimmed);
     const items = mapSearchResults(response.results, bounded);
 
@@ -68,6 +93,24 @@ export async function search(query: string, limit = SEARCH_RESULT_LIMIT): Promis
   });
 
   return { query: trimmed, ...result.value };
+}
+
+/**
+ * Resolves an IMDb id through TMDB's `/find` endpoint.
+ *
+ * Both media types come back from one call, because an id alone cannot say which it is
+ * and a series can legitimately share an id with a film adaptation in the making. People
+ * are dropped - they have no title, and a person result on a title search is noise.
+ */
+async function searchByImdb(imdbId: string, limit: number): Promise<TitleSummaryDto[]> {
+  const found = await tmdb.findByImdb(imdbId);
+
+  const rows: SearchRow[] = [
+    ...(found.movie_results ?? []).map((row) => ({ ...row, media_type: 'movie' as const })),
+    ...(found.tv_results ?? []).map((row) => ({ ...row, media_type: 'tv' as const })),
+  ];
+
+  return mapSearchResults(rows, limit);
 }
 
 /**
@@ -168,21 +211,33 @@ export async function suggest(query: string, limit = 8): Promise<SuggestItem[]> 
   const result = await cache.remember(
     cacheKey.suggest(trimmed),
     async () => {
-      const response = await tmdb.searchMulti(trimmed);
-      const items = mapSearchResults(response.results, limit);
+      /*
+       * Same IMDb-id path as `search`, so typeahead and the results page agree. Without
+       * it, pressing Enter on "tt0133093" would show one thing while the full search
+       * showed another, which is worse than either answer on its own.
+       */
+      if (IMDB_ID.test(trimmed)) {
+        const byId = await searchByImdb(trimmed.toLowerCase(), limit);
+        if (byId.length > 0) return toSuggestItems(byId);
+      }
 
-      return items.map((item) => ({
-        id: item.id,
-        slug: item.slug,
-        title: item.title,
-        type: item.type,
-        year: item.year,
-        poster: item.posterSmall,
-        path: item.path,
-      }));
+      const response = await tmdb.searchMulti(trimmed);
+      return toSuggestItems(mapSearchResults(response.results, limit));
     },
     300_000,
   );
 
   return result.value;
+}
+
+function toSuggestItems(items: TitleSummaryDto[]): SuggestItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    slug: item.slug,
+    title: item.title,
+    type: item.type,
+    year: item.year,
+    poster: item.posterSmall,
+    path: item.path,
+  }));
 }

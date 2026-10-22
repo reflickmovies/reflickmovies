@@ -11,6 +11,8 @@ type AuthStatus = 'loading' | 'authenticated' | 'guest';
 interface AuthContextValue {
   user: AccountUser | null;
   status: AuthStatus;
+  /** True when the signed-in user has the admin role. */
+  isAdmin: boolean;
   /** Opens the sign-in / register popup from anywhere. */
   openAuth: (mode?: AuthMode) => void;
   closeAuth: () => void;
@@ -131,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyUser = useCallback((next: AccountUser): void => setUser(next), []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, openAuth, closeAuth, signOut, applyUser }),
+    () => ({ user, status, isAdmin: user?.role === 'admin', openAuth, closeAuth, signOut, applyUser }),
     [user, status, openAuth, closeAuth, signOut, applyUser],
   );
 

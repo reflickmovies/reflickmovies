@@ -50,6 +50,80 @@ export interface TitleSummary {
   overview: string | null;
 }
 
+/** CreditDto */
+export interface Credit {
+  id: number;
+  name: string;
+  /** The role played. `null` for crew entries. */
+  character: string | null;
+  /** The job done. `null` for cast entries. */
+  job: string | null;
+  department: string | null;
+  /** Absolute profile photo URL, already sized by the server. */
+  profile: string | null;
+  order: number | null;
+}
+
+/** CompanyDto */
+export interface ProductionCompany {
+  id: number;
+  name: string;
+  logo: string | null;
+}
+
+/** CountryDto */
+export interface ProductionCountry {
+  code: string;
+  name: string;
+}
+
+/** LanguageDto */
+export interface SpokenLanguage {
+  code: string;
+  name: string;
+  englishName: string | null;
+}
+
+/** TrailerDto */
+export interface Trailer {
+  /** YouTube video key, ready for an embed URL. */
+  key: string;
+  name: string;
+  publishedAt: string | null;
+}
+
+/** Social profile handles, as TMDB stores them - bare names, not URLs. */
+export interface SocialIds {
+  facebook: string | null;
+  instagram: string | null;
+  twitter: string | null;
+  wikidata: string | null;
+}
+
+/** TitleDetailsDto */
+export interface TitleDetails {
+  cast: Credit[];
+  directors: Credit[];
+  writers: Credit[];
+  creators: Credit[];
+  producers: Credit[];
+  composers: Credit[];
+  cinematographers: Credit[];
+  editors: Credit[];
+  otherCrew: Credit[];
+  keywords: string[];
+  productionCompanies: ProductionCompany[];
+  productionCountries: ProductionCountry[];
+  spokenLanguages: SpokenLanguage[];
+  /** US age rating where TMDB has one, else the first region that has any. */
+  certification: string | null;
+  /** Films only. A series has no production budget on TMDB. */
+  budget: number | null;
+  revenue: number | null;
+  trailer: Trailer | null;
+  social: SocialIds;
+}
+
 /** TitleDetailDto */
 export interface TitleDetail extends TitleSummary {
   imdbId: string | null;
@@ -62,6 +136,13 @@ export interface TitleDetail extends TitleSummary {
   originalTitle: string | null;
   originalLanguage: string | null;
   originCountry: string[];
+  homepage: string | null;
+  /** Exact release date, ISO `YYYY-MM-DD`. Finer-grained than `year`. */
+  releasedAt: string | null;
+  numberOfSeasons: number | null;
+  numberOfEpisodes: number | null;
+  /** `null` while the first full detail fetch is still in flight. */
+  details: TitleDetails | null;
 }
 
 /** EpisodeDto */
@@ -207,6 +288,7 @@ export interface AccountUser {
   id: string;
   email: string;
   displayName: string;
+  role: 'user' | 'admin';
   createdAt: string;
 }
 
@@ -248,6 +330,100 @@ export interface AccountPayload {
   user: AccountUser;
   stats: AccountStats;
   history: WatchEntry[];
+}
+
+/* ------------------------------------------------------------------ admin */
+
+export interface AdminDashboardStats {
+  users: { total: number; admins: number; newToday: number; newThisWeek: number };
+  visits: { today: number; todayUnique: number; week: number; month: number };
+  catalogue: { total: number; movies: number; series: number };
+  providers: { total: number; enabled: number };
+  serverFailures: number;
+  uptimeSeconds: number;
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  displayName: string;
+  role: 'user' | 'admin';
+  createdAt: string;
+  lastLoginAt: string | null;
+  lastLoginIp: string | null;
+  historyCount: number;
+}
+
+export interface AdminUserDetail extends AdminUserRow {
+  watchHistory: Array<{ type: string; slug: string; title: string; watchedAt: number }>;
+  recentVisits: Array<{ path: string; ip: string; at: string }>;
+}
+
+export interface AdminVisitRow {
+  id: string;
+  ip: string;
+  userId: string | null;
+  userDisplay: string | null;
+  path: string;
+  userAgent: string;
+  at: string;
+}
+
+export interface AdminVisitStats {
+  daily: Array<{ date: string; visits: number; unique: number }>;
+  topIps: Array<{ ip: string; visits: number; lastSeen: string }>;
+  topPaths: Array<{ path: string; visits: number }>;
+  totalVisits: number;
+  uniqueVisitors: number;
+}
+
+export interface AdminTitleRow {
+  id: string;
+  tmdbId: number;
+  slug: string;
+  title: string;
+  type: TitleType;
+  year: number | null;
+  rating: number | null;
+  popularity: number;
+  trendingRank: number | null;
+  numberOfSeasons: number | null;
+  serverFailures: Record<string, number>;
+  syncedAt: string;
+}
+
+export interface AdminProviderRow {
+  id: string;
+  key: string;
+  name: string;
+  badge: string | null;
+  priority: number;
+  idSpace: string;
+  urlTemplate: string;
+  hosts: string[];
+  enabled: boolean;
+  kinds: string[];
+  updatedAt: string;
+}
+
+export interface AdminCacheStats {
+  entries: number;
+  max: number;
+  approximateBytes: number;
+  l1: { entries: number; approximateBytes: number };
+  l2: { entries: number; approximateBytes: number };
+  ttlSeconds: number;
+  staleSeconds: number;
+  l2Enabled: boolean;
+}
+
+export interface AdminProviderDefault {
+  /** The provider the watch page is currently led with, or `null` when none is configured. */
+  key: string | null;
+  source: 'override' | 'most-played' | 'fallback' | 'none';
+  /** The operator's override, or `null` for automatic (most-played). */
+  override: string | null;
+  plays: Array<{ key: string; plays: number; lastPlayedAt: string }>;
 }
 
 /** Envelope every successful response uses. */

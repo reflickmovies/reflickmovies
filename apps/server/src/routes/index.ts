@@ -2,10 +2,12 @@ import { Router } from 'express';
 import * as api from '../controllers/api.controller.js';
 import * as find from '../controllers/search.controller.js';
 import * as auth from '../controllers/auth.controller.js';
+import * as admin from '../controllers/admin.controller.js';
 import { cacheControl } from '../middleware/cacheControl.js';
 import { optionalAuth, requireAuth } from '../middleware/auth.js';
 import { noStore } from '../middleware/cors.js';
 import { authLimiter, generalLimiter, searchLimiter, streamLimiter } from '../middleware/rateLimit.js';
+import { adminRouter } from './admin.js';
 
 /**
  * The complete public surface.
@@ -49,6 +51,14 @@ router.get('/auth/me', generalLimiter, noStore, requireAuth, auth.me);
 
 router.post('/auth/logout', generalLimiter, noStore, auth.logout);
 
+/* --------------------------------------------------------------- track */
+
+router.post('/track', optionalAuth, generalLimiter, noStore, admin.track);
+
+/* --------------------------------------------------------------- admin */
+
+router.use('/admin', adminRouter);
+
 /* --------------------------------------------------------------- account */
 
 router.get('/account', generalLimiter, noStore, requireAuth, auth.getAccount);
@@ -86,5 +96,7 @@ router.get('/titles/:type/:slug/seasons/:season/episodes', generalLimiter, cache
 router.get('/titles/:type/:slug/servers', streamLimiter, find.getServers);
 
 router.post('/titles/:type/:slug/servers/report', streamLimiter, find.reportServer);
+
+router.post('/titles/:type/:slug/servers/play', streamLimiter, find.recordPlay);
 
 router.post('/titles/:type/:slug/servers/reset', streamLimiter, find.clearReports);

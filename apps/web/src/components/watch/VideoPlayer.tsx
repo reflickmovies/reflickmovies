@@ -182,7 +182,6 @@ export function VideoPlayer({ src, title, sourceName, onSourceFailed, onHijack }
         title={`${title} — ${sourceName}`}
         allow={ALLOW}
         allowFullScreen
-        referrerPolicy="origin"
         loading="eager"
       />
 

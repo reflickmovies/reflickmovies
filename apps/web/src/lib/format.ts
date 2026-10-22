@@ -36,6 +36,22 @@ export function formatRuntime(minutes: number | null | undefined): string | null
   return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }
 
+/**
+ * A production budget or box-office figure, abbreviated.
+ *
+ * Unabbreviated, a $200,000,000 budget renders as eleven characters of digits and
+ * separators, which overflows the fact column it sits in and reads as a checksum rather
+ * than a sum. Same collapsing rules as `formatVoteCount`, so the two never disagree
+ * about how large is "large".
+ */
+export function formatMoney(amount: number | null | undefined): string | null {
+  if (amount == null || !Number.isFinite(amount) || amount <= 0) return null;
+  if (amount >= 1_000_000_000) return `$${(amount / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
+  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (amount >= 1_000) return `$${Math.round(amount / 1_000)}K`;
+  return `$${amount}`;
+}
+
 /** "S2 E4" for series, a bare year for films. */
 export function formatEpisodeLabel(season: number, episode: number): string {
   return `S${season} E${episode}`;

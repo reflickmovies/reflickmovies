@@ -4,6 +4,8 @@ import { cache, cacheKey } from './cache.service.js';
 import { isEmbedRejection, resolveEmbedUrlCached } from './embedGuard.service.js';
 import * as titles from '../repositories/titles.repo.js';
 import { listProviders } from '../repositories/providers.repo.js';
+import { resolveDefaultProvider } from '../repositories/settings.repo.js';
+import { recordPlay } from '../repositories/playCounts.repo.js';
 import { hydrateOnMiss } from '../jobs/autoSync.js';
 import type { IdSpace } from '../domain/types.js';
 import type { TitleDocument } from '../db/models/index.js';
@@ -33,6 +35,10 @@ export interface ServersPayload {
   tmdbId: number;
   imdbId: string | null;
   servers: ResolvedServer[];
+  /** The provider the player should open by default, per the global most-played rule or an override. */
+  defaultKey: string | null;
+  /** How `defaultKey` was chosen, so the UI can label it honestly. */
+  defaultSource: 'override' | 'most-played' | 'fallback' | 'none';
   rejected: Array<{ key: string; reason: string }>;
 }
 
@@ -248,13 +254,39 @@ export async function getServers(
     300_000,
   );
 
+  /*
+    The default provider is resolved outside the cached block on purpose. It depends on
+    global play counts, which change between requests while the resolved URL set stays
+    valid, so folding it into the cache would freeze the default at whenever the entry was
+    first written. Play counting is what the product asked for; it must keep moving.
+  */
+  const resolution = await resolveDefaultProvider();
+  const usable = resolution.key !== null && result.value.resolved.some((server) => server.key === resolution.key)
+    ? resolution.key
+    : (result.value.resolved[0]?.key ?? null);
+
+  /*
+    The default leads, and only the default is marked primary. The player treats `primary`
+    as "the one that gets the custom chrome", so it has to be a single row: the previous
+    code marked whichever resolved first, which was really "config order", not a choice.
+  */
+  const servers = [...result.value.resolved]
+    .sort((a, b) => {
+      if (a.key === usable) return -1;
+      if (b.key === usable) return 1;
+      return 0;
+    })
+    .map((server) => ({ ...server, primary: server.key === usable }));
+
   return {
     titleId: row.tmdbId,
     titleSlug: row.slug,
     titleType: type,
     tmdbId: row.tmdbId,
     imdbId: row.imdbId,
-    servers: result.value.resolved,
+    servers,
+    defaultKey: usable,
+    defaultSource: resolution.key !== null && usable === resolution.key ? resolution.source : 'fallback',
     rejected: result.value.rejected,
   };
 }
@@ -289,6 +321,34 @@ export async function clearReports(ref: string, type: 'movie' | 'tv'): Promise<{
 
   await titles.resetServerFailures(row.tmdbId);
   cache.invalidate(cacheKey.servers(`${type}:${row.slug}`));
+  return { ok: true };
+}
+
+/**
+ * Records that a viewer actually used a provider for a title.
+ *
+ * Distinct from resolution: every provider is resolved when the watch page opens, but only
+ * the one the viewer opens is a "play". Counting resolutions would just mirror the config
+ * order and tell us nothing about preference; this is the signal the global default is
+ * built from, so it has to mean "someone chose this".
+ *
+ * The provider is validated against the known set so a crafted request cannot inflate the
+ * count for a key that does not exist, and the write is fire-and-forget by the caller -
+ * playback must never wait on analytics.
+ */
+export async function recordProviderPlay(
+  ref: string,
+  type: 'movie' | 'tv',
+  providerKey: string,
+): Promise<{ ok: boolean }> {
+  const row = await titles.findByRef(type, ref);
+  if (!row) throw ApiError.titleNotFound(ref);
+
+  const providers = await listProviders(true);
+  const known = providers.find((provider) => provider.key === providerKey || provider.name === providerKey);
+  if (!known) throw ApiError.badRequest(`Unknown provider "${providerKey}".`);
+
+  await recordPlay(known.key);
   return { ok: true };
 }
 

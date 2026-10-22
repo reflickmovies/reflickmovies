@@ -48,3 +48,12 @@ export const clearReports = asyncHandler(async (req: Request, res: Response) => 
   const type = typeParam(param(req, 'type'));
   sendData(res, await stream.clearReports(param(req, 'slug'), type));
 });
+
+export const recordPlay = asyncHandler(async (req: Request, res: Response) => {
+  const type = typeParam(param(req, 'type'));
+  const providerKey = String(req.body?.provider ?? req.body?.server ?? '').trim();
+
+  if (!providerKey) throw ApiError.badRequest('A provider key is required.');
+
+  sendData(res, await stream.recordProviderPlay(param(req, 'slug'), type, providerKey));
+});

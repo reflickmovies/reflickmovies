@@ -109,6 +109,40 @@
   flex-shrink: 0;
 }
 
+/* ------------------------------------------------------------ Admin banner */
+
+.adminBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-2xl);
+  border-radius: 22px;
+  background-color: color-mix(in srgb, var(--lp-accent-red) 10%, var(--lp-surface));
+  border: 1px solid color-mix(in srgb, var(--lp-accent-red) 30%, transparent);
+  color: var(--lp-text);
+  transition: transform 140ms ease;
+}
+
+.adminBanner:hover {
+  transform: translateY(-1px);
+}
+
+.adminBanner > svg {
+  color: var(--lp-accent-red);
+  flex-shrink: 0;
+}
+
+.adminBannerTitle {
+  display: block;
+  font-weight: 700;
+}
+
+.adminBannerCopy {
+  display: block;
+  color: var(--lp-text-muted);
+  font-size: 0.8125rem;
+}
+
 /* --------------------------------------------------------------- Stats */
 
 .stats {
