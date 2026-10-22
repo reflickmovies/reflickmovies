@@ -367,14 +367,20 @@ export function HomePage() {
 
             <div className={styles.heroActions ?? ''}>
               {/*
-                One destination: the title's own page.
+                Both actions lead to the title's own page.
 
-                The hero used to offer "Watch" (straight into the player) beside "More info" (the
-                detail page) - two routes for one title, a few pixels apart. Playback now begins
-                in exactly one place, the detail page, so the primary action here is a single
-                labelled link to it and the secondary pill is gone rather than repeating it.
+                Playback begins in exactly one place, the detail page, so there is no route here
+                that skips straight into the player. "Watch" is the primary pill because that is
+                the verb a reader arrives with, and "More info" is demoted to a secondary outline
+                rather than dropped: they answer the same question ("show me this title"), so they
+                point at the same destination, and the pair is deliberate rather than redundant.
               */}
               <Link to={titlePath(activeHero.type, activeHero.slug)} className={styles.watchButton ?? ''}>
+                <Play size={18} weight="fill" aria-hidden />
+                <span>Watch</span>
+              </Link>
+
+              <Link to={titlePath(activeHero.type, activeHero.slug)} className={styles.moreInfoButton ?? ''}>
                 <Info size={18} weight="bold" aria-hidden />
                 <span>More info</span>
               </Link>

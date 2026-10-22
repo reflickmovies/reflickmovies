@@ -318,7 +318,7 @@ export function TitlePage({ type }: TitlePageProps) {
               </Link>
 
               {isSeries && seasonCount > 0 ? (
-                <a href="#episodes" className={styles.heroSecondary ?? ''}>
+                <a href="#episodes" className={styles.heroSecondary ?? ''} onClick={handleScrollToEpisodes}>
                   <Television size={18} aria-hidden />
                   Episodes
                 </a>

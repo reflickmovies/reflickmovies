@@ -1,5 +1,5 @@
 import { memo, useEffect, useId, useState } from 'react';
-import { CaretDown, Play } from '@phosphor-icons/react';
+import { CalendarBlank, CaretDown, Clock, Play, Star } from '@phosphor-icons/react';
 import type { Episode, Season } from '../../types/api';
 import { formatAirDate, formatEpisodeLabel, formatRating, formatSeasonLabel, pluralise } from '../../lib/format';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
@@ -311,6 +311,12 @@ export const EpisodeRow = memo(function EpisodeRow({ episode, active = false, on
       onClick={() => onPlay(episode)}
       aria-current={active || undefined}
     >
+      {/*
+        The play scrim is always mounted over the still, not only on hover.
+        On a touch screen there is no hover to reveal it, so the card has to advertise that it
+        plays something in its resting state; on a pointer device the scrim deepens and the
+        play glyph scales up as the row is hovered. It carries no text, so it is decorative.
+      */}
       <span className={styles.still ?? ''}>
         {episode.still && !failed ? (
           <img
@@ -323,11 +329,16 @@ export const EpisodeRow = memo(function EpisodeRow({ episode, active = false, on
             onError={() => setFailed(true)}
           />
         ) : null}
-        {!loaded && !failed ? (
-          <span className={styles.stillFallback ?? ''} aria-hidden>
-            <Play size={18} />
-          </span>
-        ) : null}
+
+        <span className={styles.stillScrim ?? ''} aria-hidden />
+
+        <span className={styles.stillPlay ?? ''} aria-hidden>
+          <Play size={20} weight="fill" />
+        </span>
+
+        {active ? <span className={styles.stillBadge ?? ''}>Now playing</span> : null}
+
+        {!loaded && !failed ? <span className={styles.stillFallback ?? ''} aria-hidden /> : null}
       </span>
 
       <span className={styles.episodeBody ?? ''}>
@@ -339,22 +350,24 @@ export const EpisodeRow = memo(function EpisodeRow({ episode, active = false, on
         {episode.overview ? <span className={styles.episodeOverview ?? ''}>{episode.overview}</span> : null}
 
         <span className={styles.episodeMeta ?? ''}>
-          {episode.runtimeLabel ? <span>{episode.runtimeLabel}</span> : null}
-          {episode.runtimeLabel && airDate ? (
-            <span aria-hidden>·</span>
+          {episode.runtimeLabel ? (
+            <span className={styles.episodeMetaItem ?? ''}>
+              <Clock size={13} aria-hidden />
+              {episode.runtimeLabel}
+            </span>
           ) : null}
-          {airDate ? <span>{airDate}</span> : null}
+          {airDate ? (
+            <span className={styles.episodeMetaItem ?? ''}>
+              <CalendarBlank size={13} aria-hidden />
+              {airDate}
+            </span>
+          ) : null}
           {rating ? (
-            <>
-              <span aria-hidden>·</span>
-              <span>{rating}</span>
-            </>
+            <span className={`${styles.episodeMetaItem ?? ''} ${styles.episodeRating ?? ''}`.trim()}>
+              <Star size={13} weight="fill" aria-hidden />
+              {rating}
+            </span>
           ) : null}
-        </span>
-
-        <span className={styles.episodeWatchHint ?? ''}>
-          <Play size={12} weight="fill" aria-hidden />
-          {active ? 'Now playing' : 'Play episode'}
         </span>
       </span>
     </button>

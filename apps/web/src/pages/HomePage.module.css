@@ -397,6 +397,52 @@
   transform: scale(0.965);
 }
 
+/*
+ * More info: the same translucent pill the detail hero uses for its secondary action.
+ *
+ * The home hero sits on a photographic backdrop, so a solid panel colour would read as a UI chip
+ * pasted over artwork. A low-alpha white fill with a backdrop blur lets the image through and keeps
+ * the label legible, and matching the detail hero's secondary means the two heroes share one
+ * language for "this is the quieter of the two buttons".
+ */
+.moreInfoButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 44px;
+  padding-inline: 18px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background-color: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
+}
+
+.moreInfoButton:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.moreInfoButton:active {
+  transform: scale(0.965);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moreInfoButton:hover,
+  .moreInfoButton:active {
+    transform: none;
+  }
+}
+
 /* ---------------------------------------------------------------- Shelves */
 
 .shelfSection {
