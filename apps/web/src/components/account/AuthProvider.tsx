@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as api from '../../lib/api';
+import { ROUTES } from '../../lib/routes';
 import { invalidateQuery } from '../../hooks/useQuery';
 import { allWatches, replaceWatchHistory } from '../../lib/watchHistory';
 import type { AccountUser, AuthPayload } from '../../types/api';
@@ -38,6 +40,7 @@ export function useAuth(): AuthContextValue {
  * because it happens at auth transitions, not on every read.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<AccountUser | null>(null);
   // A stored token means "we might be signed in" until `/auth/me` answers, so the UI can hold off
   // rather than flashing a signed-out header first.
@@ -105,8 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : await api.register(values.email, values.password, values.displayName);
       await adopt(payload);
       setOpen(false);
+
+      /*
+        An operator signing in is headed for the console, not the catalogue, so take them straight
+        there rather than making them hunt for the dashboard through their profile. Only on sign-in:
+        a fresh registration is never an admin, and a viewer stays exactly where they were.
+      */
+      if (payload.user.role === 'admin') navigate(ROUTES.admin);
     },
-    [adopt],
+    [adopt, navigate],
   );
 
   const openAuth = useCallback((next: AuthMode = 'signin'): void => {
