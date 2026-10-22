@@ -77,13 +77,21 @@ function cspPlugin(origins: string[], apiOrigin: string, apiTarget: string): Plu
   /*
    * The trailer player on a title page.
    *
-   * `-nocookie` rather than the regular host: it serves the same videos without the
-   * advertising cookie, which is the one Google offers precisely for embedding on sites
-   * that would rather not set it. Listed here rather than folded into the provider list
-   * because it is not a stream provider - it never plays the title, only its trailer -
-   * and a row added to `providers.json` should not be able to widen what the app frames.
+   * `youtube-nocookie.com` was the first choice, because it serves the same videos without the
+   * advertising cookie. It is not reliable enough to keep: on some networks and some videos the
+   * `-nocookie` host refuses to serve the embed and hands the frame back Chrome's "This content
+   * is blocked. Contact the site owner to fix the issue." - a `frame-src` refusal rendered inside
+   * the frame, which reads as our bug and is not fixable from the page. The regular
+   * `www.youtube.com` embed host plays the same videos and does not have that failure, and since
+   * the trailer is muted, autoplaying and control-less, it is not the surface the ad cookie
+   * matters on. Both hosts are allowed so a switch is a one-line change in the component, not a
+   * second CSP edit.
+   *
+   * Listed here rather than folded into the provider list because it is not a stream provider -
+   * it never plays the title, only its trailer - and a row added to `providers.json` should not
+   * be able to widen what the app frames.
    */
-  const TRAILER_FRAME_HOST = 'https://www.youtube-nocookie.com';
+  const TRAILER_FRAME_HOSTS = ['https://www.youtube.com', 'https://www.youtube-nocookie.com'];
 
   return {
     name: 'reflick-csp',
@@ -93,8 +101,8 @@ function cspPlugin(origins: string[], apiOrigin: string, apiTarget: string): Plu
       /* The mirrored player is not proxied (see `server.proxy` below), so the frame can only be
        * the API origin itself - the API URL in development, `apiOrigin` in a deployed build. */
       const frameSrc = dev
-        ? `frame-src 'self' ${origins.join(' ')} ${TRAILER_FRAME_HOST} ${apiTarget}`
-        : `frame-src 'self' ${origins.join(' ')} ${TRAILER_FRAME_HOST}${apiOrigin ? ` ${apiOrigin}` : ''}`;
+        ? `frame-src 'self' ${origins.join(' ')} ${TRAILER_FRAME_HOSTS.join(' ')} ${apiTarget}`
+        : `frame-src 'self' ${origins.join(' ')} ${TRAILER_FRAME_HOSTS.join(' ')}${apiOrigin ? ` ${apiOrigin}` : ''}`;
 
       /*
        * WebSocket URL matching under `connect-src` is scheme-strict: a policy listing only

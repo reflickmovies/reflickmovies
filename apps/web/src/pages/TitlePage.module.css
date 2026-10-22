@@ -77,11 +77,21 @@
 /*
  * The autoplaying trailer, over the still.
  *
- * A YouTube frame is 16:9 and the hero is a short wide band, so the frame is blown up to cover
- * the box the same way the backdrop image is (`object-fit: cover` has no analogue on an iframe,
- * so the cover is done with size and a centring transform). It sits at the same z-index as the
- * still and later in the DOM, so it paints on top, and beneath the scrim at `z-index: 1` - the
- * scrim still does its whole job of making the copy legible over a moving picture.
+ * A YouTube frame is 16:9 and the hero box is not - it is a wide short band on desktop and a tall
+ * narrow panel on a phone - and an iframe has no `object-fit`, so `width: 100%; height: 100%`
+ * stretches the picture instead of cropping it, which is exactly the "horizontal when it should be
+ * vertical" the hero showed on mobile.
+ *
+ * The cover is done the one way an iframe allows: hold the frame at 16:9 and let it grow to the
+ * smallest box that fills the hero in both axes. `aspect-ratio: 16 / 9` with `width` and `height`
+ * left `auto` and both `min-` axes pinned to `100%` makes the browser solve for that - the frame
+ * ends up wider than the hero on a phone (so the sides crop) and taller than the hero on a wide
+ * desktop (so the top and bottom crop), never stretched. Centring with the `translate` keeps the
+ * crop even.
+ *
+ * It sits at the same z-index as the still and later in the DOM, so it paints on top, and beneath
+ * the scrim at `z-index: 1` - the scrim still does its whole job of making the copy legible over a
+ * moving picture.
  *
  * It is transparent until `onLoad` flips `.heroTrailerReady`, so the reveal is a fade from the
  * still rather than a flash of YouTube's loading spinner. `pointer-events: none` keeps the frame
@@ -90,13 +100,18 @@
  */
 .heroTrailer {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
   z-index: 0;
-  width: 100%;
-  height: 100%;
+  aspect-ratio: 16 / 9;
+  width: auto;
+  height: auto;
+  min-width: 100%;
+  min-height: 100%;
   border: 0;
   opacity: 0;
   pointer-events: none;
+  transform: translate(-50%, -50%);
   transition: opacity 600ms var(--motion-ease);
 }
 
@@ -1043,10 +1058,9 @@
  * ten episodes was therefore always a single tall column, and on a wide screen half the page was
  * empty beside it.
  *
- * Two fixed columns from the start, matching the Explore wall's two-up on a phone: below 700px
- * the row itself stacks so each card is a still over its text, which is what makes two fit across
- * a narrow screen. Above 900px `auto-fit` lets the count follow the available width - three or more
- * on a large display - rather than being pinned at two with a wide gap.
+ * The cards are landscape tiles at any width, so two fixed columns work from the smallest phone
+ * up: below 900px the count is pinned at two, and above it `auto-fit` lets the count follow the
+ * available width - three or more on a large display - rather than staying at two with a wide gap.
  */
 .episodeList {
   display: grid;

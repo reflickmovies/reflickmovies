@@ -809,12 +809,19 @@ function HeroBackdrop({ backdrop, trailerKey }: { backdrop: string | null; trail
         <iframe
           className={`${styles.heroTrailer ?? ''} ${trailerReady ? (styles.heroTrailerReady ?? '') : ''}`.trim()}
           /*
+            The regular `www.youtube.com` embed host, not `-nocookie`: on some networks the
+            `-nocookie` host refuses the frame and Chrome renders "This content is blocked.
+            Contact the site owner to fix the issue." inside it, which reads as our failure.
+            The regular host plays the same clip reliably.
+
             `autoplay=1&mute=1` is the only combination browsers allow without a gesture. `loop`
             with `playlist` set to the same key is YouTube's own idiom for a single looped clip.
-            `controls=0` and `modestbranding` keep it a background rather than a second player;
-            the real player, with controls, is one click away in the trailer dialog below.
+            This is a background, not a player: `controls=0`, `modestbranding=1`, `fs=0`,
+            `disablekb=1`, `iv_load_policy=3` and `rel=0` strip the control bar, keyboard
+            shortcuts, annotations and related-video overlay so nothing but the picture shows.
+            The real player, with controls, is the trailer dialog below.
           */
-          src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&loop=1&playlist=${trailerKey}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+          src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&loop=1&playlist=${trailerKey}&controls=0&modestbranding=1&fs=0&disablekb=1&iv_load_policy=3&rel=0&playsinline=1`}
           title="Trailer"
           aria-hidden
           tabIndex={-1}
@@ -901,15 +908,15 @@ function TrailerButton({ trailer, title }: { trailer: NonNullable<TitleDetails['
 
           {/*
             Mounted only while open, so closing genuinely cuts the video rather than just hiding
-            it. The no-cookie host serves the same video without the advertising cookie. `title`
-            on the frame rather than an aria-label on a wrapper: a frame with no accessible name
-            is announced as "frame" by a screen reader.
+            it. The regular embed host is used for the same reliability reason as the background
+            frame. `title` on the frame rather than an aria-label on a wrapper: a frame with no
+            accessible name is announced as "frame" by a screen reader.
           */}
           <div className={styles.trailerFrameWrap ?? ''}>
             {open ? (
               <iframe
                 className={styles.trailerFrame ?? ''}
-                src={`https://www.youtube-nocookie.com/embed/${trailer.key}?rel=0&modestbranding=1&autoplay=1`}
+                src={`https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1&autoplay=1`}
                 title={`${title} — ${trailer.name}`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

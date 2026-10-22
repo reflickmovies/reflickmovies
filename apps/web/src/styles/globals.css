@@ -38,6 +38,24 @@ html {
   scroll-behavior: smooth;
 }
 
+/*
+ * No tap flash on touch.
+ *
+ * Mobile Safari and Chrome paint a semi-transparent highlight over whatever element the finger
+ * lands on, and against this app's dark surfaces that flash reads as a translucent blue
+ * rectangle appearing under every press - buttons, links, cards, images alike. It is the
+ * browser's own affordance, and it fights the app's: every interactive element here already
+ * answers a press with its own hover/active treatment. Cancelling the flash hands the press
+ * back to those.
+ *
+ * Declared on `:root`, not `*`: the highlight is inherited, so one declaration reaches every
+ * element, and a universal rule would also restyle pseudo-elements for no reason.
+ */
+:root {
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

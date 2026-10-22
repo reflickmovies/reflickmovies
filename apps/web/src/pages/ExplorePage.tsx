@@ -12,10 +12,10 @@ import styles from './ExplorePage.module.css';
 /**
  * Explore: a turning wheel of titles.
  *
- * This is the shadcn `WorksWheel` component - a ring of posters that opens into a drum as you
- * turn it - fed from the catalogue. The wheel lives in `components/ui/works-wheel.tsx` verbatim
- * as it ships from the registry; everything here is the wiring that turns TMDB titles into its
- * `items` and keeps the ring growing.
+ * This is the shadcn `WorksWheel` component - a drum of posters that turns as you scroll, each card
+ * labelled beneath - fed from the catalogue. The wheel lives in `components/ui/works-wheel.tsx` and
+ * has been adapted for a browse surface; everything here is the wiring that turns TMDB titles into
+ * its `items` and keeps the drum growing.
  *
  * Why a wheel and why not the masonry wall it replaces: the wall was a scroll, and a scroll only
  * ever answers "what is next". The wheel answers "what is here" by putting a handful of titles in
@@ -23,11 +23,11 @@ import styles from './ExplorePage.module.css';
  * whole stage rather than a cell in a column, and the front card is a face rather than a strip of
  * thumbnail. That is a fit for a page whose job is browsing, not listing.
  *
- * The ring is finite by design - it is built from the items in hand, and the geometry that lays
- * cards around a circle needs a fixed count to distribute them on - so "endless" is expressed as
- * a stream the reader pulls: the first page fills the ring on load, and each `Load more` appends
- * the next page and lets the wheel re-measure around a larger set. A wheel that fetched as it
- * turned would have no ring to turn, so the count has to come from somewhere the reader controls.
+ * The drum is finite by design - it is built from the items in hand, and the geometry needs a
+ * fixed count - so "endless" is expressed as a stream the reader pulls: the first page fills the
+ * drum on load, and each `Load more` appends the next page and lets the wheel re-measure around a
+ * larger set. A wheel that fetched as it turned would have no set to turn, so the count has to come
+ * from somewhere the reader controls.
  */
 
 /** Titles per page, matching the catalogue's own paging so the ring grows evenly. */

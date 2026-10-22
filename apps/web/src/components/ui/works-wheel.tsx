@@ -1,22 +1,25 @@
 "use client";
 
-// A portfolio index built as a wheel you turn.
+// A browse index built as a wheel you turn.
 //
-// At rest the work sits in a ring around a title, each card tangent to the
-// circle. The first notch of scroll blows the ring open into a vertical drum:
-// the card at the front lies flat and full size, the ones above and below
-// rotate away into hard perspective and run off the top and bottom of the
-// frame. Keep turning and the drum carries the next piece round to the front.
+// The work sits as a vertical drum: the card at the front lies flat and full
+// size, the ones above and below rotate away into hard perspective and run off
+// the top and bottom of the frame, and each card carries its name beneath it.
+// Turning the wheel carries the next piece round to the front. Scrolling down
+// pulls the drum down (see the wheel handler) - the covers move the way a hand
+// would drag them.
 //
 // The whole thing is one number - `turn` - read by a single rAF pass that writes
-// transforms straight to the DOM. 0 is the ring, 1 is the drum with item 0 at
-// the front, and every whole number after that is one more item turned past.
+// transforms straight to the DOM. 1 is the drum with item 0 at the front, and
+// every whole number after that is one more item turned past. 0 is the ring, an
+// intro state the wheel no longer opens on; `to()` floors at 1 so it is never
+// reached.
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
 export interface WorksWheelItem {
-  /** Project name. Shown beside the front card and in the index. */
+  /** Project name. Shown beneath the card. */
   title: string;
   /** Cover art. Any src an <img> takes. */
   image: string;
@@ -29,9 +32,9 @@ export interface WorksWheelProps extends Omit<
   "children"
 > {
   items: WorksWheelItem[];
-  /** Sits in the middle of the ring. @default undefined */
+  /** Accessible name for the wheel region. @default "Works '26" */
   label?: string;
-  /** Label on the card's hover affordance. Omit to drop it. @default undefined */
+  /** Label on the card's hover affordance. Omit to drop it. @default "View" */
   action?: string;
 }
 
@@ -41,8 +44,8 @@ export interface WorksWheelProps extends Omit<
    swinging on a huge drum. The three that matter are tuned together: STEP
    against DRUM sets how hard the neighbours rotate away, and DRUM against LENS
    decides whether they land inside the frame or run off it. */
-const CARD_H = 0.38; // front card height, of the stage
-const CARD_MAX_W = 0.34; // ... but never wider than this much of the stage
+const CARD_H = 0.5; // front card height, of the stage
+const CARD_MAX_W = 0.44; // ... but never wider than this much of the stage
 const CARD_RATIO = 1.45; // card width / height
 const STEP = 40; // degrees between cards on the drum
 const DRUM = 2.22; // drum radius, in card heights - and everything below likewise
@@ -54,8 +57,6 @@ const RING_R = 1.14; // ring radius
    swung back left as well as up and down. BOW is that arc's radius; nothing else
    makes the difference between a stack of cards and a wheel seen side on. */
 const BOW = 1.82;
-const TITLE = 0.124; // ring label and front-card title
-const INDEX = 0.04; // the index down the right-hand side
 /** Items either side of the front still worth drawing. Past this a card is
     edge-on, and further round it would stack up on the vanishing point. */
 const CULL = 1.6;
@@ -110,13 +111,15 @@ export function WorksWheel({
   const stageRef = React.useRef<HTMLDivElement>(null);
   const wheelRef = React.useRef<HTMLDivElement>(null);
   const cardRefs = React.useRef<(HTMLElement | null)[]>([]);
-  const labelRef = React.useRef<HTMLDivElement>(null);
-  const titleRef = React.useRef<HTMLDivElement>(null);
 
   // The wheel's position, and where it is heading. Only `active` is state -
   // everything else is written to the DOM, so turning the wheel is not a render.
-  const turn = React.useRef(0);
-  const target = React.useRef(0);
+  // It opens already in the drum (turn 1), not the ring (turn 0): the ring is an
+  // intro flourish with a title in the middle and the covers shrunk onto a
+  // circle, and this wheel is a browse surface, so the first thing on screen is
+  // the cards at full size with the first one already at the front.
+  const turn = React.useRef(1);
+  const target = React.useRef(1);
   const [active, setActive] = React.useState(0);
   const [stage, setStage] = React.useState<Stage>({ w: 0, h: 0 });
 
@@ -164,8 +167,6 @@ export function WorksWheel({
       drumR,
       bow: cardH * BOW,
       depth: cardH * LENS,
-      title: cardH * TITLE,
-      index: cardH * INDEX,
     };
   }, [stage, count]);
 
@@ -215,8 +216,6 @@ export function WorksWheel({
         if (face) face.style.transform = `scale(${lerp(ringScale, 1, m)})`;
       }
 
-      if (labelRef.current) labelRef.current.style.opacity = String(1 - m);
-      if (titleRef.current) titleRef.current.style.opacity = String(m);
       const near = clamp(Math.round(pos), 0, last);
       setActive((prev) => (prev === near ? prev : near));
     };
@@ -227,7 +226,10 @@ export function WorksWheel({
 
   const to = React.useCallback(
     (next: number) => {
-      target.current = clamp(next, 0, last + 1);
+      // Floor at 1, not 0: 0 is the ring, which this wheel does not use. Staying at
+      // or above 1 keeps every position a drum position, so turning never returns
+      // to the intro circle.
+      target.current = clamp(next, 1, last + 1);
     },
     [last],
   );
@@ -239,8 +241,12 @@ export function WorksWheel({
     const el = stageRef.current;
     if (!el) return;
     const onWheel = (event: WheelEvent) => {
-      const next = target.current + event.deltaY / WHEEL_UNITS;
-      if (next > 0 && next < last + 1) event.preventDefault();
+      // Inverted: scrolling down turns the wheel backwards. On a browse surface
+      // the intuitive gesture is to pull the thing toward you, so a downward
+      // scroll should carry the cards down - the opposite of the original
+      // portfolio build, where wheel-down advanced the index.
+      const next = target.current - event.deltaY / WHEEL_UNITS;
+      if (next > 1 && next < last + 1) event.preventDefault();
       to(next);
       // A wheel gesture arrives as a burst of events with no end of its own, so
       // the rest position is whatever notch it happened to stop on. Left there
@@ -351,50 +357,19 @@ export function WorksWheel({
                       </span>
                     ) : null}
                   </span>
+                  {/* The name sits below the card and carries the accent, so a
+                      turned wheel reads as a row of labelled covers rather than
+                      a run of unlabelled art. The front card's name is the one
+                      at full opacity; the neighbours' fade with their cards. */}
+                  <span className="text-primary mt-2 block truncate text-center text-sm font-semibold">
+                    {item.title}
+                  </span>
                 </Tag>
               </React.Fragment>
             );
           })}
         </div>
       </div>
-
-      {/* Ring title and front-card title trade places across the transition.
-          Type is sized off the measured stage, not vh, so the wheel keeps its
-          proportions inside a card as well as at full bleed. */}
-      <div
-        ref={labelRef}
-        className="pointer-events-none absolute inset-0 grid place-items-center tracking-tight"
-        style={{ fontSize: metrics.title }}
-      >
-        {label}
-      </div>
-      <div
-        ref={titleRef}
-        className="pointer-events-none absolute top-1/2 left-[8%] -translate-y-1/2 tracking-tight opacity-0"
-        style={{ fontSize: metrics.title }}
-      >
-        {items[active]?.title}
-      </div>
-
-      <ol
-        className="text-muted-foreground absolute top-[7.5%] right-[2.5%] text-right leading-[1.75]"
-        style={{ fontSize: metrics.index }}
-      >
-        {items.map((item, i) => (
-          <li key={item.title}>
-            <button
-              type="button"
-              onClick={() => to(i + 1)}
-              className={cn(
-                "focus-visible:outline-foreground cursor-pointer transition-colors outline-none focus-visible:outline-1",
-                i === active && "text-foreground font-medium",
-              )}
-            >
-              {item.title}
-            </button>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }

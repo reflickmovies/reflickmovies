@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Episode browser.
  *
  * The still image is the anchor: on a monochrome layout the frame is what makes a
@@ -399,61 +399,51 @@
 /* -------------------------------------------------------------- episodes */
 
 /*
- * An episode card: 20px radius to match the site's other cards, a hairline border, and a filled
- * surface rather than a transparent row.
+ * An episode card, built as the same tile as the "More like this" cards beside it.
  *
- * The radius and the surface are what make it read as a card. At `--radius-lg` (6px) with a
- * transparent background these were list rows, which is the other visual language from the rounded
- * cards everywhere else on the page - and rows that stretch the full width gave a series page a very
- * different rhythm from a film page, where everything is a rounded tile.
+ * It began as a padded row: a fixed inset still with the text laid out next to it on a panel. On a
+ * series page that put two card languages on one screen - a rounded artwork tile in the related
+ * row and a letterboxed row in the episode list - for no reason the reader could see. This is now
+ * the `TitleCard` shape: the still fills the card edge to edge, and an opaque caption panel sits
+ * over the lower edge carrying the number, title and meta. One tile, whether the page is showing
+ * an episode or a related film.
  *
- * The still is full-bleed: it is the top of the card, flush to the rounded corners, rather than an
- * inset thumbnail with padding around it.
+ * The still is `position: absolute` and fills the card; the body is the caption floating over its
+ * lower edge, exactly as `TitleCard`'s caption does. Landscape ratio, because episode stills are
+ * 16:9 and cropping one into a portrait tile would cut the subject out of every frame.
  *
- * At the bottom of the card the text sits directly on the surface. On a phone the still is the top
- * band and the body is the bottom band; on a pointer device the body rises and the overview
- * unrolls over the artwork, so the card is one image with the information layered on it. Two card
- * shapes, one source - the media query below chooses between them.
- *
- * `minmax(0, 1fr)` on the text track is the horizontal-scroll fix: a bare `1fr` is
- * `minmax(auto, 1fr)`, so the track is sized by its content's min-content width and one episode
- * with a long unbroken title would push the row wider than the page.
+ * `isolation: isolate` keeps the scrim and the play puck from escaping the card, and stops one
+ * card's hover from painting over a neighbour's.
  */
 .episodeRow {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(104px, 0.4fr) minmax(0, 1fr);
-  align-items: stretch;
-  gap: var(--space-md);
-  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 16 / 9;
   border: 1px solid var(--ep-line);
-  border-radius: 20px;
-  background-color: var(--ep-surface);
+  border-radius: 24px;
+  background-color: var(--ep-surface-raised);
+  box-shadow: var(--lp-card-shadow);
+  color: #ffffff;
   text-align: left;
   overflow: hidden;
-  /*
-   * The card owns its own stacking context so the scrim and the play glyph, which are absolutely
-   * positioned over the still, cannot escape it - and so the sibling cards never paint over one
-   * another's hover state.
-   */
   isolation: isolate;
   transition:
     border-color var(--motion-fast) var(--motion-ease),
-    background-color var(--motion-fast) var(--motion-ease),
-    transform var(--motion-fast) var(--motion-ease),
-    box-shadow var(--motion-fast) var(--motion-ease);
+    transform var(--motion-spring-soft-duration) var(--motion-spring-soft),
+    box-shadow var(--motion-slow) var(--motion-ease-out);
 }
 
 .episodeRow:hover {
   border-color: var(--ep-accent);
-  background-color: var(--ep-tint);
+  transform: translateY(-4px);
+  box-shadow: var(--lp-card-shadow);
 }
 
-/* A small lift on pointer devices only, guarded for reduced motion. See the media block below. */
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+@media (prefers-reduced-motion: reduce) {
   .episodeRow:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--lp-card-shadow);
+    transform: none;
   }
 }
 
@@ -462,80 +452,22 @@
   outline-offset: 2px;
 }
 
-/* The episode currently playing, kept distinguishable from a plain hover. */
+/* The episode currently playing, marked with the accent border rather than a tag. */
 .episodeRowActive {
   border-color: var(--ep-accent);
-  background-color: var(--ep-tint);
-}
-
-.episodeRowActive:hover {
-  background-color: var(--ep-tint);
 }
 
 /*
- * Two columns once there is room for them.
+ * The still: the whole card, behind the caption.
  *
- * On a season of twenty the single column was a very long ribbon; at this width each card still has
- * room for a readable title and synopsis. `auto-fit` with a `340px` floor means the layout responds
- * to the container rather than the viewport, so it stays two-up in a narrow sidebar and reflows
- * without a media query when the shell is resized.
+ * Absolute and full-bleed so the artwork reads as the tile itself, not a thumbnail on one.
  */
-@media (min-width: 768px) {
-  .episodeRow {
-    grid-template-columns: minmax(140px, 0.42fr) minmax(0, 1fr);
-    gap: var(--space-lg);
-    padding: var(--space-lg);
-  }
-}
-
-/*
- * Stacked on phones and small tablets - and full-bleed from here down.
- *
- * The grid is two-up from the smallest screen, so below this the row turns into a still over its
- * text - the same shape as an Explore tile - which is what lets two episodes share a 360px width.
- * The thumbnail keeps the full column, so it is not squashed beside a column of type.
- *
- * The card switches to a single-column, zero-padding grid here: padding is removed from the row so
- * the still can meet the rounded top corners edge to edge, and restored inside the body so the text
- * keeps its gutter. `gap` becomes zero for the same reason - the body carries the space between
- * itself and the still.
- */
-@media (max-width: 699px) {
-  .episodeRow {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-    padding: 0;
-  }
-}
-
-/*
- * On a narrow card the overview is the thing that has to give.
- *
- * Two clamped lines rather than three, because at ~170px wide a three-line synopsis is taller than
- * the still above it and the card stops reading as an image with a caption. The title and the meta
- * stay, since they are what identifies the episode.
- */
-@media (max-width: 699px) {
-  .episodeOverview {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-  }
-}
-
-/* Nested inside a 20px card, so the still is inset a step rather than matching it exactly. */
 .still {
-  position: relative;
-  aspect-ratio: var(--aspect-landscape);
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   overflow: hidden;
-  border-radius: 14px;
   background-color: var(--ep-surface-raised);
-}
-
-/* Full-bleed stills square off their top corners and hug the card's rounded ones. */
-@media (max-width: 699px) {
-  .still {
-    border-radius: 0;
-  }
 }
 
 .stillImage {
@@ -543,146 +475,127 @@
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  /* A slow, small zoom on hover, so the artwork itself responds and the card feels alive. */
-  transform: scale(1.001);
   transition:
     opacity var(--motion-base) var(--motion-ease),
-    transform var(--motion-slow) var(--motion-ease);
+    transform var(--motion-spring-soft-duration) var(--motion-spring-soft);
 }
 
 .stillImageLoaded {
   opacity: 1;
 }
 
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+@media (prefers-reduced-motion: no-preference) {
   .episodeRow:hover .stillImage {
     transform: scale(1.05);
   }
 }
 
 /*
- * The scrim: a gradient that keeps the play glyph legible over any still.
+ * The scrim: a fade from the foot of the still, under the caption.
  *
- * A fixed darkening rather than the token hover fill, because the still is a photograph whose
- * brightness cannot be predicted - a light frame makes a white glyph vanish. The gradient is
- * strongest in the centre, behind the glyph, and fades to nothing at the edges so it does not read
- * as a grey box. It is present at rest and deepens on hover.
+ * A bottom-up gradient rather than the centred radial the padded layout used, because the caption
+ * now sits on the artwork and needs a dark floor behind its type. Strongest at the very bottom and
+ * gone by the middle, so the top of the still is untouched.
  */
 .stillScrim {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(0, 0, 0, 0.42) 0%,
-    rgba(0, 0, 0, 0.16) 55%,
-    rgba(0, 0, 0, 0) 100%
+  z-index: 1;
+  background: linear-gradient(
+    to top,
+    rgba(9, 9, 10, 0.92) 0%,
+    rgba(9, 9, 10, 0.66) 26%,
+    rgba(9, 9, 10, 0.12) 56%,
+    rgba(9, 9, 10, 0) 78%
   );
-  opacity: 0.75;
   transition: opacity var(--motion-fast) var(--motion-ease);
 }
 
-.episodeRow:hover .stillScrim {
-  opacity: 1;
-}
-
 /*
- * The play control: a translucent puck, not a bare glyph.
- *
- * The glyph alone vanished into busy artwork. A frosted circle behind it guarantees contrast and
- * reads as a button, which is the affordance the still was missing. `backdrop-filter` is a
- * progressive nicety - where it is unsupported the fallback background is a solid enough wash on
- * its own.
+ * The play control: the same red puck the title cards use, so a card that plays looks the same
+ * everywhere. Centred on the still, above the caption.
  */
 .stillPlay {
   position: absolute;
   top: 50%;
   left: 50%;
+  z-index: 2;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background-color: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  background-color: var(--ep-accent);
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   transform: translate(-50%, -50%) scale(1);
   transition:
     transform var(--motion-fast) var(--motion-ease),
     background-color var(--motion-fast) var(--motion-ease);
-  backdrop-filter: blur(2px);
 }
 
 .episodeRow:hover .stillPlay {
-  background-color: var(--ep-accent);
-  transform: translate(-50%, -50%) scale(1.08);
-}
-
-.episodeRowActive .stillPlay {
-  background-color: var(--ep-accent);
-}
-
-/* The "Now playing" tag, pinned to the top of the active card's still. */
-.stillBadge {
-  position: absolute;
-  top: var(--space-sm);
-  left: var(--space-sm);
-  padding: 3px var(--space-sm);
-  border-radius: 9999px;
-  background-color: var(--ep-accent);
-  color: #fff;
-  font-size: var(--font-size-micro);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  transform: translate(-50%, -50%) scale(1.1);
+  background-color: var(--ep-accent-hover);
 }
 
 .stillFallback {
   position: absolute;
   inset: 0;
+  z-index: 0;
   background-color: var(--ep-surface-raised);
 }
 
+/*
+ * The caption panel, over the lower edge of the still - the `TitleCard` caption, with an episode's
+ * number, title and meta instead of a poster's.
+ *
+ * An opaque dim fill rather than a blur, for the same reason the title card's caption is: a
+ * backdrop-filter samples the artwork behind it, so its contrast changes card to card and does
+ * nothing over a flat one. A fixed alpha floor is predictable against any frame.
+ */
 .episodeBody {
-  min-width: 0;
+  position: relative;
+  z-index: 2;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  /* The row is `align-items: start`, so the card does not stretch to the tallest in the grid; the
-     body fills its own card instead and keeps the meta pinned to the bottom of that card. */
-  align-self: stretch;
-  height: 100%;
-}
-
-/* The body takes over the gutter the row gave up on phones. */
-@media (max-width: 699px) {
-  .episodeBody {
-    gap: var(--space-sm);
-    padding: var(--space-md);
-  }
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: 10px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background-color: rgba(16, 16, 19, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-width: 0;
 }
 
 /*
  * The title block: number and title on one line, wrapping together.
  *
  * `align-items: baseline` rather than `flex-start` so the number sits on the title's first
- * baseline rather than its cap height.
+ * baseline rather than its cap height. It grows to fill the caption and yields to the meta.
  */
 .episodeHeading {
   display: flex;
   align-items: baseline;
   gap: var(--space-sm);
+  min-width: 0;
+  flex: 1;
 }
 
 .episodeNumber {
   flex-shrink: 0;
   font-family: var(--font-family-numeric);
   font-size: var(--font-size-meta);
-  color: var(--ep-text-faint);
+  color: var(--ep-accent);
+  font-weight: 700;
 }
 
 .episodeTitle {
-  font-size: var(--font-size-subheading);
-  font-weight: 500;
-  color: var(--ep-text);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #ffffff;
   /*
     Wraps anywhere.
 
@@ -693,35 +606,18 @@
   overflow-wrap: anywhere;
 }
 
-.episodeOverview {
-  margin-top: var(--space-xxs);
-  font-size: var(--font-size-body-sm);
-  line-height: var(--line-height-relaxed);
-  color: var(--ep-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 /*
- * The meta row: runtime, air date and rating as small icon-led chips.
- *
- * Icons give the row a scannable rhythm that a run of dots did not, and they mean the values do not
- * have to be self-describing ("48m" beside a clock, not beside "48m · 12 Mar"). The row is pinned to
- * the bottom of the card with `margin-top: auto`, so cards of unequal synopsis length keep their
- * metadata on one line.
+ * The meta row: runtime, air date and rating, set small and quiet under the title inside the
+ * caption. Icons give the values a scannable rhythm so they do not have to describe themselves.
  */
 .episodeMeta {
-  margin-top: auto;
-  padding-top: var(--space-xs);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-md);
+  margin-top: 4px;
   font-size: var(--font-size-meta);
-  color: var(--ep-text-faint);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .episodeMetaItem {

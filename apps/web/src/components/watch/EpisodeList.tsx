@@ -336,8 +336,6 @@ export const EpisodeRow = memo(function EpisodeRow({ episode, active = false, on
           <Play size={20} weight="fill" />
         </span>
 
-        {active ? <span className={styles.stillBadge ?? ''}>Now playing</span> : null}
-
         {!loaded && !failed ? <span className={styles.stillFallback ?? ''} aria-hidden /> : null}
       </span>
 
@@ -346,8 +344,6 @@ export const EpisodeRow = memo(function EpisodeRow({ episode, active = false, on
           <span className={styles.episodeNumber ?? ''}>{formatEpisodeLabel(episode.season, episode.episode)}</span>
           <span className={styles.episodeTitle ?? ''}>{title}</span>
         </span>
-
-        {episode.overview ? <span className={styles.episodeOverview ?? ''}>{episode.overview}</span> : null}
 
         <span className={styles.episodeMeta ?? ''}>
           {episode.runtimeLabel ? (
