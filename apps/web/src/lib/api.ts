@@ -58,50 +58,6 @@ const API_ORIGIN = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '
 
 const BASE = `${API_ORIGIN}/api`;
 
-/**
- * Hosts whose player is mirrored behind our own origin (see `EMBED_MIRROR` in the API).
- *
- * The mirror exists because that player's ad layer opens popunders from inside a cross-origin
- * frame, where no referrer policy, CSP directive or parent-side code can switch it off. The API
- * replays the page and its module graph under its own origin with a guard injected first, so the
- * frame is pointed at the mirror instead of the provider.
- *
- * The mirror also passes `debug=savu`, the player's own documented ad-off switch (its document
- * gates every ad script behind `params.get('debug') === 'savu'`). With the switch set the page
- * never injects Monetag/popup scripts at all, which is what actually kept the mirror from being
- * silently broken: the guard was fighting a stream of popup attempts and in-frame redirects, and
- * the navigation watchdog was demoting the frame. The param is set before the host rewrite, so
- * even the no-mirror fallback keeps the player ad-free.
- *
- * The frame always loads the mirror straight from the API - `VITE_API_TARGET` in development, the
- * API origin in a deployed build. The mirror paths are deliberately not proxied by the dev server
- * (`/assets` would shadow the site's own built assets, and vite preview inherits the proxy list).
- */
-const MIRRORED_EMBED_HOSTS = new Set(['embed.filmu.in']);
-
-/** Where a provider URL should actually be loaded from: the mirror when it has one, else itself. */
-export function playerUrl(raw: string): string {
-  let url: URL;
-  try {
-    url = new URL(raw);
-  } catch {
-    return raw;
-  }
-
-  if (!MIRRORED_EMBED_HOSTS.has(url.hostname)) return raw;
-
-  url.searchParams.set('debug', 'savu');
-
-  const devTarget = import.meta.env.VITE_API_TARGET ?? 'http://localhost:4000';
-  if (import.meta.env.DEV) return `${devTarget}${url.pathname}${url.search}`;
-
-  // A production build without `VITE_API_URL` has no API origin to mirror through; fall back to
-  // the provider rather than pointing the frame at our own static host, which serves no such path.
-  if (!API_ORIGIN) return raw;
-
-  return `${API_ORIGIN}${url.pathname}${url.search}`;
-}
-
 /** Aborts the request when the component unmounts or the query changes. */
 export class ApiError extends Error {
   readonly status: number;

@@ -115,7 +115,8 @@
             "idSpace": "tmdb",
             "urlTemplate": "https://bingr.one/watch/movie/{{tmdb}}",
             "hosts": [
-                "bingr.one"
+                "bingr.one",
+                "vidly.pro"
             ],
             "enabled": true,
             "kinds": [
@@ -130,7 +131,8 @@
             "idSpace": "tmdb",
             "urlTemplate": "https://bingr.one/watch/tv/{{tmdb}}/{{season}}/{{episode}}",
             "hosts": [
-                "bingr.one"
+                "bingr.one",
+                "vidly.pro"
             ],
             "enabled": true,
             "kinds": [
@@ -145,7 +147,8 @@
             "idSpace": "tmdb",
             "urlTemplate": "https://embed.filmu.in/movie/{{tmdb}}",
             "hosts": [
-                "embed.filmu.in"
+                "embed.filmu.in",
+                "vidly.pro"
             ],
             "enabled": true,
             "kinds": [
@@ -160,7 +163,8 @@
             "idSpace": "tmdb",
             "urlTemplate": "https://embed.filmu.in/tv/{{tmdb}}/{{season}}/{{episode}}",
             "hosts": [
-                "embed.filmu.in"
+                "embed.filmu.in",
+                "vidly.pro"
             ],
             "enabled": true,
             "kinds": [

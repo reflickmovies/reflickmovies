@@ -102,8 +102,9 @@ export function AdminLayout() {
 
   // One socket for the whole console, opened only once an admin is actually signed in. It
   // refreshes whichever panels the server reports changed, so the dashboard is live without any
-  // page polling for itself.
-  const { connected: live } = useAdminLive(isAdmin && !denied && user !== null);
+  // page polling for itself. The connection state is deliberately not rendered: transport health
+  // is not an operator concern while the panels keep showing their last data.
+  useAdminLive(isAdmin && !denied && user !== null);
 
   if (status === 'loading') return <LoadingState label="Checking access…" />;
 
@@ -195,20 +196,12 @@ export function AdminLayout() {
 
                 {/*
                   The header carries the destination pills and the console's own furniture on the
-                  right: the live indicator, a compact way back to the site, and the operator's
-                  avatar. Nothing that belongs to the rail's bottom group remains there - the
-                  dashboard is destinations only, and everything that is not a destination lives
-                  here, on the one edge the operator already looks at for chrome.
+                  right: a compact way back to the site and the operator's avatar. Nothing that
+                  belongs to the rail's bottom group remains there - the dashboard is destinations
+                  only, and everything that is not a destination lives here, on the one edge the
+                  operator already looks at for chrome.
                 */}
                 <div className={topNavStyles.actions}>
-                  <span
-                    className={`${styles.liveDot} ${live ? styles.liveOn : ''}`.trim()}
-                    title={live ? 'Live - updates as they happen' : 'Reconnecting…'}
-                  >
-                    <span className={styles.livePulse} aria-hidden />
-                    {live ? 'Live' : 'Offline'}
-                  </span>
-
                   <Link to={ROUTES.home} className={styles.backButton}>
                     <House size={15} weight="bold" aria-hidden />
                     <span>Back to website</span>

@@ -1,36 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Warning } from '@phosphor-icons/react';
+import { ArrowRight, Star, Warning } from '@phosphor-icons/react';
+import { Link } from 'react-router-dom';
 import * as api from '../lib/api';
 import { titlePath } from '../lib/routes';
 import { useQuery } from '../hooks/useQuery';
 import { Notice } from '../components/page';
-import { TitleGridSkeleton } from '../components/titles';
-import { WorksWheel, type WorksWheelItem } from '../components/ui/works-wheel';
+import { EmptyState, Skeleton } from '../components/ui';
+import { ThumbnailCarousel, type ThumbnailCarouselItem } from '../components/ui/thumbnail-carousel';
 import type { BrowseResult, TitleSummary } from '../types/api';
 import styles from './ExplorePage.module.css';
 
 /**
- * Explore: a turning wheel of titles.
+ * Explore: a cover carousel.
  *
- * This is the shadcn `WorksWheel` component - a drum of posters that turns as you scroll, each card
- * labelled beneath - fed from the catalogue. The wheel lives in `components/ui/works-wheel.tsx` and
- * has been adapted for a browse surface; everything here is the wiring that turns TMDB titles into
- * its `items` and keeps the drum growing.
+ * The shadcn `ThumbnailCarousel` (`components/ui/thumbnail-carousel.tsx`) makes each title a
+ * full-bleed card with a thumbnail strip beneath it. It replaces the drum: a drum always puts
+ * several covers in the frame, so none of them gets to be the subject. Here one cover holds the
+ * stage, the strip shows how much is waiting, and the caption and action underneath belong to
+ * whichever cover is in view.
  *
- * Why a wheel and why not the masonry wall it replaces: the wall was a scroll, and a scroll only
- * ever answers "what is next". The wheel answers "what is here" by putting a handful of titles in
- * the frame at once and letting the reader turn through them deliberately - each card gets the
- * whole stage rather than a cell in a column, and the front card is a face rather than a strip of
- * thumbnail. That is a fit for a page whose job is browsing, not listing.
- *
- * The drum is finite by design - it is built from the items in hand, and the geometry needs a
- * fixed count - so "endless" is expressed as a stream the reader pulls: the first page fills the
- * drum on load, and each `Load more` appends the next page and lets the wheel re-measure around a
- * larger set. A wheel that fetched as it turned would have no set to turn, so the count has to come
- * from somewhere the reader controls.
+ * The catalogue still arrives a page at a time. `Load more` appends to the carousel rather than
+ * replacing it, and the active cover is kept across an append, so pulling the next page never
+ * throws the reader back to the start of the list.
  */
 
-/** Titles per page, matching the catalogue's own paging so the ring grows evenly. */
+/** Titles per page, matching the catalogue's own paging. */
 const PAGE_SIZE = 20;
 
 interface Entry {
@@ -41,6 +35,7 @@ interface Entry {
 export function ExplorePage() {
   const [page, setPage] = useState(1);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const current = useQuery<BrowseResult>(
     `explore:p${page}`,
@@ -82,22 +77,34 @@ export function ExplorePage() {
   const isFetchingMore = page > 1 && current.isRefetching;
 
   /*
-    The wheel's items.
-
-    Poster first, backdrop only as a fallback: the wheel crops every card to the same landscape
-    ratio, and a poster in a landscape box loses less than a wide backdrop does in a tall one. A
-    title with neither art still needs a card - an empty `image` renders a bare `bg-muted` tile,
-    which is honest about the gap rather than collapsing the ring.
+    Only entries with art go in the carousel. A cover fills the whole card and a blank one would
+    be a hole rather than a card, unlike the drum where a missing image still had its ring slot.
+    Filtering keeps the caption index and the carousel index in step.
   */
-  const items = useMemo<WorksWheelItem[]>(
-    () =>
-      entries.map(({ title }) => ({
-        title: title.title,
-        image: title.poster ?? title.backdrop ?? '',
-        href: titlePath(title.type, title.slug),
-      })),
+  const cards = useMemo(
+    () => entries.filter((entry) => (entry.title.backdrop ?? entry.title.poster) !== null),
     [entries],
   );
+
+  const items = useMemo<ThumbnailCarouselItem[]>(
+    () =>
+      cards.map(({ title }) => ({
+        src: title.backdrop ?? title.poster ?? '',
+        alt: `${title.title} cover`,
+      })),
+    [cards],
+  );
+
+  /*
+    The caption follows the carousel. Backdrop first: the card is nearly square, and a wide still
+    loses less to the crop than a portrait poster does. The poster is the fallback for a title
+    TMDB has not decorated with a still.
+  */
+  const active = cards[activeIndex]?.title ?? null;
+
+  const handleIndexChange = useCallback((index: number) => {
+    setActiveIndex(index);
+  }, []);
 
   const loadMore = useCallback(() => {
     setPage((value) => value + 1);
@@ -122,19 +129,53 @@ export function ExplorePage() {
           {error.message}
         </Notice>
       ) : isLoadingFirst ? (
-        <TitleGridSkeleton count={12} />
+        <div className={styles.loading ?? ''} aria-busy="true" aria-label="Loading Explore">
+          <Skeleton width={320} height={320} radius="24px" className={styles.loadingSlide ?? ''} />
+          <div className={styles.loadingThumbs} aria-hidden>
+            {Array.from({ length: 7 }, (_, index) => (
+              <Skeleton key={index} width={44} height={44} radius="10px" />
+            ))}
+          </div>
+        </div>
+      ) : cards.length === 0 ? (
+        <EmptyState
+          title="No titles to explore yet"
+          body="The catalogue fills as titles are synced. Check back once the first run has finished."
+        />
       ) : (
         <>
           <div className={styles.stage ?? ''}>
-            <WorksWheel items={items} label="Movies & series" action="View" />
+            <ThumbnailCarousel items={items} onIndexChange={handleIndexChange} />
           </div>
 
+          {active !== null ? (
+            <div className={styles.caption ?? ''}>
+              <div className={styles.captionText}>
+                <h2 className={styles.captionTitle}>{active.title}</h2>
+                <p className={styles.captionMeta}>
+                  <span>{active.type === 'tv' ? 'Series' : 'Film'}</span>
+                  {active.year !== null ? <span>· {active.year}</span> : null}
+                  {active.rating !== null ? (
+                    <span className={styles.captionRating}>
+                      <Star size={12} weight="fill" aria-hidden />
+                      {active.rating.toFixed(1)}
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+
+              <Link className={styles.cta ?? ''} to={titlePath(active.type, active.slug)}>
+                View title
+                <ArrowRight size={15} weight="bold" aria-hidden />
+              </Link>
+            </div>
+          ) : null}
+
           {/*
-            Load more, below the wheel rather than inside it. The wheel's own controls are
-            wheel/drag/arrow keys and move between items already in the ring; pulling the next
-            page is a different verb, so it gets its own button where the ring ends. The status
-            line doubles as the append-failure report, keeping the ring on screen when a page
-            does not arrive.
+            Load more, below the carousel rather than inside it. Dragging and the thumbnail strip
+            move between covers already in hand; pulling the next page is a different verb, so it
+            gets its own button where the carousel ends. The status line doubles as the
+            append-failure report, keeping the covers on screen when a page does not arrive.
           */}
           <div className={styles.footer ?? ''}>
             {appendError !== null ? (

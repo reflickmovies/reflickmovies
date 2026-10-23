@@ -10,8 +10,7 @@
  *  - the `--adm-*` palette the admin pages were written against, aliased onto the app's own
  *    `--lp-*` tokens so every panel follows the light/dark theme instead of a fixed surface
  *  - the "Admin" badge beside the wordmark
- *  - the top-bar furniture (the live line and the compact way back to the site) and the
- *    not-authorised gate
+ *  - the top-bar furniture (the compact way back to the site) and the not-authorised gate
  */
 
 /* --------------------------------------------------------- token aliases */
@@ -61,10 +60,10 @@
 /* --------------------------------------------------- top-bar furniture */
 
 /*
- * The header's right edge: the live line, a compact way back to the site, and the operator's
- * avatar. These are chrome, not destinations - the destination pills stay in the middle - so they
- * are deliberately small: a dot with a word, a quiet outlined pill, a 28px avatar. Together they
- * should read as one row of secondary controls, never competing with the section pills.
+ * The header's right edge: a compact way back to the site and the operator's avatar. These are
+ * chrome, not destinations - the destination pills stay in the middle - so they are deliberately
+ * small: a quiet outlined pill and a 28px avatar. Together they should read as one row of
+ * secondary controls, never competing with the section pills.
  */
 .backButton {
   display: inline-flex;
@@ -88,59 +87,6 @@
   background-color: var(--lp-pill-inactive);
   border-color: color-mix(in srgb, var(--lp-text-muted) 35%, transparent);
   color: var(--lp-text);
-}
-
-/* ------------------------------------------------------- live indicator */
-
-/*
- * A small status line in the header: a dot and a word, green and "Live" when the socket is open,
- * grey and "Offline" while it reconnects. Deliberately quiet - it reports transport health, not an
- * alert, and the panels keep showing their last data either way.
- */
-.liveDot {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--lp-text-faint);
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.livePulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: var(--lp-text-faint);
-  flex-shrink: 0;
-}
-
-.liveOn {
-  color: var(--lp-text-muted);
-}
-
-.liveOn .livePulse {
-  background-color: #38d39f;
-  box-shadow: 0 0 0 0 color-mix(in srgb, #38d39f 55%, transparent);
-  animation: adminLivePulse 2s var(--motion-ease) infinite;
-}
-
-@keyframes adminLivePulse {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, #38d39f 55%, transparent);
-  }
-  70% {
-    box-shadow: 0 0 0 6px transparent;
-  }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .liveOn .livePulse {
-    animation: none;
-  }
 }
 
 /* ---------------------------------------------------------------- gate */

@@ -48,6 +48,13 @@ export const ALLOWED_EMBED_HOSTS = new Set([
   'vidout.pages.dev',
   'bingr.one',
   'embed.filmu.in',
+  /*
+   * Both Bingr and Filmu finish on `vidly.pro`: Filmu answers with a 301 to its `/movie`/`/tv`
+   * player page, and Bingr's SPA rewrites any framed `/watch/...` route to the same origin.
+   * It must be allowed here (and in the matching providers.json rows) or the web CSP leaves it
+   * out of `frame-src` and the browser refuses the frame.
+   */
+  'vidly.pro',
   'vidbolt.xyz',
   'nxsha.space',
   'vaplayer.ru',

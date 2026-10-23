@@ -5,7 +5,7 @@ import { useEpisodes, useSeasons, useServers, useTitle, useReportServer } from '
 import { Button, EmptyState, ErrorState, Spinner, useToast } from '../components/ui';
 import { EpisodeRow, SeasonPicker, SourcePicker, VideoPlayer } from '../components/watch';
 import { formatEpisodeLabel, formatSeasonLabel } from '../lib/format';
-import { playerUrl, recordServerPlay } from '../lib/api';
+import { recordServerPlay } from '../lib/api';
 import { ROUTES, backTarget, beginBack, titlePath } from '../lib/routes';
 import { useWatchHistory } from '../hooks/useWatchHistory';
 import type { TitleType } from '../types/api';
@@ -390,11 +390,10 @@ export function WatchPage({ type }: WatchPageProps) {
             </div>
           ) : activeServer ? (
             <VideoPlayer
-              // Remounting on URL change guarantees the iframe really reloads. `playerUrl` maps a
-              // mirrored provider onto the API's own origin, so the key has to be the mapped URL
-              // or a source switch would remount against the same key as before.
-              key={playerUrl(activeServer.url)}
-              src={playerUrl(activeServer.url)}
+              // Remounting on URL change guarantees the iframe really reloads, even when two
+              // sources resolve to the same provider path.
+              key={activeServer.url}
+              src={activeServer.url}
               title={title.title}
               sourceName={activeServer.name}
               onSourceFailed={() => {

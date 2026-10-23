@@ -1,11 +1,11 @@
 /*
- * Explore: a turning wheel of titles.
+ * Explore: a cover carousel.
  *
- * The page is a thin frame around the shadcn `WorksWheel` (`components/ui/works-wheel.tsx`).
- * Everything visual that belongs to the app and not the component lives here, on the shell's
- * `--lp-*` tokens, so the page follows the theme toggle like every other page. The wheel brings
- * its own Tailwind utilities; these rules only give its stage a box and lay out the header and
- * the "load more" control beneath it.
+ * The page is a thin frame around the shadcn `ThumbnailCarousel`
+ * (`components/ui/thumbnail-carousel.tsx`). Everything visual that belongs to the app and not
+ * the component lives here, on the shell's `--lp-*` tokens, so the page follows the theme toggle
+ * like every other page. The carousel brings its own Tailwind utilities; these rules only give
+ * it a centred stage and lay out the caption and the "load more" control beneath it.
  */
 
 .page {
@@ -39,20 +39,117 @@
 /* ----------------------------------------------------------------- Stage */
 
 /*
- * The wheel's box.
- *
- * The component measures its own stage to size every card against it, so this must have a real
- * height - a wheel in an auto-height parent measures zero and lays every card out at nothing.
- * `dvh` keeps it a viewport-filling panel on a phone; `min` caps it on a tall desktop so the
- * cards do not balloon with the window. Radius and border match the app's panel language so the
- * stage reads as one of the app's surfaces rather than a foreign rectangle.
+ * The carousel centres its own fixed-width card, so the stage only centres the carousel and
+ * gives it breathing room. No panel border or background here: the cover carries its own
+ * shadow, and a second frame around it would read as a card inside a card.
  */
 .stage {
-  height: min(72dvh, 720px);
-  border-radius: 24px;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  padding-block: var(--space-xs);
+}
+
+/* --------------------------------------------------------------- Caption */
+
+/*
+ * The active cover's identity, directly under the thumbnail strip. Its width matches the card
+ * (the carousel wrapper is 320px on a phone, 384px from `sm` up) so the title, the meta line and
+ * the action sit in the same column as the art instead of floating across the page.
+ */
+.caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: min(100%, 320px);
+  margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .caption {
+    width: min(100%, 384px);
+  }
+}
+
+.captionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.captionTitle {
+  font-family: var(--font-family-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--lp-text);
   overflow: hidden;
-  border: 1px solid var(--lp-line);
-  background-color: var(--lp-surface);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.captionMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--lp-text-muted);
+}
+
+.captionRating {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--lp-text);
+  font-weight: 600;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 38px;
+  padding-inline: 16px;
+  border-radius: 9999px;
+  background-color: var(--lp-accent-red);
+  color: var(--accent-on);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.cta:hover {
+  background-color: var(--lp-red-hover);
+}
+
+/* --------------------------------------------------------------- Loading */
+
+/*
+ * Mirrors the carousel's geometry: a 320px cover and seven 44px thumbnails. The widths switch at
+ * the same breakpoint as the component so the skeleton does not jump when the covers land.
+ */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding-block: var(--space-xl);
+}
+
+@media (min-width: 640px) {
+  .loadingSlide {
+    width: 384px !important;
+    height: 384px !important;
+  }
+}
+
+.loadingThumbs {
+  display: flex;
+  gap: var(--space-sm);
 }
 
 /* ------------------------------------------------------------- Load more */
