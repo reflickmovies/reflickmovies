@@ -157,6 +157,14 @@ const titleSchema = new mongoose.Schema<TitleDocument>(
     details: { type: detailsSchema },
 
     serverFailures: { type: Map, of: Number, default: {} },
+    /**
+     * Providers an operator has switched off for this title.
+     *
+     * The disabled set, not an enabled map: a provider added after this row was written is
+     * therefore enabled everywhere by default. The global provider flag still gates whether
+     * a provider is considered at all.
+     */
+    disabledServers: { type: [String], default: [] },
     syncedAt: { type: Date, required: true, default: () => new Date() },
   },
   { versionKey: false, minimize: false },

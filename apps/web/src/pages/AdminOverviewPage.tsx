@@ -47,16 +47,30 @@ export function AdminOverviewPage() {
 
       <div className={styles.statGrid}>
         <StatCard
-          label="Visits today"
+          label="Visitors today"
           value={data.visits.today}
-          hint={`${formatNumber(data.visits.todayUnique)} unique visitors`}
+          hint={`${formatNumber(data.visits.todayViews)} page views`}
           tone="accent"
         />
         <StatCard
-          label="Visits this week"
+          label="Visitors this week"
           value={data.visits.week}
-          hint={`${formatNumber(data.visits.month)} in 30 days`}
+          hint={`${formatNumber(data.visits.weekViews)} page views`}
         />
+        <StatCard
+          label="Visitors · 30 days"
+          value={data.visits.month}
+          hint={`${formatNumber(data.visits.monthViews)} page views`}
+        />
+        <StatCard
+          label="Views per visitor"
+          value={data.visits.viewsPerVisitor}
+          hint="average over 30 days"
+          tone="success"
+        />
+      </div>
+
+      <div className={styles.statGrid}>
         <StatCard
           label="Total accounts"
           value={data.users.total}
@@ -66,14 +80,8 @@ export function AdminOverviewPage() {
           label="New accounts"
           value={data.users.newToday}
           hint={`${formatNumber(data.users.newThisWeek)} this week`}
-          tone="success"
         />
-      </div>
-
-      <div className={styles.statGrid}>
-        <StatCard label="Titles in catalogue" value={data.catalogue.total} />
-        <StatCard label="Films" value={data.catalogue.movies} hint="movie records" />
-        <StatCard label="Series" value={data.catalogue.series} hint="tv records" />
+        <StatCard label="Titles in catalogue" value={data.catalogue.total} hint="films and series" />
         <StatCard
           label="Server failures"
           value={data.serverFailures}

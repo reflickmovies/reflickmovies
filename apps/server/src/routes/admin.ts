@@ -25,6 +25,8 @@ adminRouter.get('/visits/stats', noStore, admin.getVisitStats);
 
 adminRouter.get('/titles', noStore, admin.getTitles);
 adminRouter.delete('/titles/:id', noStore, admin.deleteTitle);
+adminRouter.get('/titles/:id/servers', noStore, admin.getTitleServers);
+adminRouter.patch('/titles/:id/servers/:providerKey', noStore, admin.updateTitleServer);
 
 adminRouter.get('/providers', noStore, admin.getProviders);
 adminRouter.patch('/providers/:id', noStore, admin.updateProvider);

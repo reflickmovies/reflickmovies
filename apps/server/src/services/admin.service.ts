@@ -11,7 +11,7 @@ import type { FilterQuery } from 'mongoose';
 import { UserModel, VisitModel, TitleModel, ProviderModel } from '../db/models/index.js';
 import type { UserDocument, VisitDocument, TitleDocument, ProviderDocument } from '../db/models/index.js';
 import { ApiError } from '../utils/ApiError.js';
-import { cache } from './cache.service.js';
+import { cache, cacheKey } from './cache.service.js';
 import { env } from '../config/env.js';
 import { broadcast, disconnectUser } from '../realtime/hub.js';
 import { getDefaultProviderOverride, resolveDefaultProvider, setDefaultProviderOverride } from '../repositories/settings.repo.js';
@@ -44,10 +44,16 @@ export interface DashboardStats {
     newThisWeek: number;
   };
   visits: {
+    /** Distinct visitors in each window - the headline number, not page views. */
     today: number;
-    todayUnique: number;
     week: number;
     month: number;
+    /** Page views in each window, shown as the hint under the distinct counts. */
+    todayViews: number;
+    weekViews: number;
+    monthViews: number;
+    /** Average pages opened per visitor over the 30-day window. */
+    viewsPerVisitor: number;
   };
   catalogue: {
     total: number;
@@ -73,10 +79,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     adminCount,
     newToday,
     newThisWeek,
-    visitsToday,
-    uniqueToday,
-    visitsWeek,
-    visitsMonth,
+    visitFacets,
     movieCount,
     seriesCount,
     providerTotal,
@@ -87,16 +90,33 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     UserModel.countDocuments({ role: 'admin' }),
     UserModel.countDocuments({ createdAt: { $gte: startOfToday } }),
     UserModel.countDocuments({ createdAt: { $gte: startOfWeek } }),
-    VisitModel.countDocuments({ at: { $gte: startOfToday } }),
-    // Unique visitors, not unique IPs: see `uniqueVisitorExpr`. A shared office NAT is one IP
-    // but many people, and a phone that switched networks is one person but several IPs.
-    VisitModel.aggregate<{ total: number }>([
-      { $match: { at: { $gte: startOfToday } } },
-      { $group: { _id: uniqueVisitorExpr } },
-      { $count: 'total' },
-    ]).then((rows) => rows[0]?.total ?? 0),
-    VisitModel.countDocuments({ at: { $gte: startOfWeek } }),
-    VisitModel.countDocuments({ at: { $gte: startOfMonth } }),
+    /*
+     * One pass answers all three periods. Today and this week are nested inside the 30-day
+     * window, so a single `$facet` over the widest match produces the three distinct sets
+     * without scanning the collection three times. `visits` counts rows (page views) while
+     * `unique` counts the visitor keys defined by `uniqueVisitorExpr`, so the headline can be
+     * "people" and the hint can still be "pages".
+     */
+    VisitModel.aggregate<{
+      today: Array<{ views: number; unique: string[] }>;
+      week: Array<{ views: number; unique: string[] }>;
+      month: Array<{ views: number; unique: string[] }>;
+    }>([
+      { $match: { at: { $gte: startOfMonth } } },
+      {
+        $facet: {
+          today: [
+            { $match: { at: { $gte: startOfToday } } },
+            { $group: { _id: null, views: { $sum: 1 }, unique: { $addToSet: uniqueVisitorExpr } } },
+          ],
+          week: [
+            { $match: { at: { $gte: startOfWeek } } },
+            { $group: { _id: null, views: { $sum: 1 }, unique: { $addToSet: uniqueVisitorExpr } } },
+          ],
+          month: [{ $group: { _id: null, views: { $sum: 1 }, unique: { $addToSet: uniqueVisitorExpr } } }],
+        },
+      },
+    ]).then((rows) => rows[0] ?? { today: [], week: [], month: [] }),
     TitleModel.countDocuments({ type: 'movie' }),
     TitleModel.countDocuments({ type: 'tv' }),
     ProviderModel.estimatedDocumentCount(),
@@ -107,9 +127,23 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     ]).then((rows) => rows[0]?.total ?? 0),
   ]);
 
+  const todayVisits = visitFacets.today[0];
+  const weekVisits = visitFacets.week[0];
+  const monthVisits = visitFacets.month[0];
+  const monthUnique = monthVisits?.unique.length ?? 0;
+
   return {
     users: { total: totalUsers, admins: adminCount, newToday, newThisWeek },
-    visits: { today: visitsToday, todayUnique: uniqueToday, week: visitsWeek, month: visitsMonth },
+    visits: {
+      today: todayVisits?.unique.length ?? 0,
+      week: weekVisits?.unique.length ?? 0,
+      month: monthUnique,
+      todayViews: todayVisits?.views ?? 0,
+      weekViews: weekVisits?.views ?? 0,
+      monthViews: monthVisits?.views ?? 0,
+      // One decimal is enough to read "3.4 pages per visitor"; integers stay bare.
+      viewsPerVisitor: monthUnique > 0 ? Math.round(((monthVisits?.views ?? 0) / monthUnique) * 10) / 10 : 0,
+    },
     catalogue: { total: movieCount + seriesCount, movies: movieCount, series: seriesCount },
     providers: { total: providerTotal, enabled: providerEnabled },
     serverFailures,
@@ -522,6 +556,97 @@ export async function updateProvider(
     kinds: row.kinds ?? [],
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+/* ---------------------------------------------------- per-title servers */
+
+export interface AdminTitleServerRow {
+  key: string;
+  name: string;
+  badge: string | null;
+  kinds: string[];
+  /** The provider's global switch. */
+  enabled: boolean;
+  /** Whether this title currently renders it: global switch on and not disabled here. */
+  titleEnabled: boolean;
+  /** Consecutive failure strikes recorded on this title for this provider. */
+  failures: number;
+}
+
+export interface AdminTitleServers {
+  title: { id: string; slug: string; title: string; type: 'movie' | 'tv' };
+  servers: AdminTitleServerRow[];
+}
+
+type TitleServerSource = Pick<TitleDocument, 'slug' | 'title' | 'type' | 'disabledServers' | 'serverFailures'> & {
+  _id: unknown;
+};
+
+/**
+ * Mongo returns a `Map` field as a real `Map` under `lean()` in some versions and as a plain
+ * object in others. Normalise once so the callers do not have to know which.
+ */
+function plainFailures(value: TitleDocument['serverFailures'] | undefined): Record<string, number> {
+  if (!value) return {};
+  if (value instanceof Map) return Object.fromEntries(value) as Record<string, number>;
+  return value as Record<string, number>;
+}
+
+export async function getTitleServers(id: string): Promise<AdminTitleServers> {
+  const [row, providers] = await Promise.all([
+    TitleModel.findById(id)
+      .select('slug title type disabledServers serverFailures')
+      .lean<TitleServerSource | null>(),
+    ProviderModel.find().sort({ priority: 1, name: 1 }).lean<Array<ProviderDocument & { _id: unknown }>>(),
+  ]);
+
+  if (!row) throw ApiError.notFound('No title with that id.');
+
+  const disabled = new Set(row.disabledServers ?? []);
+  const failures = plainFailures(row.serverFailures);
+
+  return {
+    title: { id: String(row._id), slug: row.slug, title: row.title, type: row.type },
+    servers: providers.map((provider) => ({
+      key: provider.key,
+      name: provider.name,
+      badge: provider.badge ?? null,
+      kinds: provider.kinds ?? [],
+      enabled: provider.enabled,
+      titleEnabled: provider.enabled && !disabled.has(provider.key),
+      failures: failures[provider.key] ?? 0,
+    })),
+  };
+}
+
+/**
+ * Turn one provider on or off for one title.
+ *
+ * The row is updated with `$addToSet`/`$pull` rather than by rewriting the array so two
+ * operators toggling different providers at the same time cannot clobber each other. The
+ * server-list cache embeds this decision per title and season, so the whole `servers:` family
+ * is dropped; it is a cheap admin action and cannot miss an episode the way a per-key delete
+ * could.
+ */
+export async function setTitleServerEnabled(
+  id: string,
+  providerKey: string,
+  enabled: boolean,
+): Promise<AdminTitleServers> {
+  const provider = await ProviderModel.exists({ key: providerKey });
+  if (!provider) throw ApiError.notFound('No provider with that key.');
+
+  const update = enabled
+    ? { $pull: { disabledServers: providerKey } }
+    : { $addToSet: { disabledServers: providerKey } };
+
+  const row = await TitleModel.findByIdAndUpdate(id, update, { new: true }).select('slug').lean();
+  if (!row) throw ApiError.notFound('No title with that id.');
+
+  cache.invalidate(cacheKey.servers(''));
+  broadcast('servers');
+
+  return getTitleServers(id);
 }
 
 /* ------------------------------------------------------- page tracking */

@@ -190,6 +190,17 @@ export async function getServers(
               return { rejected: { key: provider.key, reason: 'disabled after repeated reports' } };
             }
 
+            /*
+             * A per-title switch, set from the console. Checked after the global failure
+             * demotion so the rejection reason reports the more specific cause when both apply,
+             * and recorded in `rejected` rather than silently skipped: the admin endpoint that
+             * renders the toggles shows the same list, and "why is this source missing" should
+             * have an answer wherever it is asked.
+             */
+            if (row.disabledServers?.includes(provider.key)) {
+              return { rejected: { key: provider.key, reason: 'disabled for this title' } };
+            }
+
             if (!provider.kinds?.includes(type)) return null;
 
             const outcome = resolveTemplate(
@@ -215,7 +226,17 @@ export async function getServers(
              *
              * This is what replaced the iframe sandbox. A 302 is chosen by the origin server and
              * resolved before any attribute is read, so the only place a redirect can be stopped is
-             * here, before the frame is created. The frame is handed the final URL.
+             * here, before the frame is created.
+             *
+             * The guard is a *gate*, not a rewrite. It decides whether the provider is safe to
+             * hand to the browser, but the URL that is handed over is the provider's own template
+             * URL, NOT the final hop of the chain. Serving the resolved final URL is what broke
+             * playback: a provider whose page redirects to a different host (Filmu's
+             * `embed.filmu.in` -> `vidly.pro`) was being handed to the frame as that other host,
+             * which is neither in the browser's `frame-src` CSP nor recognised by the client's
+             * mirror mapping - so Chrome refused it with "This content is blocked". The browser
+             * follows the same redirect on its own; the difference is that it now follows it
+             * starting from an origin both the CSP and the mirror know.
              *
              * Policy rejections (ad host, unlisted host, bad scheme, loop) drop the provider. A
              * transport failure does not: it means we could not check, not that the URL is bad, and
@@ -232,7 +253,7 @@ export async function getServers(
                 key: provider.key,
                 name: provider.name,
                 badge: provider.badge,
-                url: isEmbedRejection(guarded) ? outcome.url : guarded.url,
+                url: outcome.url,
                 type: 'iframe',
               },
             };

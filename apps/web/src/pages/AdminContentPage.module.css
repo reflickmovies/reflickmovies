@@ -42,3 +42,71 @@
   display: flex;
   gap: var(--space-sm);
 }
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.serverList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(52vh, 460px);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.serverRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.serverRow:hover {
+  background-color: var(--lp-pill-inactive);
+}
+
+.serverText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.serverName {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--adm-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.serverBadge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background-color: var(--adm-accent-soft);
+  color: var(--adm-accent);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.serverMeta {
+  color: var(--adm-faint);
+  font-size: 0.75rem;
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

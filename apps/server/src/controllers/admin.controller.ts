@@ -30,6 +30,8 @@ const trackSchema = z.object({
 
 const providerDefaultSchema = z.object({ key: z.string().min(1).max(200).nullable() });
 
+const titleServerSchema = z.object({ enabled: z.boolean() });
+
 /* ------------------------------------------------------------- overview */
 
 export const getStats = asyncHandler(async (_req: Request, res: Response) => {
@@ -93,6 +95,17 @@ export const getTitles = asyncHandler(async (req: Request, res: Response) => {
 export const deleteTitle = asyncHandler(async (req: Request, res: Response) => {
   await admin.deleteTitle(param(req, 'id'));
   sendData(res, { ok: true });
+});
+
+/* ------------------------------------------------------- per-title servers */
+
+export const getTitleServers = asyncHandler(async (req: Request, res: Response) => {
+  sendData(res, await admin.getTitleServers(param(req, 'id')));
+});
+
+export const updateTitleServer = asyncHandler(async (req: Request, res: Response) => {
+  const body = parse(titleServerSchema, req.body);
+  sendData(res, await admin.setTitleServerEnabled(param(req, 'id'), param(req, 'providerKey'), body.enabled));
 });
 
 /* ------------------------------------------------------------ providers */

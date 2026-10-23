@@ -7,6 +7,7 @@ import type {
   AdminDashboardStats,
   AdminProviderRow,
   AdminTitleRow,
+  AdminTitleServers,
   AdminUserDetail,
   AdminUserRow,
   AdminVisitRow,
@@ -58,6 +59,7 @@ const KEY = {
   adminVisits: (page: number, ip: string, search: string) => `admin:visits:${page}:${ip}:${search}`,
   adminVisitStats: (days: number) => `admin:visitstats:${days}`,
   adminTitles: (page: number, search: string, type: string) => `admin:titles:${page}:${search}:${type}`,
+  adminTitleServers: (id: string) => `admin:title-servers:${id}`,
   adminProviders: () => 'admin:providers',
   adminCache: () => 'admin:cache',
   adminProviderDefault: () => 'admin:provider-default',
@@ -271,6 +273,14 @@ export function useAdminTitles(enabled: boolean, page: number, search: string, t
 
 export function useAdminProviders(enabled: boolean) {
   return useQuery<AdminProviderRow[]>(enabled ? KEY.adminProviders() : null, api.getAdminProviders, { ttlMs: 15_000 });
+}
+
+export function useAdminTitleServers(enabled: boolean, id: string | null) {
+  return useQuery<AdminTitleServers>(
+    enabled && id ? KEY.adminTitleServers(id) : null,
+    (signal) => api.getAdminTitleServers(id as string, signal),
+    { ttlMs: 15_000 },
+  );
 }
 
 export function useAdminCache(enabled: boolean) {

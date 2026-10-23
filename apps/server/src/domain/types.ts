@@ -152,6 +152,15 @@ export interface TitleRecord {
   details?: TitleDetailsRecord;
   /** providerKey -> consecutive failure count. */
   serverFailures: Record<string, number>;
+  /**
+   * Provider keys an operator has switched off for this title only.
+   *
+   * Stored as the disabled set rather than an enabled map so a provider added later is
+   * on by default everywhere, which is what "add a source" should mean. An empty array is
+   * the normal state; the global `ProviderRecord.enabled` flag still decides whether a
+   * provider exists at all.
+   */
+  disabledServers: string[];
   syncedAt: Date;
 }
 

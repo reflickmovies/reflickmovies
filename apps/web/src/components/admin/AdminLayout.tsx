@@ -5,7 +5,6 @@ import {
   FilmStrip,
   Gear,
   House,
-  SignOut,
   SquaresFour,
   Users,
   Warning,
@@ -14,7 +13,7 @@ import type { Icon } from '@phosphor-icons/react';
 import { useAuth } from '../account/AuthProvider';
 import { ProfileAvatar } from '../account/ProfileAvatar';
 import { Wordmark } from '../brand/Wordmark';
-import { Button, LoadingState, useToast } from '../ui';
+import { Button, LoadingState } from '../ui';
 import { useSpringIndicator } from '../../hooks/useSpringIndicator';
 import { useAdminLive } from '../../hooks/useAdminLive';
 import { ApiError } from '../../lib/api';
@@ -75,10 +74,9 @@ export function useAdminGateGuard<E>(error: E): E | null {
  * 403.
  */
 export function AdminLayout() {
-  const { user, status, isAdmin, openAuth, signOut } = useAuth();
+  const { user, status, isAdmin, openAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { push } = useToast();
 
   // The gate is driven by state so a 403 on any page (a role revoked mid-session) can
   // bring it up without a reload.
@@ -138,12 +136,6 @@ export function AdminLayout() {
     );
   }
 
-  const handleSignOut = async (): Promise<void> => {
-    await signOut();
-    push({ tone: 'info', title: 'Signed out' });
-    navigate(ROUTES.home);
-  };
-
   return (
     <AdminGateContext.Provider value={openGate}>
       <div className={shellStyles.shellRoot}>
@@ -165,52 +157,6 @@ export function AdminLayout() {
                       <AdminNavItem key={item.to} to={item.to} icon={item.icon} label={item.label} end={item.end} />
                     ))}
                   </nav>
-
-                  {/*
-                    The reader rail's Continue-watching slot, filled here by the console's own
-                    furniture. Everything that is not a destination lives in this one group at the
-                    bottom of the rail: the way out, who is signed in, and the way to sign out.
-                    The top bar used to carry a second copy of "Back to site" and the live
-                    indicator, which split the console's furniture across two edges and left the
-                    operator's identity floating in the header. One group, one place.
-                  */}
-                  <div className={styles.sidebarFooter}>
-                    {/*
-                      Live indicator: the one bit of socket state worth showing. It reports
-                      transport health, not an alert - the panels keep showing their last data
-                      either way - so it sits quietly with the rest of the rail furniture.
-                    */}
-                    <span
-                      className={`${styles.liveDot} ${live ? styles.liveOn : ''}`.trim()}
-                      title={live ? 'Live - updates as they happen' : 'Reconnecting…'}
-                    >
-                      <span className={styles.livePulse} aria-hidden />
-                      <span className={styles.liveLabel}>{live ? 'Live' : 'Offline'}</span>
-                    </span>
-
-                    <Link to={ROUTES.home} className={styles.backLink}>
-                      <House size={16} weight="bold" aria-hidden />
-                      <span>Back to site</span>
-                    </Link>
-
-                    <div className={styles.sidebarUser}>
-                      <ProfileAvatar user={user} size={32} />
-                      <span className={styles.sidebarUserText}>
-                        <span className={styles.sidebarUserName}>{user.displayName}</span>
-                        <span className={styles.sidebarUserEmail}>{user.email}</span>
-                      </span>
-                    </div>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={<SignOut size={15} aria-hidden />}
-                      onClick={() => void handleSignOut()}
-                      block
-                    >
-                      Sign out
-                    </Button>
-                  </div>
                 </div>
               </div>
             </aside>
@@ -248,14 +194,26 @@ export function AdminLayout() {
                 </nav>
 
                 {/*
-                  The header carries the destination pills and one way to the operator's own
-                  account. "Back to site" and the live indicator used to sit here as well, but
-                  both belong to the rail's bottom group - one home for the console's furniture
-                  rather than the same two controls in two places. On a narrow screen the rail is
-                  gone, and the wordmark above is the link home, while this avatar opens the
-                  account page, which carries its own sign out.
+                  The header carries the destination pills and the console's own furniture on the
+                  right: the live indicator, a compact way back to the site, and the operator's
+                  avatar. Nothing that belongs to the rail's bottom group remains there - the
+                  dashboard is destinations only, and everything that is not a destination lives
+                  here, on the one edge the operator already looks at for chrome.
                 */}
                 <div className={topNavStyles.actions}>
+                  <span
+                    className={`${styles.liveDot} ${live ? styles.liveOn : ''}`.trim()}
+                    title={live ? 'Live - updates as they happen' : 'Reconnecting…'}
+                  >
+                    <span className={styles.livePulse} aria-hidden />
+                    {live ? 'Live' : 'Offline'}
+                  </span>
+
+                  <Link to={ROUTES.home} className={styles.backButton}>
+                    <House size={15} weight="bold" aria-hidden />
+                    <span>Back to website</span>
+                  </Link>
+
                   <button
                     type="button"
                     className={topNavStyles.profileButton}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Trash } from '@phosphor-icons/react';
+import { SlidersHorizontal, Trash } from '@phosphor-icons/react';
 import { useAuth } from '../components/account/AuthProvider';
-import { useAdminTitles } from '../hooks/useReflick';
+import { useAdminTitleServers, useAdminTitles } from '../hooks/useReflick';
 import {
   AdminPageHeader,
   DataTable,
@@ -12,7 +12,7 @@ import {
   formatDateTime,
   formatNumber,
 } from '../components/admin/adminPrimitives';
-import { Button, ErrorState, LoadingState, Select, useToast } from '../components/ui';
+import { Button, ErrorState, LoadingState, Modal, Select, useToast } from '../components/ui';
 import { useAdminGateGuard } from '../components/admin/AdminLayout';
 import { invalidateQuery } from '../hooks/useQuery';
 import * as api from '../lib/api';
@@ -33,8 +33,11 @@ export function AdminContentPage() {
   const [search, setSearch] = useState('');
   const [type, setType] = useState<TitleType | ''>('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [serversFor, setServersFor] = useState<AdminTitleRow | null>(null);
+  const [busyServer, setBusyServer] = useState<string | null>(null);
 
   const titles = useAdminTitles(isAdmin, page, search, type);
+  const titleServers = useAdminTitleServers(isAdmin, serversFor?.id ?? null);
   const titlesError = useAdminGateGuard(titles.error);
 
   const refresh = (): void => {
@@ -57,6 +60,29 @@ export function AdminContentPage() {
       });
     } finally {
       setBusy(null);
+    }
+  };
+
+  const toggleServer = async (providerKey: string, enabled: boolean): Promise<void> => {
+    if (serversFor === null) return;
+    setBusyServer(providerKey);
+    try {
+      await api.updateAdminTitleServer(serversFor.id, providerKey, enabled);
+      push({
+        tone: 'success',
+        title: enabled ? 'Server enabled' : 'Server disabled',
+        description: enabled ? 'It can serve this title again.' : 'It is hidden for this title only.',
+      });
+      invalidateQuery(`admin:title-servers:${serversFor.id}`);
+      titleServers.refetch();
+    } catch (caught) {
+      push({
+        tone: 'error',
+        title: 'Could not update the server',
+        description: caught instanceof Error ? caught.message : 'Please try again.',
+      });
+    } finally {
+      setBusyServer(null);
     }
   };
 
@@ -139,14 +165,24 @@ export function AdminContentPage() {
                     </td>
                     <td className={styles.dim}>{formatDateTime(row.syncedAt)}</td>
                     <td>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        loading={busy === row.id}
-                        onClick={() => void remove(row)}
-                        icon={<Trash size={15} />}
-                        aria-label={`Delete ${row.title}`}
-                      />
+                      <div className={styles.rowActions}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setServersFor(row)}
+                          icon={<SlidersHorizontal size={15} />}
+                          aria-label={`Servers for ${row.title}`}
+                          title="Servers"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          loading={busy === row.id}
+                          onClick={() => void remove(row)}
+                          icon={<Trash size={15} />}
+                          aria-label={`Delete ${row.title}`}
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -174,6 +210,63 @@ export function AdminContentPage() {
           </div>
         </div>
       </Panel>
+
+      {/*
+        Per-title server switches. The global on/off and the preferred-source pin live on the
+        Servers page; this dialog only answers "should this provider serve *this* title".
+        Providers switched off globally are shown but not operable here, with the reason in the
+        row, so the list never silently disagrees with the catalogue.
+      */}
+      <Modal
+        open={serversFor !== null}
+        onClose={() => setServersFor(null)}
+        title={serversFor === null ? 'Servers' : `Servers · ${serversFor.title}`}
+        description="Switch a provider off for this title only. The global switch lives on the Servers page."
+        footer={
+          <Button variant="outline" size="sm" onClick={() => setServersFor(null)}>
+            Done
+          </Button>
+        }
+      >
+        {titleServers.isLoading && titleServers.data === null ? (
+          <LoadingState label="Loading servers…" />
+        ) : titleServers.data === null ? (
+          <p className={styles.dim}>Could not load this title's servers.</p>
+        ) : (
+          <ul className={styles.serverList}>
+            {titleServers.data.servers.map((server) => {
+              const irrelevant = !server.kinds.includes(serversFor?.type ?? '');
+              return (
+                <li key={server.key} className={styles.serverRow}>
+                  <span className={styles.serverText}>
+                    <span className={styles.serverName}>
+                      {server.name}
+                      {server.badge !== null ? <span className={styles.serverBadge}>{server.badge}</span> : null}
+                    </span>
+                    <span className={styles.serverMeta}>
+                      {server.key}
+                      {server.failures > 0
+                        ? ` · ${server.failures} failure${server.failures === 1 ? '' : 's'}`
+                        : ''}
+                      {!server.enabled ? ' · off globally' : ''}
+                      {irrelevant ? ' · not used for this type' : ''}
+                    </span>
+                  </span>
+                  <Button
+                    variant={server.titleEnabled ? 'outline' : 'primary'}
+                    size="sm"
+                    disabled={!server.enabled || irrelevant}
+                    loading={busyServer === server.key}
+                    onClick={() => void toggleServer(server.key, !server.titleEnabled)}
+                  >
+                    {server.titleEnabled ? 'Disable' : 'Enable'}
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Modal>
     </div>
   );
 }

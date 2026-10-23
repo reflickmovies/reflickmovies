@@ -323,7 +323,15 @@ export interface AccountPayload {
 
 export interface AdminDashboardStats {
   users: { total: number; admins: number; newToday: number; newThisWeek: number };
-  visits: { today: number; todayUnique: number; week: number; month: number };
+  visits: {
+    today: number;
+    week: number;
+    month: number;
+    todayViews: number;
+    weekViews: number;
+    monthViews: number;
+    viewsPerVisitor: number;
+  };
   catalogue: { total: number; movies: number; series: number };
   providers: { total: number; enabled: number };
   serverFailures: number;
@@ -364,6 +372,21 @@ export interface AdminVisitStats {
   topPaths: Array<{ path: string; visits: number }>;
   totalVisits: number;
   uniqueVisitors: number;
+}
+
+export interface AdminTitleServerRow {
+  key: string;
+  name: string;
+  badge: string | null;
+  kinds: string[];
+  enabled: boolean;
+  titleEnabled: boolean;
+  failures: number;
+}
+
+export interface AdminTitleServers {
+  title: { id: string; slug: string; title: string; type: TitleType };
+  servers: AdminTitleServerRow[];
 }
 
 export interface AdminTitleRow {

@@ -6,6 +6,7 @@ import type {
   AdminProviderDefault,
   AdminProviderRow,
   AdminTitleRow,
+  AdminTitleServers,
   AdminUserDetail,
   AdminUserRow,
   AdminVisitRow,
@@ -608,6 +609,21 @@ export function getAdminTitles(
 
 export function deleteAdminTitle(id: string): Promise<{ ok: boolean }> {
   return requestData<{ ok: boolean }>(`/admin/titles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function getAdminTitleServers(id: string, signal?: AbortSignal): Promise<AdminTitleServers> {
+  return requestData<AdminTitleServers>(`/admin/titles/${encodeURIComponent(id)}/servers`, { signal });
+}
+
+export function updateAdminTitleServer(
+  id: string,
+  providerKey: string,
+  enabled: boolean,
+): Promise<AdminTitleServers> {
+  return requestData<AdminTitleServers>(
+    `/admin/titles/${encodeURIComponent(id)}/servers/${encodeURIComponent(providerKey)}`,
+    { method: 'PATCH', body: { enabled } },
+  );
 }
 
 export function getAdminProviders(signal?: AbortSignal): Promise<AdminProviderRow[]> {
