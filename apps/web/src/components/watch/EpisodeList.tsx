@@ -1,7 +1,7 @@
 import { memo, useEffect, useId, useState } from 'react';
-import { CalendarBlank, CaretDown, Clock, Play, Star } from '@phosphor-icons/react';
+import { CaretDown, Play, Star } from '@phosphor-icons/react';
 import type { Episode, Season } from '../../types/api';
-import { formatAirDate, formatEpisodeLabel, formatRating, formatSeasonLabel, pluralise } from '../../lib/format';
+import { formatRating, formatSeasonLabel, pluralise } from '../../lib/format';
 import { useAnchoredPanel } from '../../hooks/useAnchoredPanel';
 import { useExitFade } from '../../hooks/useExitFade';
 import styles from './watch.module.css';
@@ -301,7 +301,6 @@ export const EpisodeRow = memo(function EpisodeRow({ episode, active = false, on
   const [failed, setFailed] = useState(false);
 
   const title = episode.title.trim().length > 0 ? episode.title : `Episode ${episode.episode}`;
-  const airDate = formatAirDate(episode.airDate);
   const rating = formatRating(episode.rating);
 
   return (
@@ -339,32 +338,20 @@ export const EpisodeRow = memo(function EpisodeRow({ episode, active = false, on
         {!loaded && !failed ? <span className={styles.stillFallback ?? ''} aria-hidden /> : null}
       </span>
 
+      {/*
+        Only the title and the rating, pinned together to the top-right of the card. Runtime and
+        air date were dropped: at a glance the reader is choosing an episode to watch, not auditing
+        the season, and the two values that survive are the two the choice actually turns on.
+      */}
       <span className={styles.episodeBody ?? ''}>
-        <span className={styles.episodeHeading ?? ''}>
-          <span className={styles.episodeNumber ?? ''}>{formatEpisodeLabel(episode.season, episode.episode)}</span>
-          <span className={styles.episodeTitle ?? ''}>{title}</span>
-        </span>
+        <span className={styles.episodeTitle ?? ''}>{title}</span>
 
-        <span className={styles.episodeMeta ?? ''}>
-          {episode.runtimeLabel ? (
-            <span className={styles.episodeMetaItem ?? ''}>
-              <Clock size={13} aria-hidden />
-              {episode.runtimeLabel}
-            </span>
-          ) : null}
-          {airDate ? (
-            <span className={styles.episodeMetaItem ?? ''}>
-              <CalendarBlank size={13} aria-hidden />
-              {airDate}
-            </span>
-          ) : null}
-          {rating ? (
-            <span className={`${styles.episodeMetaItem ?? ''} ${styles.episodeRating ?? ''}`.trim()}>
-              <Star size={13} weight="fill" aria-hidden />
-              {rating}
-            </span>
-          ) : null}
-        </span>
+        {rating ? (
+          <span className={styles.episodeRating ?? ''}>
+            <Star size={13} weight="fill" aria-hidden />
+            {rating}
+          </span>
+        ) : null}
       </span>
     </button>
   );

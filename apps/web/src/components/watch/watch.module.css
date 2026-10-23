@@ -399,27 +399,22 @@
 /* -------------------------------------------------------------- episodes */
 
 /*
- * An episode card, built as the same tile as the "More like this" cards beside it.
+ * An episode card: the still as the whole tile, with the title and rating on a panel in its
+ * top-right corner.
  *
- * It began as a padded row: a fixed inset still with the text laid out next to it on a panel. On a
- * series page that put two card languages on one screen - a rounded artwork tile in the related
- * row and a letterboxed row in the episode list - for no reason the reader could see. This is now
- * the `TitleCard` shape: the still fills the card edge to edge, and an opaque caption panel sits
- * over the lower edge carrying the number, title and meta. One tile, whether the page is showing
- * an episode or a related film.
+ * It began as a padded row - a fixed inset still with a column of text beside it - which put two
+ * card languages on one series page: a rounded artwork tile in the "More like this" row and a
+ * letterboxed row in the episode list, for no reason the reader could see. The still now fills the
+ * card edge to edge, so an episode reads as the same tile as a related film, and the label is a
+ * small overlay rather than a caption band.
  *
- * The still is `position: absolute` and fills the card; the body is the caption floating over its
- * lower edge, exactly as `TitleCard`'s caption does. Landscape ratio, because episode stills are
- * 16:9 and cropping one into a portrait tile would cut the subject out of every frame.
- *
- * `isolation: isolate` keeps the scrim and the play puck from escaping the card, and stops one
- * card's hover from painting over a neighbour's.
+ * Landscape ratio, because episode stills are 16:9 and cropping one into a portrait tile would cut
+ * the subject out of every frame. `isolation: isolate` keeps the scrim and the play puck from
+ * escaping the card, and stops one card's hover from painting over a neighbour's.
  */
 .episodeRow {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  display: block;
   aspect-ratio: 16 / 9;
   border: 1px solid var(--ep-line);
   border-radius: 24px;
@@ -491,21 +486,21 @@
 }
 
 /*
- * The scrim: a fade from the foot of the still, under the caption.
+ * The scrim: a vignette weighted to the top-right corner, behind the label.
  *
- * A bottom-up gradient rather than the centred radial the padded layout used, because the caption
- * now sits on the artwork and needs a dark floor behind its type. Strongest at the very bottom and
- * gone by the middle, so the top of the still is untouched.
+ * A diagonal wash from the top-right, where the title and rating now sit, so the type reads
+ * against any frame without dimming the whole picture. Gone by the lower-left, where the still
+ * should be seen.
  */
 .stillScrim {
   position: absolute;
   inset: 0;
   z-index: 1;
   background: linear-gradient(
-    to top,
-    rgba(9, 9, 10, 0.92) 0%,
-    rgba(9, 9, 10, 0.66) 26%,
-    rgba(9, 9, 10, 0.12) 56%,
+    to bottom left,
+    rgba(9, 9, 10, 0.86) 0%,
+    rgba(9, 9, 10, 0.5) 30%,
+    rgba(9, 9, 10, 0.1) 58%,
     rgba(9, 9, 10, 0) 78%
   );
   transition: opacity var(--motion-fast) var(--motion-ease);
@@ -547,55 +542,35 @@
 }
 
 /*
- * The caption panel, over the lower edge of the still - the `TitleCard` caption, with an episode's
- * number, title and meta instead of a poster's.
+ * The top-right label: the episode title and, when it has one, the rating.
  *
- * An opaque dim fill rather than a blur, for the same reason the title card's caption is: a
- * backdrop-filter samples the artwork behind it, so its contrast changes card to card and does
- * nothing over a flat one. A fixed alpha floor is predictable against any frame.
+ * It sits over the upper-right corner of the still, on its own dark panel so the type reads
+ * against any frame. Everything else an episode carries - runtime, air date, number, synopsis -
+ * is gone; the choice the reader is making turns on the title and, at most, the score.
  */
 .episodeBody {
-  position: relative;
+  position: absolute;
+  top: 10px;
+  right: 10px;
   z-index: 2;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-  margin: 10px;
-  padding: 12px 16px;
-  border-radius: 18px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+  padding: 8px 12px;
+  border-radius: 14px;
   background-color: rgba(16, 16, 19, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  min-width: 0;
-}
-
-/*
- * The title block: number and title on one line, wrapping together.
- *
- * `align-items: baseline` rather than `flex-start` so the number sits on the title's first
- * baseline rather than its cap height. It grows to fill the caption and yields to the meta.
- */
-.episodeHeading {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-sm);
-  min-width: 0;
-  flex: 1;
-}
-
-.episodeNumber {
-  flex-shrink: 0;
-  font-family: var(--font-family-numeric);
-  font-size: var(--font-size-meta);
-  color: var(--ep-accent);
-  font-weight: 700;
 }
 
 .episodeTitle {
   font-size: 0.9375rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+  line-height: 1.2;
   color: #ffffff;
+  text-align: right;
   /*
     Wraps anywhere.
 
@@ -606,29 +581,12 @@
   overflow-wrap: anywhere;
 }
 
-/*
- * The meta row: runtime, air date and rating, set small and quiet under the title inside the
- * caption. Icons give the values a scannable rhythm so they do not have to describe themselves.
- */
-.episodeMeta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-md);
-  margin-top: 4px;
-  font-size: var(--font-size-meta);
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.episodeMetaItem {
+/* The rating, on its own line under the title, carrying the accent. */
+.episodeRating {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  white-space: nowrap;
-}
-
-/* The rating carries the one warm accent in the row, so the score is findable at a glance. */
-.episodeRating {
+  font-size: var(--font-size-meta);
+  font-weight: 700;
   color: var(--ep-accent);
-  font-weight: 600;
 }
